@@ -1,0 +1,5 @@
+{
+  "waybettercoppergolem.label.catch_all": "Label: catch-all (unmatched items go here)",
+  "waybettercoppergolem.label.exact": "Label: %s (exact item only)",
+  "waybettercoppergolem.label.tag": "Label: %s"
+}
