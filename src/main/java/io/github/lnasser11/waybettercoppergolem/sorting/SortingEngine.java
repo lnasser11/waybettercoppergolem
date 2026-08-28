@@ -161,7 +161,7 @@ public final class SortingEngine {
 		}
 		long rank = Long.MAX_VALUE;
 		for (ChestLabel label : labels) {
-			int specificity = LabelResolver.specificity(label, held);
+			int specificity = LabelResolver.specificity(level, label, held);
 			if (specificity == LabelResolver.NO_MATCH && !label.isCatchAll()) {
 				continue;
 			}
@@ -189,7 +189,7 @@ public final class SortingEngine {
 			return container.isEmpty() || containsSameItem(container, held);
 		}
 		boolean accepted = labels.stream()
-				.anyMatch(label -> label.isCatchAll() || LabelResolver.matches(label, held));
+				.anyMatch(label -> label.isCatchAll() || LabelResolver.matches(level, label, held));
 		return accepted && canAcceptAny(target.container(), held);
 	}
 
@@ -265,7 +265,7 @@ public final class SortingEngine {
 			if (stack.isEmpty()) {
 				continue;
 			}
-			boolean matchesAnyLabel = labels.stream().anyMatch(label -> LabelResolver.matches(label, stack));
+			boolean matchesAnyLabel = labels.stream().anyMatch(label -> LabelResolver.matches(level, label, stack));
 			if (!matchesAnyLabel) {
 				return stack;
 			}

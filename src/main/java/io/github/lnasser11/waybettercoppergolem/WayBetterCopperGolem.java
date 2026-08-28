@@ -18,6 +18,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -34,9 +35,14 @@ public class WayBetterCopperGolem implements ModInitializer {
 	public static final AttachmentType<List<ChestLabel>> CHEST_LABELS =
 			AttachmentRegistry.createPersistent(id("chest_labels"), ChestLabel.CODEC.listOf());
 
-	/** Chosen expansion level, stored on the label item frame itself. */
-	public static final AttachmentType<Integer> FRAME_EXPANSION =
-			AttachmentRegistry.createPersistent(id("frame_expansion"), Codec.INT);
+	/** The chosen category tag id, stored on the label item frame itself; absent = exact item. */
+	public static final AttachmentType<Identifier> FRAME_TAG =
+			AttachmentRegistry.createPersistent(id("frame_tag"), Identifier.CODEC);
+
+	/** World-wide category tuning (items added to / removed from tag categories). */
+	public static final AttachmentType<java.util.Map<Identifier, io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning.TagOverride>> CATEGORY_OVERRIDES =
+			AttachmentRegistry.createPersistent(id("category_overrides"),
+					io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning.CODEC);
 
 	/** Sorting-zone settings, stored on a copper chest block entity. */
 	public static final AttachmentType<io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings> ZONE_SETTINGS =
@@ -55,6 +61,9 @@ public class WayBetterCopperGolem implements ModInitializer {
 		CommonLifecycleEvents.TAGS_LOADED.register((registries, client) -> LabelResolver.invalidateCaches());
 		UseEntityCallback.EVENT.register(WayBetterCopperGolem::onUseEntity);
 		net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register(WayBetterCopperGolem::onUseBlock);
+		net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register(
+				(dispatcher, registryAccess, environment) ->
+						io.github.lnasser11.waybettercoppergolem.command.WbcgCommand.register(dispatcher, registryAccess));
 		if (net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment()) {
 			// Force the lazily-loaded behavior class so a broken mixin fails
 			// at startup in dev instead of when the first golem spawns.
@@ -83,6 +92,30 @@ public class WayBetterCopperGolem implements ModInitializer {
 		}
 		ServerLevel serverLevel = (ServerLevel) level;
 		ChestLabel current = ChestLabels.labelFromFrame(frame);
+		ItemStack heldItem = player.getMainHandItem();
+
+		// Sneak-click while HOLDING an item on a category frame: toggle that
+		// item's membership in the category, world-wide.
+		if (!heldItem.isEmpty()) {
+			net.minecraft.network.chat.Component message;
+			if (current.isTagLabel()) {
+				Identifier tagId = current.tagId().orElseThrow();
+				var result = io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning
+						.toggle(serverLevel, tagId, heldItem.getItem());
+				String key = result == io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning.ToggleResult.ADDED
+						? "waybettercoppergolem.tuning.added" : "waybettercoppergolem.tuning.removed";
+				message = net.minecraft.network.chat.Component.translatable(key,
+						heldItem.getItem().getName(heldItem), LabelResolver.tagName(tagId));
+			} else {
+				message = net.minecraft.network.chat.Component
+						.translatable("waybettercoppergolem.tuning.needs_category");
+			}
+			if (player instanceof ServerPlayer serverPlayer) {
+				serverPlayer.sendOverlayMessage(message);
+			}
+			return InteractionResult.SUCCESS;
+		}
+
 		// Cobweb frames and empty frames have fixed meanings; nothing to cycle.
 		ChestLabel label = (frame.getItem().isEmpty() || current.isOffLimits())
 				? current

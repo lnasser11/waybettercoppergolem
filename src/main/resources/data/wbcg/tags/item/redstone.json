@@ -1,0 +1,153 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "minecraft:redstone",
+      "required": false
+    },
+    {
+      "id": "minecraft:redstone_block",
+      "required": false
+    },
+    {
+      "id": "minecraft:redstone_torch",
+      "required": false
+    },
+    {
+      "id": "minecraft:repeater",
+      "required": false
+    },
+    {
+      "id": "minecraft:comparator",
+      "required": false
+    },
+    {
+      "id": "minecraft:observer",
+      "required": false
+    },
+    {
+      "id": "minecraft:piston",
+      "required": false
+    },
+    {
+      "id": "minecraft:sticky_piston",
+      "required": false
+    },
+    {
+      "id": "minecraft:slime_block",
+      "required": false
+    },
+    {
+      "id": "minecraft:honey_block",
+      "required": false
+    },
+    {
+      "id": "minecraft:dispenser",
+      "required": false
+    },
+    {
+      "id": "minecraft:dropper",
+      "required": false
+    },
+    {
+      "id": "minecraft:hopper",
+      "required": false
+    },
+    {
+      "id": "#minecraft:rails",
+      "required": false
+    },
+    {
+      "id": "minecraft:minecart",
+      "required": false
+    },
+    {
+      "id": "minecraft:chest_minecart",
+      "required": false
+    },
+    {
+      "id": "minecraft:hopper_minecart",
+      "required": false
+    },
+    {
+      "id": "minecraft:tnt",
+      "required": false
+    },
+    {
+      "id": "minecraft:tnt_minecart",
+      "required": false
+    },
+    {
+      "id": "minecraft:lever",
+      "required": false
+    },
+    {
+      "id": "minecraft:stone_button",
+      "required": false
+    },
+    {
+      "id": "minecraft:polished_blackstone_button",
+      "required": false
+    },
+    {
+      "id": "minecraft:stone_pressure_plate",
+      "required": false
+    },
+    {
+      "id": "minecraft:polished_blackstone_pressure_plate",
+      "required": false
+    },
+    {
+      "id": "minecraft:heavy_weighted_pressure_plate",
+      "required": false
+    },
+    {
+      "id": "minecraft:light_weighted_pressure_plate",
+      "required": false
+    },
+    {
+      "id": "minecraft:target",
+      "required": false
+    },
+    {
+      "id": "minecraft:daylight_detector",
+      "required": false
+    },
+    {
+      "id": "minecraft:tripwire_hook",
+      "required": false
+    },
+    {
+      "id": "minecraft:note_block",
+      "required": false
+    },
+    {
+      "id": "minecraft:redstone_lamp",
+      "required": false
+    },
+    {
+      "id": "minecraft:sculk_sensor",
+      "required": false
+    },
+    {
+      "id": "minecraft:calibrated_sculk_sensor",
+      "required": false
+    },
+    {
+      "id": "minecraft:crafter",
+      "required": false
+    },
+    {
+      "id": "minecraft:copper_bulb",
+      "required": false
+    },
+    {
+      "id": "minecraft:lightning_rod",
+      "required": false
+    },
+    {
+      "id": "minecraft:lectern",
+      "required": false
+    }
+  ]
+}

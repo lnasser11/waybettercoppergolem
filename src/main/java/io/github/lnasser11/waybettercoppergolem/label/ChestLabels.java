@@ -91,22 +91,40 @@ public final class ChestLabels {
 		if (framed.isEmpty()) {
 			return ChestLabel.catchAll();
 		}
-		Integer level = frame.getAttached(WayBetterCopperGolem.FRAME_EXPANSION);
-		return ChestLabel.of(BuiltInRegistries.ITEM.getKey(framed.getItem()), level == null ? 0 : level);
+		net.minecraft.resources.Identifier itemId = BuiltInRegistries.ITEM.getKey(framed.getItem());
+		net.minecraft.resources.Identifier tagId = frame.getAttached(WayBetterCopperGolem.FRAME_TAG);
+		return tagId == null ? ChestLabel.exact(itemId) : ChestLabel.tag(itemId, tagId);
 	}
 
 	/**
-	 * Advances the frame's expansion level to the next cycle stop and
-	 * refreshes the chest's cached labels. Returns the new label.
+	 * Advances the frame to the next cycle stop (exact item, then the
+	 * item's categories narrow to broad) and refreshes the chest's cached
+	 * labels. The chosen stop is stored as the tag's id, so mods coming and
+	 * going never silently change what an existing frame means; a stored
+	 * tag no longer offered for this item falls back to restarting the
+	 * cycle. Returns the new label.
 	 */
 	public static ChestLabel cycleFrame(ServerLevel level, ItemFrame frame, BlockPos chestPos) {
 		ItemStack framed = frame.getItem();
 		if (framed.isEmpty()) {
 			return ChestLabel.catchAll();
 		}
-		Integer current = frame.getAttached(WayBetterCopperGolem.FRAME_EXPANSION);
-		int next = ((current == null ? 0 : current) + 1) % LabelResolver.cycleLength(framed.getItem());
-		frame.setAttached(WayBetterCopperGolem.FRAME_EXPANSION, next);
+		List<net.minecraft.tags.TagKey<net.minecraft.world.item.Item>> stops =
+				LabelResolver.orderedTags(framed.getItem());
+		net.minecraft.resources.Identifier current = frame.getAttached(WayBetterCopperGolem.FRAME_TAG);
+		int currentIndex = -1; // -1 = exact item
+		for (int i = 0; i < stops.size(); i++) {
+			if (stops.get(i).location().equals(current)) {
+				currentIndex = i;
+				break;
+			}
+		}
+		int nextIndex = currentIndex + 1;
+		if (nextIndex >= stops.size()) {
+			frame.removeAttached(WayBetterCopperGolem.FRAME_TAG); // back to exact
+		} else {
+			frame.setAttached(WayBetterCopperGolem.FRAME_TAG, stops.get(nextIndex).location());
+		}
 		labelsForHalf(level, chestPos);
 		return labelFromFrame(frame);
 	}

@@ -32,6 +32,32 @@ claimed by labels). When the dump queue is idle they slowly relocate
 misplaced stacks out of labeled chests. They can reach chests in walls
 up to the configured vertical reach (default 4 blocks) from the floor.
 
+### Categories and fine-tuning
+
+Beyond exact items and tags, the mod ships **12 preset categories** as
+plain datapack item tags (`wbcg:` namespace): Building Blocks, Wood,
+Stone & Earth, Redstone, Food, Farming, Ores & Minerals, Tools & Gear,
+Combat, Mob Drops, Nether & End, Decoration. They appear as the broadest
+stops when cycling a label frame, with friendly names in the actionbar.
+
+Every category is tunable in-game: **sneak-click a category label frame
+while holding an item** to toggle that item in or out of the category,
+server-wide ("Added Glowstone to Redstone"). Tweaks persist with the
+world and never modify the base tag data. Admins can also use:
+
+```
+/wbcg categories                       list presets + tweak counts
+/wbcg category list <name>             show a category's tweaks
+/wbcg category test <name> <item>      is this item in the category?
+/wbcg category add|remove <name> <item>   (op)
+/wbcg category reset <name>               (op)
+```
+
+Names default to the `wbcg` namespace (`redstone` = `wbcg:redstone`);
+any tag works with an explicit namespace (`c:ingots`,
+`minecraft:planks`). Whole categories can also be replaced with a
+regular datapack.
+
 **Sneak-right-click a copper chest with an empty hand** to open that
 sorting zone's settings: reorganize toggle, tidy-inside toggle
 (merges partial stacks after visits, off by default), dry-run, search

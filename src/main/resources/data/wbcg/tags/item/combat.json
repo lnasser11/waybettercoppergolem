@@ -1,0 +1,53 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#minecraft:arrows",
+      "required": false
+    },
+    {
+      "id": "#c:potions",
+      "required": false
+    },
+    {
+      "id": "minecraft:bow",
+      "required": false
+    },
+    {
+      "id": "minecraft:crossbow",
+      "required": false
+    },
+    {
+      "id": "minecraft:trident",
+      "required": false
+    },
+    {
+      "id": "minecraft:mace",
+      "required": false
+    },
+    {
+      "id": "minecraft:shield",
+      "required": false
+    },
+    {
+      "id": "minecraft:wind_charge",
+      "required": false
+    },
+    {
+      "id": "minecraft:glass_bottle",
+      "required": false
+    },
+    {
+      "id": "minecraft:blaze_powder",
+      "required": false
+    },
+    {
+      "id": "minecraft:brewing_stand",
+      "required": false
+    },
+    {
+      "id": "minecraft:cauldron",
+      "required": false
+    }
+  ]
+}

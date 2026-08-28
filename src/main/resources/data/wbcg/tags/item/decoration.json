@@ -1,0 +1,109 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#minecraft:wool",
+      "required": false
+    },
+    {
+      "id": "#minecraft:wool_carpets",
+      "required": false
+    },
+    {
+      "id": "#minecraft:beds",
+      "required": false
+    },
+    {
+      "id": "#minecraft:candles",
+      "required": false
+    },
+    {
+      "id": "#minecraft:banners",
+      "required": false
+    },
+    {
+      "id": "#minecraft:flowers",
+      "required": false
+    },
+    {
+      "id": "#minecraft:decorated_pot_sherds",
+      "required": false
+    },
+    {
+      "id": "#minecraft:skulls",
+      "required": false
+    },
+    {
+      "id": "#minecraft:lanterns",
+      "required": false
+    },
+    {
+      "id": "#minecraft:chains",
+      "required": false
+    },
+    {
+      "id": "#c:dyes",
+      "required": false
+    },
+    {
+      "id": "#c:music_discs",
+      "required": false
+    },
+    {
+      "id": "minecraft:painting",
+      "required": false
+    },
+    {
+      "id": "minecraft:item_frame",
+      "required": false
+    },
+    {
+      "id": "minecraft:glow_item_frame",
+      "required": false
+    },
+    {
+      "id": "minecraft:armor_stand",
+      "required": false
+    },
+    {
+      "id": "minecraft:flower_pot",
+      "required": false
+    },
+    {
+      "id": "minecraft:decorated_pot",
+      "required": false
+    },
+    {
+      "id": "minecraft:torch",
+      "required": false
+    },
+    {
+      "id": "minecraft:soul_torch",
+      "required": false
+    },
+    {
+      "id": "minecraft:bell",
+      "required": false
+    },
+    {
+      "id": "minecraft:campfire",
+      "required": false
+    },
+    {
+      "id": "minecraft:soul_campfire",
+      "required": false
+    },
+    {
+      "id": "minecraft:bookshelf",
+      "required": false
+    },
+    {
+      "id": "minecraft:chiseled_bookshelf",
+      "required": false
+    },
+    {
+      "id": "minecraft:jukebox",
+      "required": false
+    }
+  ]
+}

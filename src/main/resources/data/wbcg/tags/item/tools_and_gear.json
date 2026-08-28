@@ -1,0 +1,81 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#c:tools",
+      "required": false
+    },
+    {
+      "id": "#c:armors",
+      "required": false
+    },
+    {
+      "id": "#c:buckets",
+      "required": false
+    },
+    {
+      "id": "minecraft:elytra",
+      "required": false
+    },
+    {
+      "id": "minecraft:shears",
+      "required": false
+    },
+    {
+      "id": "minecraft:flint_and_steel",
+      "required": false
+    },
+    {
+      "id": "minecraft:fishing_rod",
+      "required": false
+    },
+    {
+      "id": "minecraft:compass",
+      "required": false
+    },
+    {
+      "id": "minecraft:recovery_compass",
+      "required": false
+    },
+    {
+      "id": "minecraft:clock",
+      "required": false
+    },
+    {
+      "id": "minecraft:spyglass",
+      "required": false
+    },
+    {
+      "id": "minecraft:map",
+      "required": false
+    },
+    {
+      "id": "minecraft:lead",
+      "required": false
+    },
+    {
+      "id": "minecraft:name_tag",
+      "required": false
+    },
+    {
+      "id": "minecraft:saddle",
+      "required": false
+    },
+    {
+      "id": "minecraft:brush",
+      "required": false
+    },
+    {
+      "id": "minecraft:carrot_on_a_stick",
+      "required": false
+    },
+    {
+      "id": "minecraft:warped_fungus_on_a_stick",
+      "required": false
+    },
+    {
+      "id": "minecraft:totem_of_undying",
+      "required": false
+    }
+  ]
+}

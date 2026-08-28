@@ -1,0 +1,193 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "minecraft:stone",
+      "required": false
+    },
+    {
+      "id": "minecraft:smooth_stone",
+      "required": false
+    },
+    {
+      "id": "minecraft:cobblestone",
+      "required": false
+    },
+    {
+      "id": "minecraft:mossy_cobblestone",
+      "required": false
+    },
+    {
+      "id": "#c:stones",
+      "required": false
+    },
+    {
+      "id": "#c:cobblestones",
+      "required": false
+    },
+    {
+      "id": "minecraft:stone_bricks",
+      "required": false
+    },
+    {
+      "id": "minecraft:mossy_stone_bricks",
+      "required": false
+    },
+    {
+      "id": "minecraft:cracked_stone_bricks",
+      "required": false
+    },
+    {
+      "id": "minecraft:chiseled_stone_bricks",
+      "required": false
+    },
+    {
+      "id": "minecraft:granite",
+      "required": false
+    },
+    {
+      "id": "minecraft:polished_granite",
+      "required": false
+    },
+    {
+      "id": "minecraft:diorite",
+      "required": false
+    },
+    {
+      "id": "minecraft:polished_diorite",
+      "required": false
+    },
+    {
+      "id": "minecraft:andesite",
+      "required": false
+    },
+    {
+      "id": "minecraft:polished_andesite",
+      "required": false
+    },
+    {
+      "id": "minecraft:deepslate",
+      "required": false
+    },
+    {
+      "id": "minecraft:cobbled_deepslate",
+      "required": false
+    },
+    {
+      "id": "minecraft:polished_deepslate",
+      "required": false
+    },
+    {
+      "id": "minecraft:deepslate_bricks",
+      "required": false
+    },
+    {
+      "id": "minecraft:deepslate_tiles",
+      "required": false
+    },
+    {
+      "id": "minecraft:tuff",
+      "required": false
+    },
+    {
+      "id": "minecraft:polished_tuff",
+      "required": false
+    },
+    {
+      "id": "minecraft:tuff_bricks",
+      "required": false
+    },
+    {
+      "id": "minecraft:calcite",
+      "required": false
+    },
+    {
+      "id": "minecraft:basalt",
+      "required": false
+    },
+    {
+      "id": "minecraft:smooth_basalt",
+      "required": false
+    },
+    {
+      "id": "minecraft:polished_basalt",
+      "required": false
+    },
+    {
+      "id": "minecraft:blackstone",
+      "required": false
+    },
+    {
+      "id": "minecraft:polished_blackstone",
+      "required": false
+    },
+    {
+      "id": "minecraft:polished_blackstone_bricks",
+      "required": false
+    },
+    {
+      "id": "minecraft:dripstone_block",
+      "required": false
+    },
+    {
+      "id": "minecraft:pointed_dripstone",
+      "required": false
+    },
+    {
+      "id": "#c:gravels",
+      "required": false
+    },
+    {
+      "id": "#c:sands",
+      "required": false
+    },
+    {
+      "id": "#c:sandstone/blocks",
+      "required": false
+    },
+    {
+      "id": "minecraft:dirt",
+      "required": false
+    },
+    {
+      "id": "minecraft:coarse_dirt",
+      "required": false
+    },
+    {
+      "id": "minecraft:rooted_dirt",
+      "required": false
+    },
+    {
+      "id": "minecraft:grass_block",
+      "required": false
+    },
+    {
+      "id": "minecraft:mud",
+      "required": false
+    },
+    {
+      "id": "minecraft:packed_mud",
+      "required": false
+    },
+    {
+      "id": "minecraft:mud_bricks",
+      "required": false
+    },
+    {
+      "id": "minecraft:clay",
+      "required": false
+    },
+    {
+      "id": "minecraft:clay_ball",
+      "required": false
+    },
+    {
+      "id": "#c:obsidians",
+      "required": false
+    },
+    {
+      "id": "minecraft:flint",
+      "required": false
+    }
+  ]
+}

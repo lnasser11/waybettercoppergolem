@@ -123,6 +123,19 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
    pure vanilla. (Label attachments are silently dropped by vanilla;
    re-adding the mod later re-reads frames.)
 
+## 11. Categories and tuning
+
+1. Frame a **piston** on a chest; sneak-click with an empty hand until the
+   actionbar shows `Label: Category: Redstone`. Feed redstone items into
+   the copper chest → they land there.
+2. Hold **glowstone** and sneak-click that frame → "Added Glowstone to
+   Redstone". Feed glowstone → it now sorts into the Redstone chest.
+   `/wbcg category list redstone` shows the tweak; it survives a restart.
+3. Hold glowstone and sneak-click again → "Removed Glowstone from
+   Redstone" (back to normal).
+4. `/wbcg categories` lists 12 presets; `/wbcg category test redstone
+   minecraft:piston` answers membership questions without a golem.
+
 ---
 
 If all of that passes, the jar that goes on EnxadaHost is the same one
