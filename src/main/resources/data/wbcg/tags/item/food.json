@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#c:foods",
+      "required": false
+    },
+    {
+      "id": "minecraft:cake",
+      "required": false
+    }
+  ]
+}

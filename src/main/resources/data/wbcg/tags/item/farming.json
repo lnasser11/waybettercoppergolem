@@ -1,0 +1,113 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#c:seeds",
+      "required": false
+    },
+    {
+      "id": "#c:crops",
+      "required": false
+    },
+    {
+      "id": "#c:fertilizers",
+      "required": false
+    },
+    {
+      "id": "#c:eggs",
+      "required": false
+    },
+    {
+      "id": "#c:mushrooms",
+      "required": false
+    },
+    {
+      "id": "#c:pumpkins",
+      "required": false
+    },
+    {
+      "id": "minecraft:wheat",
+      "required": false
+    },
+    {
+      "id": "minecraft:carrot",
+      "required": false
+    },
+    {
+      "id": "minecraft:potato",
+      "required": false
+    },
+    {
+      "id": "minecraft:beetroot",
+      "required": false
+    },
+    {
+      "id": "minecraft:melon",
+      "required": false
+    },
+    {
+      "id": "minecraft:melon_slice",
+      "required": false
+    },
+    {
+      "id": "minecraft:sugar_cane",
+      "required": false
+    },
+    {
+      "id": "minecraft:cactus",
+      "required": false
+    },
+    {
+      "id": "minecraft:cocoa_beans",
+      "required": false
+    },
+    {
+      "id": "minecraft:nether_wart",
+      "required": false
+    },
+    {
+      "id": "minecraft:bone_meal",
+      "required": false
+    },
+    {
+      "id": "minecraft:honeycomb",
+      "required": false
+    },
+    {
+      "id": "minecraft:honey_bottle",
+      "required": false
+    },
+    {
+      "id": "minecraft:hay_block",
+      "required": false
+    },
+    {
+      "id": "minecraft:kelp",
+      "required": false
+    },
+    {
+      "id": "minecraft:dried_kelp",
+      "required": false
+    },
+    {
+      "id": "minecraft:dried_kelp_block",
+      "required": false
+    },
+    {
+      "id": "minecraft:seagrass",
+      "required": false
+    },
+    {
+      "id": "minecraft:sweet_berries",
+      "required": false
+    },
+    {
+      "id": "minecraft:glow_berries",
+      "required": false
+    },
+    {
+      "id": "minecraft:moss_block",
+      "required": false
+    }
+  ]
+}

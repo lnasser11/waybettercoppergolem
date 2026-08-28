@@ -1,0 +1,97 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#minecraft:logs",
+      "required": false
+    },
+    {
+      "id": "#minecraft:planks",
+      "required": false
+    },
+    {
+      "id": "#minecraft:saplings",
+      "required": false
+    },
+    {
+      "id": "#minecraft:leaves",
+      "required": false
+    },
+    {
+      "id": "#minecraft:wooden_stairs",
+      "required": false
+    },
+    {
+      "id": "#minecraft:wooden_slabs",
+      "required": false
+    },
+    {
+      "id": "#minecraft:wooden_doors",
+      "required": false
+    },
+    {
+      "id": "#minecraft:wooden_fences",
+      "required": false
+    },
+    {
+      "id": "#minecraft:wooden_trapdoors",
+      "required": false
+    },
+    {
+      "id": "#minecraft:wooden_buttons",
+      "required": false
+    },
+    {
+      "id": "#minecraft:wooden_pressure_plates",
+      "required": false
+    },
+    {
+      "id": "#minecraft:fence_gates",
+      "required": false
+    },
+    {
+      "id": "#minecraft:signs",
+      "required": false
+    },
+    {
+      "id": "#minecraft:hanging_signs",
+      "required": false
+    },
+    {
+      "id": "#minecraft:boats",
+      "required": false
+    },
+    {
+      "id": "minecraft:stick",
+      "required": false
+    },
+    {
+      "id": "minecraft:ladder",
+      "required": false
+    },
+    {
+      "id": "minecraft:bamboo",
+      "required": false
+    },
+    {
+      "id": "minecraft:bamboo_block",
+      "required": false
+    },
+    {
+      "id": "minecraft:stripped_bamboo_block",
+      "required": false
+    },
+    {
+      "id": "minecraft:chest",
+      "required": false
+    },
+    {
+      "id": "minecraft:barrel",
+      "required": false
+    },
+    {
+      "id": "minecraft:crafting_table",
+      "required": false
+    }
+  ]
+}

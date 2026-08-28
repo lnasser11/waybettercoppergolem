@@ -1,0 +1,126 @@
+package io.github.lnasser11.waybettercoppergolem.client;
+
+import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings;
+import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettingsMenu;
+
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.CycleButton;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.MenuAccess;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
+
+/**
+ * Settings panel opened by sneak-right-clicking a copper chest. Widgets act
+ * through vanilla menu-button clicks; values re-sync from the server through
+ * the menu's data slots, so what you see is what got saved.
+ */
+public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSettingsMenu> {
+	private static final int WIDGET_WIDTH = 220;
+	private static final int WIDGET_HEIGHT = 20;
+	private static final int GAP = 4;
+	private static final int RADIUS_STEP = 4;
+
+	private final ZoneSettingsMenu menu;
+	private ZoneSettings shown;
+
+	public ZoneSettingsScreen(ZoneSettingsMenu menu, Inventory inventory, Component title) {
+		super(title);
+		this.menu = menu;
+	}
+
+	@Override
+	public ZoneSettingsMenu getMenu() {
+		return this.menu;
+	}
+
+	@Override
+	protected void init() {
+		super.init();
+		this.shown = this.menu.settings();
+		int x = this.width / 2 - WIDGET_WIDTH / 2;
+		int y = this.height / 2 - 3 * (WIDGET_HEIGHT + GAP);
+
+		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.reorganize())
+				.create(x, y, WIDGET_WIDTH, WIDGET_HEIGHT,
+						Component.translatable("waybettercoppergolem.settings.reorganize"),
+						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_REORGANIZE)));
+		y += WIDGET_HEIGHT + GAP;
+		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.tidyInside())
+				.create(x, y, WIDGET_WIDTH, WIDGET_HEIGHT,
+						Component.translatable("waybettercoppergolem.settings.tidy"),
+						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_TIDY)));
+		y += WIDGET_HEIGHT + GAP;
+		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.dryRun())
+				.create(x, y, WIDGET_WIDTH, WIDGET_HEIGHT,
+						Component.translatable("waybettercoppergolem.settings.dry_run"),
+						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_DRY_RUN)));
+		y += WIDGET_HEIGHT + GAP;
+		addStepperRow(x, y, () -> this.shown.searchRadius(), RADIUS_STEP, 4, ZoneSettings.MAX_SEARCH_RADIUS,
+				ZoneSettingsMenu.BUTTON_RADIUS_BASE);
+		y += WIDGET_HEIGHT + GAP;
+		addStepperRow(x, y, () -> this.shown.verticalReach(), 1, 1, ZoneSettings.MAX_VERTICAL_REACH,
+				ZoneSettingsMenu.BUTTON_REACH_BASE);
+		y += WIDGET_HEIGHT + 2 * GAP;
+		this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
+				.bounds(x, y, WIDGET_WIDTH, WIDGET_HEIGHT).build());
+	}
+
+	private void addStepperRow(int x, int y, java.util.function.IntSupplier value,
+			int step, int min, int max, int buttonBase) {
+		this.addRenderableWidget(Button.builder(Component.literal("-"),
+						button -> click(buttonBase + Math.max(min, value.getAsInt() - step)))
+				.bounds(x, y, WIDGET_HEIGHT, WIDGET_HEIGHT).build());
+		this.addRenderableWidget(Button.builder(Component.literal("+"),
+						button -> click(buttonBase + Math.min(max, value.getAsInt() + step)))
+				.bounds(x + WIDGET_WIDTH - WIDGET_HEIGHT, y, WIDGET_HEIGHT, WIDGET_HEIGHT).build());
+	}
+
+	private void click(int buttonId) {
+		if (this.minecraft != null && this.minecraft.gameMode != null && this.minecraft.player != null) {
+			this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, buttonId);
+		}
+	}
+
+	@Override
+	public void tick() {
+		super.tick();
+		ZoneSettings current = this.menu.settings();
+		if (!current.equals(this.shown)) {
+			// Server confirmed a change through the data slots; rebuild so
+			// every widget shows the authoritative values.
+			this.rebuildWidgets();
+		}
+	}
+
+	@Override
+	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+		super.extractRenderState(graphics, mouseX, mouseY, a);
+		int x = this.width / 2;
+		int top = this.height / 2 - 3 * (WIDGET_HEIGHT + GAP);
+		graphics.centeredText(this.font, this.title, x, top - 2 * WIDGET_HEIGHT, 0xFFFFFFFF);
+		int radiusY = top + 3 * (WIDGET_HEIGHT + GAP) + 6;
+		graphics.centeredText(this.font,
+				Component.translatable("waybettercoppergolem.settings.radius", this.shown.searchRadius()),
+				x, radiusY, 0xFFFFFFFF);
+		int reachY = radiusY + WIDGET_HEIGHT + GAP;
+		graphics.centeredText(this.font,
+				Component.translatable("waybettercoppergolem.settings.reach", this.shown.verticalReach()),
+				x, reachY, 0xFFFFFFFF);
+	}
+
+	@Override
+	public void onClose() {
+		if (this.minecraft != null && this.minecraft.player != null) {
+			this.minecraft.player.closeContainer();
+		}
+		super.onClose();
+	}
+
+	@Override
+	public boolean isPauseScreen() {
+		return false;
+	}
+}

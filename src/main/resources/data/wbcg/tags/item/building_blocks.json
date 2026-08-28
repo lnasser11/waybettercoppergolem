@@ -1,0 +1,97 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#wbcg:stone",
+      "required": false
+    },
+    {
+      "id": "#c:bricks",
+      "required": false
+    },
+    {
+      "id": "#minecraft:concrete",
+      "required": false
+    },
+    {
+      "id": "#c:concrete_powders",
+      "required": false
+    },
+    {
+      "id": "#minecraft:terracotta",
+      "required": false
+    },
+    {
+      "id": "#minecraft:glazed_terracotta",
+      "required": false
+    },
+    {
+      "id": "#c:glass_blocks",
+      "required": false
+    },
+    {
+      "id": "#c:glass_panes",
+      "required": false
+    },
+    {
+      "id": "minecraft:quartz_block",
+      "required": false
+    },
+    {
+      "id": "minecraft:smooth_quartz",
+      "required": false
+    },
+    {
+      "id": "minecraft:quartz_bricks",
+      "required": false
+    },
+    {
+      "id": "minecraft:quartz_pillar",
+      "required": false
+    },
+    {
+      "id": "minecraft:purpur_block",
+      "required": false
+    },
+    {
+      "id": "minecraft:purpur_pillar",
+      "required": false
+    },
+    {
+      "id": "minecraft:prismarine",
+      "required": false
+    },
+    {
+      "id": "minecraft:prismarine_bricks",
+      "required": false
+    },
+    {
+      "id": "minecraft:dark_prismarine",
+      "required": false
+    },
+    {
+      "id": "#minecraft:stairs",
+      "required": false
+    },
+    {
+      "id": "#minecraft:slabs",
+      "required": false
+    },
+    {
+      "id": "#minecraft:walls",
+      "required": false
+    },
+    {
+      "id": "minecraft:copper_block",
+      "required": false
+    },
+    {
+      "id": "minecraft:cut_copper",
+      "required": false
+    },
+    {
+      "id": "minecraft:chiseled_copper",
+      "required": false
+    }
+  ]
+}

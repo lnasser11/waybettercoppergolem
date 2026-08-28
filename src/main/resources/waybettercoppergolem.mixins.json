@@ -1,0 +1,15 @@
+{
+	"required": true,
+	"package": "io.github.lnasser11.waybettercoppergolem.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"CopperGolemMixin",
+		"TransportItemsBetweenContainersMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
