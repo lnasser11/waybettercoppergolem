@@ -49,6 +49,11 @@ broadly it counts is up to you:
 - An **unlabeled** chest keeps pure vanilla behavior (an empty one gets
   claimed by whatever the golem drops in it first). Labels never apply to
   chests you didn't label.
+- A chest **remembers its label** if its frame is destroyed, so a creeper
+  can't scramble the room. That also means it stays labeled after you
+  take the frame down on purpose: `/wbcg chest clear` while looking at it
+  makes it unlabeled again, and `/wbcg chest info` says what a chest is
+  currently labeled and whether that came from a frame or the cache.
 
 Opening a labeled chest shows its full label set in the actionbar.
 
@@ -64,8 +69,10 @@ destination by **narrowest matching label first**:
 4. an unlabeled chest, under the vanilla rule (empty, or already contains
    that item).
 
-Full chests are skipped, so a full narrow chest **cascades** to the next
-broader one. If *nothing* accepts an item (its chest is full and there's
+Golems also skip copper chests that are **empty** — vanilla walks to one
+and shrugs for three seconds before anything else can happen, which is
+pure delay in a sorting room. Full destination chests are skipped too, so
+a full narrow chest **cascades** to the next broader one. If *nothing* accepts an item (its chest is full and there's
 no catch-all, or its category was tuned away mid-carry), the golem
 returns it to a copper chest and retries half a minute later instead of
 standing around holding it. Between equally-labeled chests, the golem prefers the one
@@ -111,6 +118,8 @@ The `/wbcg` command inspects and edits the same data:
 /wbcg category add <name> <item>        include an item            (op)
 /wbcg category remove <name> <item>     exclude an item            (op)
 /wbcg category reset <name>             drop all tweaks            (op)
+/wbcg chest info                        what is the chest you're looking at labeled?
+/wbcg chest clear                       forget a frameless chest's remembered label
 ```
 
 Bare names resolve to presets (`redstone` → `wbcg:redstone`); explicit

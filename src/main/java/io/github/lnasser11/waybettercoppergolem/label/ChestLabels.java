@@ -70,6 +70,14 @@ public final class ChestLabels {
 		return labels;
 	}
 
+	/** Both halves of a double chest, or just this block for a single one. */
+	public static List<BlockPos> chestHalves(BlockPos chestPos, BlockState state) {
+		if (state.getValueOrElse(ChestBlock.TYPE, ChestType.SINGLE) == ChestType.SINGLE) {
+			return List.of(chestPos);
+		}
+		return List.of(chestPos, ChestBlock.getConnectedBlockPos(chestPos, state));
+	}
+
 	/**
 	 * Effective labels for the (possibly double) chest at {@code chestPos}:
 	 * the union of both halves' labels.

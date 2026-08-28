@@ -63,7 +63,10 @@ public final class WbcgCommand {
 						.then(Commands.literal("test")
 								.then(Commands.argument("name", IdentifierArgument.id())
 										.then(Commands.argument("item", ItemArgument.item(buildContext))
-												.executes(WbcgCommand::test))))));
+												.executes(WbcgCommand::test)))))
+				.then(Commands.literal("chest")
+						.then(Commands.literal("info").executes(ctx -> chest(ctx, false)))
+						.then(Commands.literal("clear").executes(ctx -> chest(ctx, true)))));
 	}
 
 	private static Identifier tagId(CommandContext<CommandSourceStack> ctx) {
@@ -135,6 +138,73 @@ public final class WbcgCommand {
 				member ? "waybettercoppergolem.command.test_yes" : "waybettercoppergolem.command.test_no",
 				stack.getItem().getName(stack), LabelResolver.tagName(id)), false);
 		return member ? 1 : 0;
+	}
+
+	/**
+	 * Reports, or clears, the labels of the chest the player is looking at.
+	 * Clearing matters because labels are cached on the chest so a destroyed
+	 * frame doesn't scramble the room - which also means a chest keeps its
+	 * category after its frame is gone until someone says otherwise.
+	 */
+	private static int chest(CommandContext<CommandSourceStack> ctx, boolean clear)
+			throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		net.minecraft.server.level.ServerPlayer player = ctx.getSource().getPlayerOrException();
+		ServerLevel level = ctx.getSource().getLevel();
+		net.minecraft.world.phys.HitResult hit = player.pick(6.0, 0.0F, false);
+		if (!(hit instanceof net.minecraft.world.phys.BlockHitResult blockHit)
+				|| !io.github.lnasser11.waybettercoppergolem.label.ChestLabels
+						.isLabelableChest(level.getBlockState(blockHit.getBlockPos()))) {
+			ctx.getSource().sendFailure(Component.translatable("waybettercoppergolem.command.chest.none"));
+			return 0;
+		}
+		net.minecraft.core.BlockPos pos = blockHit.getBlockPos();
+		net.minecraft.world.level.block.state.BlockState state = level.getBlockState(pos);
+
+		if (clear) {
+			int cleared = 0;
+			for (net.minecraft.core.BlockPos half : io.github.lnasser11.waybettercoppergolem.label.ChestLabels
+					.chestHalves(pos, state)) {
+				if (!io.github.lnasser11.waybettercoppergolem.label.ChestLabels
+						.labelFrames(level, half).isEmpty()) {
+					ctx.getSource().sendFailure(
+							Component.translatable("waybettercoppergolem.command.chest.has_frame"));
+					return 0;
+				}
+				net.minecraft.world.level.block.entity.BlockEntity blockEntity = level.getBlockEntity(half);
+				if (blockEntity != null
+						&& blockEntity.removeAttached(
+								io.github.lnasser11.waybettercoppergolem.WayBetterCopperGolem.CHEST_LABELS) != null) {
+					blockEntity.setChanged();
+					cleared++;
+				}
+			}
+			final int clearedCount = cleared;
+			ctx.getSource().sendSuccess(() -> Component.translatable(
+					clearedCount > 0 ? "waybettercoppergolem.command.chest.cleared"
+							: "waybettercoppergolem.command.chest.already_clear"), false);
+			return clearedCount;
+		}
+
+		List<io.github.lnasser11.waybettercoppergolem.label.ChestLabel> labels =
+				io.github.lnasser11.waybettercoppergolem.label.ChestLabels.effectiveLabels(level, pos, state);
+		if (labels.isEmpty()) {
+			ctx.getSource().sendSuccess(
+					() -> Component.translatable("waybettercoppergolem.command.chest.unlabeled"), false);
+			return 0;
+		}
+		boolean fromFrames = !io.github.lnasser11.waybettercoppergolem.label.ChestLabels
+				.labelFrames(level, pos).isEmpty();
+		net.minecraft.network.chat.MutableComponent summary = Component.empty();
+		for (int i = 0; i < labels.size(); i++) {
+			if (i > 0) {
+				summary.append(", ");
+			}
+			summary.append(LabelResolver.shortName(labels.get(i)));
+		}
+		ctx.getSource().sendSuccess(() -> Component.translatable(
+				fromFrames ? "waybettercoppergolem.command.chest.from_frame"
+						: "waybettercoppergolem.command.chest.from_cache", summary), false);
+		return labels.size();
 	}
 
 	private static int reset(CommandContext<CommandSourceStack> ctx) {

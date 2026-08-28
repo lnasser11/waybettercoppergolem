@@ -110,6 +110,11 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
    (the label is cached on the chest itself).
 3. Put a frame with a **diamond** on that chest → its category updates;
    iron now goes elsewhere.
+4. Look at a chest and run `/wbcg chest info` → it reports the label and
+   whether it came from the frame or the remembered cache. Take the frame
+   down, run `/wbcg chest clear` → the chest is unlabeled again and
+   golems stop sorting into it. (With a frame still on it, clear refuses
+   and tells you to remove the frame first.)
 
 ## 10. Safety checks
 

@@ -109,6 +109,45 @@ public final class SortingEngine {
 	}
 
 	/**
+	 * Nearest copper chest that actually has something to collect. Vanilla's
+	 * source search ignores contents, so an idle golem burns a full walk plus
+	 * a three-second shrug on an empty copper chest before it can consider
+	 * any other work; skipping empty ones keeps cleanup responsive.
+	 */
+	public static Optional<TransportItemTarget> findPickupSource(
+			ServerLevel level, PathfinderMob golem, Predicate<BlockState> sourceBlockType,
+			Set<GlobalPos> visited, Set<GlobalPos> unreachable,
+			int horizontalRadius, int verticalRadius) {
+		AABB searchArea = new AABB(golem.blockPosition()).inflate(horizontalRadius, verticalRadius, horizontalRadius);
+		TransportItemTarget best = null;
+		double bestDistSq = Double.MAX_VALUE;
+
+		for (ChunkPos chunkPos : ChunkPos.rangeClosed(
+				ChunkPos.containing(golem.blockPosition()), Math.floorDiv(horizontalRadius, 16) + 1).toList()) {
+			LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
+			if (chunk == null) {
+				continue;
+			}
+			for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+				if (!(blockEntity instanceof ChestBlockEntity)) {
+					continue;
+				}
+				TransportItemTarget candidate = validCandidate(
+						level, blockEntity, sourceBlockType, visited, unreachable, searchArea);
+				if (candidate == null || candidate.container().isEmpty()) {
+					continue;
+				}
+				double distSq = candidate.pos().distToCenterSqr(golem.position());
+				if (distSq < bestDistSq) {
+					best = candidate;
+					bestDistSq = distSq;
+				}
+			}
+		}
+		return Optional.ofNullable(best);
+	}
+
+	/**
 	 * When nothing accepts the held item (its labeled chest is full or its
 	 * category was tuned away mid-carry), the golem brings it back to a
 	 * copper chest instead of standing around holding it forever - the zone

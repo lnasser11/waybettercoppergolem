@@ -42,5 +42,12 @@
   "waybettercoppergolem.editor.hint": "Clique em um item para adicionar ou remover da categoria",
   "waybettercoppergolem.editor.in_category": "%s - NESTA categoria (clique para remover)",
   "waybettercoppergolem.editor.not_in_category": "%s - fora desta categoria (clique para adicionar)",
-  "waybettercoppergolem.settings.vanilla": "Modo vanilla (golens agem como no jogo base)"
+  "waybettercoppergolem.settings.vanilla": "Modo vanilla (golens agem como no jogo base)",
+  "waybettercoppergolem.command.chest.none": "Olhe para um baú primeiro",
+  "waybettercoppergolem.command.chest.unlabeled": "Este baú não tem rótulo (comportamento vanilla)",
+  "waybettercoppergolem.command.chest.from_frame": "Rotulado pelo quadro: %s",
+  "waybettercoppergolem.command.chest.from_cache": "Rótulo lembrado (o quadro sumiu): %s - use /wbcg chest clear para esquecê-lo",
+  "waybettercoppergolem.command.chest.has_frame": "Remova o quadro primeiro; enquanto ele estiver lá, é ele que define o rótulo",
+  "waybettercoppergolem.command.chest.cleared": "Rótulo esquecido - os golens tratam o baú como sem rótulo de novo",
+  "waybettercoppergolem.command.chest.already_clear": "Este baú não tinha rótulo lembrado"
 }

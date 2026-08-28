@@ -42,5 +42,12 @@
   "waybettercoppergolem.editor.hint": "Click an item to add or remove it from the category",
   "waybettercoppergolem.editor.in_category": "%s - IN this category (click to remove)",
   "waybettercoppergolem.editor.not_in_category": "%s - not in this category (click to add)",
-  "waybettercoppergolem.settings.vanilla": "Vanilla mode (golems act stock)"
+  "waybettercoppergolem.settings.vanilla": "Vanilla mode (golems act stock)",
+  "waybettercoppergolem.command.chest.none": "Look at a chest first",
+  "waybettercoppergolem.command.chest.unlabeled": "This chest is unlabeled (vanilla behavior)",
+  "waybettercoppergolem.command.chest.from_frame": "Labeled by its item frame: %s",
+  "waybettercoppergolem.command.chest.from_cache": "Remembered label (frame is gone): %s - use /wbcg chest clear to forget it",
+  "waybettercoppergolem.command.chest.has_frame": "Remove the item frame first; while it's there, the frame decides this chest's label",
+  "waybettercoppergolem.command.chest.cleared": "Chest label forgotten - golems treat it as unlabeled again",
+  "waybettercoppergolem.command.chest.already_clear": "This chest had no remembered label"
 }

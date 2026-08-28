@@ -50,6 +50,10 @@ public abstract class TransportItemsBetweenContainersMixin {
 
 	@Shadow
 	@Final
+	private Predicate<BlockState> sourceBlockType;
+
+	@Shadow
+	@Final
 	private int verticalSearchDistance;
 
 	@Shadow
@@ -86,19 +90,25 @@ public abstract class TransportItemsBetweenContainersMixin {
 	private static final int WBCG$REORGANIZE_IDLE_COOLDOWN = 200;
 
 	/**
-	 * While a golem is holding an item, destination selection is ours:
-	 * ranked by label specificity instead of nearest-blind.
+	 * Target selection for copper golems outside vanilla mode. Holding an
+	 * item, the destination is ranked by label specificity instead of
+	 * nearest-blind; empty-handed, the source is the nearest copper chest
+	 * that actually has something in it, falling back to cleanup work.
 	 */
 	@Inject(method = "getTransportTarget", at = @At("HEAD"), cancellable = true)
 	private void wbcg$labelAwareDestination(ServerLevel level, PathfinderMob body,
 			CallbackInfoReturnable<Optional<TransportItemTarget>> cir) {
-		if (!(body instanceof CopperGolem) || body.getMainHandItem().isEmpty()) {
+		if (!(body instanceof CopperGolem)) {
 			return;
 		}
 		ZoneAwareGolem golem = (ZoneAwareGolem) body;
 		ZoneSettings settings = golem.wbcg$zoneSettings(level);
 		if (settings.vanillaMode()) {
-			return; // stock destination search
+			return; // stock search, including the idle shrug at empty chests
+		}
+		if (body.getMainHandItem().isEmpty()) {
+			cir.setReturnValue(wbcg$pickUpTarget(level, body, golem, settings));
+			return;
 		}
 		Optional<TransportItemTarget> destination = SortingEngine.findDepositTarget(
 				level, body, body.getMainHandItem(), this.destinationBlockType,
@@ -119,33 +129,29 @@ public abstract class TransportItemsBetweenContainersMixin {
 	}
 
 	/**
-	 * Reorganize-existing-chests: when the golem is empty-handed and vanilla
-	 * found no copper chest worth visiting, offer a labeled chest containing
-	 * a misplaced stack as the pickup source instead. Slow, low-priority
-	 * background work: it only runs when the dump queue is idle, and backs
-	 * off for a minute when the storage room is already tidy.
+	 * Where an empty-handed golem goes next: the nearest copper chest with
+	 * items in it, or, when the dump queue is idle, a labeled chest holding a
+	 * stack that belongs somewhere else. Empty copper chests are skipped
+	 * entirely - vanilla would walk to one and shrug for three seconds before
+	 * anything else could happen.
 	 */
-	@Inject(method = "getTransportTarget", at = @At("RETURN"), cancellable = true)
-	private void wbcg$reorganizeSource(ServerLevel level, PathfinderMob body,
-			CallbackInfoReturnable<Optional<TransportItemTarget>> cir) {
-		if (!(body instanceof CopperGolem) || !body.getMainHandItem().isEmpty()) {
-			return;
+	@org.spongepowered.asm.mixin.Unique
+	private Optional<TransportItemTarget> wbcg$pickUpTarget(ServerLevel level, PathfinderMob body,
+			ZoneAwareGolem golem, ZoneSettings settings) {
+		Set<GlobalPos> visited = wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS);
+		Set<GlobalPos> unreachable = wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS);
+
+		Optional<TransportItemTarget> source = SortingEngine.findPickupSource(
+				level, body, this.sourceBlockType, visited, unreachable,
+				settings.searchRadius(), this.verticalSearchDistance);
+		if (source.isPresent()) {
+			golem.wbcg$setZoneChest(source.get().pos());
+			return source;
 		}
-		if (cir.getReturnValue().isPresent()) {
-			// Bind the golem to its zone as soon as it targets a copper
-			// chest, not only after a successful pickup - otherwise a golem
-			// working an empty copper chest would ignore its zone settings.
-			TransportItemTarget target = cir.getReturnValue().get();
-			if (target.state().is(BlockTags.COPPER_CHESTS)) {
-				((ZoneAwareGolem) body).wbcg$setZoneChest(target.pos());
-			}
-			return;
-		}
-		ZoneAwareGolem golem = (ZoneAwareGolem) body;
-		ZoneSettings settings = golem.wbcg$zoneSettings(level);
+
 		long now = level.getGameTime();
-		if (settings.vanillaMode() || !settings.reorganize() || now < golem.wbcg$nextReorganizeTime()) {
-			return;
+		if (!settings.reorganize() || now < golem.wbcg$nextReorganizeTime()) {
+			return Optional.empty();
 		}
 		// Deliberately ignores the visited-positions memory: that memory means
 		// "already tried this chest for the current delivery", and every chest
@@ -153,15 +159,30 @@ public abstract class TransportItemsBetweenContainersMixin {
 		// for five minutes - exactly the chests most likely to hold a misplaced
 		// stack. Unreachable positions are still honored: those are pathing
 		// facts, not delivery bookkeeping.
-		Optional<TransportItemTarget> source = SortingEngine.findMisplacedSource(
-				level, body, this.destinationBlockType, Set.of(),
-				wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
+		Optional<TransportItemTarget> misplaced = SortingEngine.findMisplacedSource(
+				level, body, this.destinationBlockType, Set.of(), unreachable,
 				settings.searchRadius(), this.verticalSearchDistance);
-		if (source.isPresent()) {
+		if (misplaced.isPresent()) {
 			this.wbcg$reorganizeActive = true;
-			cir.setReturnValue(source);
-		} else {
-			golem.wbcg$setNextReorganizeTime(now + WBCG$REORGANIZE_IDLE_COOLDOWN);
+			return misplaced;
+		}
+		golem.wbcg$setNextReorganizeTime(now + WBCG$REORGANIZE_IDLE_COOLDOWN);
+		return Optional.empty();
+	}
+
+	/**
+	 * In vanilla mode the search is stock, but the golem still binds to the
+	 * copper chest it targets so the zone's settings - including the switch
+	 * back out of vanilla mode - keep applying to it.
+	 */
+	@Inject(method = "getTransportTarget", at = @At("RETURN"))
+	private void wbcg$bindZoneFromVanillaSearch(ServerLevel level, PathfinderMob body,
+			CallbackInfoReturnable<Optional<TransportItemTarget>> cir) {
+		if (body instanceof CopperGolem && cir.getReturnValue().isPresent()) {
+			TransportItemTarget target = cir.getReturnValue().get();
+			if (target.state().is(BlockTags.COPPER_CHESTS)) {
+				((ZoneAwareGolem) body).wbcg$setZoneChest(target.pos());
+			}
 		}
 	}
 
