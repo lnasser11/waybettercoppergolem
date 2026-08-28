@@ -281,6 +281,51 @@ public final class SortingEngine {
 		return false;
 	}
 
+	/**
+	 * Merges partial stacks (same item and components) and closes slot gaps
+	 * within one container. Runs entirely inside one server tick and only
+	 * moves counts between existing stacks, so nothing is created or lost.
+	 */
+	public static void tidyContainer(Container container) {
+		int size = container.getContainerSize();
+		boolean changed = false;
+		for (int i = 0; i < size; i++) {
+			ItemStack into = container.getItem(i);
+			if (into.isEmpty() || into.getCount() >= into.getMaxStackSize()) {
+				continue;
+			}
+			for (int j = i + 1; j < size && into.getCount() < into.getMaxStackSize(); j++) {
+				ItemStack from = container.getItem(j);
+				if (from.isEmpty() || !ItemStack.isSameItemSameComponents(into, from)) {
+					continue;
+				}
+				int moved = Math.min(into.getMaxStackSize() - into.getCount(), from.getCount());
+				into.grow(moved);
+				from.shrink(moved);
+				if (from.isEmpty()) {
+					container.setItem(j, ItemStack.EMPTY);
+				}
+				changed = true;
+			}
+		}
+		int write = 0;
+		for (int read = 0; read < size; read++) {
+			ItemStack stack = container.getItem(read);
+			if (stack.isEmpty()) {
+				continue;
+			}
+			if (read != write) {
+				container.setItem(write, stack);
+				container.setItem(read, ItemStack.EMPTY);
+				changed = true;
+			}
+			write++;
+		}
+		if (changed) {
+			container.setChanged();
+		}
+	}
+
 	public static void logWouldMove(PathfinderMob golem, ItemStack stack, BlockPos from, @Nullable BlockPos to) {
 		String item = stack.getCount() + "x " + BuiltInRegistries.ITEM.getKey(stack.getItem());
 		String source = posString(golem.level(), from);

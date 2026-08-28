@@ -11,6 +11,42 @@ Fabric mod: copper golems organize an existing storage room using item-frame che
 | Mappings | Mojang official (Yarn was discontinued after snapshot 25w46a and does not exist for 26.x; Loom 1.17 uses mojmap by default) |
 | Java | 25 (toolchain and runtime) |
 
+## How it works
+
+Install on the **server and every client** (the AI runs server-side; the
+client part is only the settings screen).
+
+**Label a chest** by putting an item frame on it with an example item
+inside. Sneak-click the frame to cycle how broadly it matches, shown in
+the actionbar: exact item -> narrowest conventional tag (e.g.
+`#c:ingots/iron`) -> broader (`#c:ingots`) -> back to exact. An **empty
+frame** marks the catch-all chest for items matching no label. Multiple
+frames on one chest (or on both halves of a double chest) all apply.
+Labels are cached on the chest itself, so a creeper blowing up the frame
+does not scramble the room - put a new frame up whenever.
+
+**Golems** then deposit copper-chest items into the labeled chest with
+the narrowest matching label (full chests cascade to broader ones, then
+the catch-all; unlabeled chests keep vanilla behavior and are never
+claimed by labels). When the dump queue is idle they slowly relocate
+misplaced stacks out of labeled chests. They can reach chests in walls
+up to the configured vertical reach (default 4 blocks) from the floor.
+
+**Sneak-right-click a copper chest with an empty hand** to open that
+sorting zone's settings: reorganize toggle, tidy-inside toggle
+(merges partial stacks after visits, off by default), dry-run, search
+radius, and vertical reach. Golems obey the settings of the copper chest
+they last picked up from.
+
+**Dry-run**: golems log every intended move
+(`[DRY-RUN] would move 12x minecraft:iron_ingot from minecraft:copper_chest@0,-59,0 to minecraft:chest@8,-59,0`)
+without touching any chest. Turn it on, watch the server log for a full
+pass, then turn it off.
+
+Removing the mod reverts golems to vanilla behavior; label/settings data
+lives in Fabric attachments on vanilla block entities and is silently
+dropped by vanilla, so nothing breaks without the mod.
+
 ## Building
 
 ```

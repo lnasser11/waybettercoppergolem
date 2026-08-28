@@ -259,9 +259,37 @@ public abstract class TransportItemsBetweenContainersMixin {
 			}
 			slot++;
 		}
+		if (settings.tidyInside()) {
+			SortingEngine.tidyContainer(container);
+		}
 		golem.wbcg$setNextReorganizeTime(level.getGameTime() + WBCG$REORGANIZE_SUCCESS_COOLDOWN);
 		this.clearMemoriesAfterMatchingTargetFound(body);
 		ci.cancel();
+	}
+
+	/**
+	 * Optional tidy-inside: after the golem finishes a normal pickup or
+	 * deposit, merge partial stacks and close gaps in that container.
+	 * Off by default; never runs in dry-run mode.
+	 */
+	@Inject(method = "pickUpItems", at = @At("TAIL"))
+	private void wbcg$tidyAfterPickup(PathfinderMob body, Container container, CallbackInfo ci) {
+		wbcg$maybeTidy(body, container);
+	}
+
+	@Inject(method = "putDownItem", at = @At("TAIL"))
+	private void wbcg$tidyAfterDeposit(PathfinderMob body, Container container, CallbackInfo ci) {
+		wbcg$maybeTidy(body, container);
+	}
+
+	@org.spongepowered.asm.mixin.Unique
+	private void wbcg$maybeTidy(PathfinderMob body, Container container) {
+		if (body instanceof CopperGolem && body.level() instanceof ServerLevel level) {
+			ZoneSettings settings = ((ZoneAwareGolem) body).wbcg$zoneSettings(level);
+			if (settings.tidyInside() && !settings.dryRun()) {
+				SortingEngine.tidyContainer(container);
+			}
+		}
 	}
 
 	@org.spongepowered.asm.mixin.Unique

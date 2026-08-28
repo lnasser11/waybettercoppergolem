@@ -24,13 +24,15 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	@Unique
 	private ZoneSettings wbcg$cachedSettings = ZoneSettings.DEFAULT;
 	@Unique
-	private long wbcg$settingsCachedAt = Long.MIN_VALUE;
+	private long wbcg$settingsCachedAt;
+	@Unique
+	private boolean wbcg$settingsCacheDirty = true;
 
 	@Override
 	public void wbcg$setZoneChest(BlockPos pos) {
 		if (!pos.equals(this.wbcg$zoneChest)) {
 			this.wbcg$zoneChest = pos.immutable();
-			this.wbcg$settingsCachedAt = Long.MIN_VALUE;
+			this.wbcg$settingsCacheDirty = true;
 		}
 	}
 
@@ -55,9 +57,11 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	@Override
 	public ZoneSettings wbcg$zoneSettings(ServerLevel level) {
 		long now = level.getGameTime();
-		if (now - this.wbcg$settingsCachedAt >= 100) {
+		if (this.wbcg$settingsCacheDirty || now - this.wbcg$settingsCachedAt >= 100
+				|| now < this.wbcg$settingsCachedAt) {
 			this.wbcg$cachedSettings = Zones.at(level, this.wbcg$zoneChest);
 			this.wbcg$settingsCachedAt = now;
+			this.wbcg$settingsCacheDirty = false;
 		}
 		return this.wbcg$cachedSettings;
 	}
