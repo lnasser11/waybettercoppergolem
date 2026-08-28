@@ -79,3 +79,11 @@ publishing {
 		// retrieving dependencies.
 	}
 }
+
+loom {
+	runs {
+		server {
+			vmArg "-Dmixin.debug.verbose=true"
+		}
+	}
+}

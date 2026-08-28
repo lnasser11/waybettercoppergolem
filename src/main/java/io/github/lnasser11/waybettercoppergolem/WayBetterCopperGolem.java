@@ -38,10 +38,20 @@ public class WayBetterCopperGolem implements ModInitializer {
 	public static final AttachmentType<Integer> FRAME_EXPANSION =
 			AttachmentRegistry.createPersistent(id("frame_expansion"), Codec.INT);
 
+	/** Sorting-zone settings, stored on a copper chest block entity. */
+	public static final AttachmentType<io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings> ZONE_SETTINGS =
+			AttachmentRegistry.createPersistent(id("zone_settings"),
+					io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings.CODEC);
+
 	@Override
 	public void onInitialize() {
 		CommonLifecycleEvents.TAGS_LOADED.register((registries, client) -> LabelResolver.invalidateCaches());
 		UseEntityCallback.EVENT.register(WayBetterCopperGolem::onUseEntity);
+		if (net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment()) {
+			// Force the lazily-loaded behavior class so a broken mixin fails
+			// at startup in dev instead of when the first golem spawns.
+			net.minecraft.world.entity.ai.behavior.TransportItemsBetweenContainers.class.getName();
+		}
 		LOGGER.info("Way Better Copper Golem initialized");
 	}
 
