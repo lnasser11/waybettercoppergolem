@@ -20,7 +20,7 @@ import net.minecraft.world.entity.player.Inventory;
 public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSettingsMenu> {
 	private static final int WIDGET_WIDTH = 220;
 	private static final int WIDGET_HEIGHT = 20;
-	private static final int GAP = 4;
+	private static final int GAP = 3;
 	private static final int ROWS = 9;
 	private static final int RADIUS_STEP = 4;
 	private static final int CARRY_STEP = 16;
@@ -52,7 +52,10 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		super.init();
 		this.shown = this.menu.settings();
 		int x = this.width / 2 - WIDGET_WIDTH / 2;
-		int y = Math.max(30, this.height / 2 - (ROWS * (WIDGET_HEIGHT + GAP)) / 2);
+		// Every row plus the title has to fit, or the Done button ends up
+		// below the bottom of the screen at common GUI scales.
+		int contentHeight = ROWS * (WIDGET_HEIGHT + GAP);
+		int y = Math.max(WIDGET_HEIGHT, (this.height - contentHeight) / 2);
 
 		this.overridden.clear();
 		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.vanillaMode())
@@ -140,7 +143,8 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 		int x = this.width / 2;
-		int top = Math.max(30, this.height / 2 - (ROWS * (WIDGET_HEIGHT + GAP)) / 2);
+		int contentHeight = ROWS * (WIDGET_HEIGHT + GAP);
+		int top = Math.max(WIDGET_HEIGHT, (this.height - contentHeight) / 2);
 		graphics.centeredText(this.font, this.title, x, top - WIDGET_HEIGHT, LABEL_COLOR);
 		int valueColor = this.shown.vanillaMode() ? LABEL_COLOR_INACTIVE : LABEL_COLOR;
 		graphics.centeredText(this.font,
