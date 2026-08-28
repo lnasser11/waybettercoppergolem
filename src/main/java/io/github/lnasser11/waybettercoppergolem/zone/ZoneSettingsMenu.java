@@ -24,11 +24,13 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	public static final int DATA_TIDY = 3;
 	public static final int DATA_DRY_RUN = 4;
 	public static final int DATA_CARRY = 5;
-	public static final int DATA_COUNT = 6;
+	public static final int DATA_VANILLA = 6;
+	public static final int DATA_COUNT = 7;
 
 	public static final int BUTTON_TOGGLE_REORGANIZE = 0;
 	public static final int BUTTON_TOGGLE_TIDY = 1;
 	public static final int BUTTON_TOGGLE_DRY_RUN = 2;
+	public static final int BUTTON_TOGGLE_VANILLA = 3;
 	/** buttonId = base + value, for slider-style settings. */
 	public static final int BUTTON_RADIUS_BASE = 100;
 	public static final int BUTTON_REACH_BASE = 200;
@@ -57,6 +59,7 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 		data.set(DATA_TIDY, settings.tidyInside() ? 1 : 0);
 		data.set(DATA_DRY_RUN, settings.dryRun() ? 1 : 0);
 		data.set(DATA_CARRY, settings.carryAmount());
+		data.set(DATA_VANILLA, settings.vanillaMode() ? 1 : 0);
 		return data;
 	}
 
@@ -67,7 +70,8 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 				this.data.get(DATA_REORGANIZE) != 0,
 				this.data.get(DATA_TIDY) != 0,
 				this.data.get(DATA_DRY_RUN) != 0,
-				this.data.get(DATA_CARRY));
+				this.data.get(DATA_CARRY),
+				this.data.get(DATA_VANILLA) != 0);
 	}
 
 	@Override
@@ -76,22 +80,27 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 		ZoneSettings updated;
 		if (buttonId == BUTTON_TOGGLE_REORGANIZE) {
 			updated = new ZoneSettings(current.searchRadius(), current.verticalReach(),
-					!current.reorganize(), current.tidyInside(), current.dryRun(), current.carryAmount());
+					!current.reorganize(), current.tidyInside(), current.dryRun(), current.carryAmount(), current.vanillaMode());
 		} else if (buttonId == BUTTON_TOGGLE_TIDY) {
 			updated = new ZoneSettings(current.searchRadius(), current.verticalReach(),
-					current.reorganize(), !current.tidyInside(), current.dryRun(), current.carryAmount());
+					current.reorganize(), !current.tidyInside(), current.dryRun(), current.carryAmount(), current.vanillaMode());
 		} else if (buttonId == BUTTON_TOGGLE_DRY_RUN) {
 			updated = new ZoneSettings(current.searchRadius(), current.verticalReach(),
-					current.reorganize(), current.tidyInside(), !current.dryRun(), current.carryAmount());
+					current.reorganize(), current.tidyInside(), !current.dryRun(), current.carryAmount(), current.vanillaMode());
+		} else if (buttonId == BUTTON_TOGGLE_VANILLA) {
+			updated = new ZoneSettings(current.searchRadius(), current.verticalReach(),
+					current.reorganize(), current.tidyInside(), current.dryRun(), current.carryAmount(),
+					!current.vanillaMode());
 		} else if (buttonId >= BUTTON_RADIUS_BASE && buttonId < BUTTON_RADIUS_BASE + 100) {
 			updated = new ZoneSettings(buttonId - BUTTON_RADIUS_BASE, current.verticalReach(),
-					current.reorganize(), current.tidyInside(), current.dryRun(), current.carryAmount());
+					current.reorganize(), current.tidyInside(), current.dryRun(), current.carryAmount(), current.vanillaMode());
 		} else if (buttonId >= BUTTON_REACH_BASE && buttonId < BUTTON_REACH_BASE + 100) {
 			updated = new ZoneSettings(current.searchRadius(), buttonId - BUTTON_REACH_BASE,
-					current.reorganize(), current.tidyInside(), current.dryRun(), current.carryAmount());
+					current.reorganize(), current.tidyInside(), current.dryRun(), current.carryAmount(), current.vanillaMode());
 		} else if (buttonId >= BUTTON_CARRY_BASE && buttonId < BUTTON_CARRY_BASE + 100) {
 			updated = new ZoneSettings(current.searchRadius(), current.verticalReach(),
-					current.reorganize(), current.tidyInside(), current.dryRun(), buttonId - BUTTON_CARRY_BASE);
+					current.reorganize(), current.tidyInside(), current.dryRun(), buttonId - BUTTON_CARRY_BASE,
+					current.vanillaMode());
 		} else {
 			return false;
 		}
@@ -101,6 +110,7 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 		this.data.set(DATA_TIDY, updated.tidyInside() ? 1 : 0);
 		this.data.set(DATA_DRY_RUN, updated.dryRun() ? 1 : 0);
 		this.data.set(DATA_CARRY, updated.carryAmount());
+		this.data.set(DATA_VANILLA, updated.vanillaMode() ? 1 : 0);
 		this.access.execute((level, pos) -> {
 			if (level.getBlockState(pos).is(BlockTags.COPPER_CHESTS)) {
 				BlockEntity blockEntity = level.getBlockEntity(pos);

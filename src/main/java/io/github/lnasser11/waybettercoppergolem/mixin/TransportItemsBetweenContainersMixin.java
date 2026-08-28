@@ -95,6 +95,9 @@ public abstract class TransportItemsBetweenContainersMixin {
 		}
 		ZoneAwareGolem golem = (ZoneAwareGolem) body;
 		ZoneSettings settings = golem.wbcg$zoneSettings(level);
+		if (settings.vanillaMode()) {
+			return; // stock destination search
+		}
 		Optional<TransportItemTarget> destination = SortingEngine.findDepositTarget(
 				level, body, body.getMainHandItem(), this.destinationBlockType,
 				wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
@@ -139,7 +142,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 		ZoneAwareGolem golem = (ZoneAwareGolem) body;
 		ZoneSettings settings = golem.wbcg$zoneSettings(level);
 		long now = level.getGameTime();
-		if (!settings.reorganize() || now < golem.wbcg$nextReorganizeTime()) {
+		if (settings.vanillaMode() || !settings.reorganize() || now < golem.wbcg$nextReorganizeTime()) {
 			return;
 		}
 		Optional<TransportItemTarget> source = SortingEngine.findMisplacedSource(
@@ -198,6 +201,10 @@ public abstract class TransportItemsBetweenContainersMixin {
 		if (!(body instanceof CopperGolem)) {
 			return;
 		}
+		if (body.level() instanceof ServerLevel serverLevel
+				&& ((ZoneAwareGolem) body).wbcg$zoneSettings(serverLevel).vanillaMode()) {
+			return; // stock line-of-sight
+		}
 		Vec3 center = Vec3.atCenterOf(target.pos());
 		boolean visible = net.minecraft.core.Direction.stream()
 				.map(direction -> center.add(
@@ -225,7 +232,8 @@ public abstract class TransportItemsBetweenContainersMixin {
 	@Redirect(method = "doReachedTargetInteraction", at = @At(value = "INVOKE",
 			target = "Lnet/minecraft/world/entity/ai/behavior/TransportItemsBetweenContainers;matchesLeavingItemsRequirement(Lnet/minecraft/world/entity/PathfinderMob;Lnet/minecraft/world/Container;)Z"))
 	private boolean wbcg$labelAwareAccept(PathfinderMob body, Container container) {
-		if (body instanceof CopperGolem && this.target != null && body.level() instanceof ServerLevel level) {
+		if (body instanceof CopperGolem && this.target != null && body.level() instanceof ServerLevel level
+				&& !((ZoneAwareGolem) body).wbcg$zoneSettings(level).vanillaMode()) {
 			if (this.wbcg$returnActive && this.target.state().is(BlockTags.COPPER_CHESTS)) {
 				return SortingEngine.canAcceptAny(this.target.container(), body.getMainHandItem());
 			}
@@ -357,7 +365,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 	private void wbcg$maybeTidy(PathfinderMob body, Container container) {
 		if (body instanceof CopperGolem && body.level() instanceof ServerLevel level) {
 			ZoneSettings settings = ((ZoneAwareGolem) body).wbcg$zoneSettings(level);
-			if (settings.tidyInside() && !settings.dryRun()) {
+			if (settings.tidyInside() && !settings.dryRun() && !settings.vanillaMode()) {
 				SortingEngine.tidyContainer(container);
 			}
 		}
@@ -378,7 +386,8 @@ public abstract class TransportItemsBetweenContainersMixin {
 	private double wbcg$verticalReach(double original, double distance, TransportItemTarget target,
 			Level level, PathfinderMob body, Vec3 fromPos) {
 		if (body instanceof CopperGolem && body.level() instanceof ServerLevel serverLevel) {
-			return ((ZoneAwareGolem) body).wbcg$zoneSettings(serverLevel).verticalReach();
+			ZoneSettings settings = ((ZoneAwareGolem) body).wbcg$zoneSettings(serverLevel);
+			return settings.vanillaMode() ? original : settings.verticalReach();
 		}
 		return original;
 	}

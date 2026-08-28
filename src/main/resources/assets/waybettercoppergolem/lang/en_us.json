@@ -41,5 +41,6 @@
   "waybettercoppergolem.editor.search": "Search items",
   "waybettercoppergolem.editor.hint": "Click an item to add or remove it from the category",
   "waybettercoppergolem.editor.in_category": "%s - IN this category (click to remove)",
-  "waybettercoppergolem.editor.not_in_category": "%s - not in this category (click to add)"
+  "waybettercoppergolem.editor.not_in_category": "%s - not in this category (click to add)",
+  "waybettercoppergolem.settings.vanilla": "Vanilla mode (golems act stock)"
 }

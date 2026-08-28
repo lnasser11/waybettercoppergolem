@@ -148,12 +148,20 @@ settings screen:
 
 | Setting | Default | |
 |---|---|---|
+| Vanilla mode | off | one-click opt out: golems act 100% stock in this zone |
 | Reorganize existing chests | on | background cleanup on/off |
 | Tidy inside chests | off | merge partial stacks + close gaps in chests the golem visits |
 | Dry run | off | log intended moves, touch nothing |
 | Search radius | 32 | horizontal destination search distance (4–48) |
 | Vertical reach | 4 | how high golems can reach into chest walls (1–6) |
 | Carry amount | 16 | items per trip: 16 for immersion, up to 64 for efficiency |
+
+**Vanilla mode** is the quick preset for players who don't want any of
+this: with it on, golems working that zone behave exactly like stock
+Minecraft — labels ignored, no reorganizing, vanilla reach and 16-item
+carries — while every label, category and setting stays saved for the
+moment it's switched back off. Zones are independent, so one copper
+chest can run vanilla while another runs fully tuned.
 
 Normal right-click still opens the copper chest as storage. All copper
 chest variants behave identically (exposed/weathered/oxidized and all

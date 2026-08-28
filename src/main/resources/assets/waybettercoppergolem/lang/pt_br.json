@@ -41,5 +41,6 @@
   "waybettercoppergolem.editor.search": "Buscar itens",
   "waybettercoppergolem.editor.hint": "Clique em um item para adicionar ou remover da categoria",
   "waybettercoppergolem.editor.in_category": "%s - NESTA categoria (clique para remover)",
-  "waybettercoppergolem.editor.not_in_category": "%s - fora desta categoria (clique para adicionar)"
+  "waybettercoppergolem.editor.not_in_category": "%s - fora desta categoria (clique para adicionar)",
+  "waybettercoppergolem.settings.vanilla": "Modo vanilla (golens agem como no jogo base)"
 }

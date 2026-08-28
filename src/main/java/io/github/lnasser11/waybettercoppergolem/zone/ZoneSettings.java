@@ -8,11 +8,11 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
  * to any golem operating out of that copper chest (the golem remembers the
  * last copper chest it picked up from).
  */
-public record ZoneSettings(int searchRadius, int verticalReach, boolean reorganize, boolean tidyInside, boolean dryRun, int carryAmount) {
+public record ZoneSettings(int searchRadius, int verticalReach, boolean reorganize, boolean tidyInside, boolean dryRun, int carryAmount, boolean vanillaMode) {
 	public static final int MAX_SEARCH_RADIUS = 48;
 	public static final int MAX_VERTICAL_REACH = 6;
 	public static final int MAX_CARRY_AMOUNT = 64;
-	public static final ZoneSettings DEFAULT = new ZoneSettings(32, 4, true, false, false, 16);
+	public static final ZoneSettings DEFAULT = new ZoneSettings(32, 4, true, false, false, 16, false);
 
 	public static final Codec<ZoneSettings> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			Codec.INT.optionalFieldOf("search_radius", DEFAULT.searchRadius()).forGetter(ZoneSettings::searchRadius),
@@ -20,7 +20,8 @@ public record ZoneSettings(int searchRadius, int verticalReach, boolean reorgani
 			Codec.BOOL.optionalFieldOf("reorganize", DEFAULT.reorganize()).forGetter(ZoneSettings::reorganize),
 			Codec.BOOL.optionalFieldOf("tidy_inside", DEFAULT.tidyInside()).forGetter(ZoneSettings::tidyInside),
 			Codec.BOOL.optionalFieldOf("dry_run", DEFAULT.dryRun()).forGetter(ZoneSettings::dryRun),
-			Codec.INT.optionalFieldOf("carry_amount", DEFAULT.carryAmount()).forGetter(ZoneSettings::carryAmount)
+			Codec.INT.optionalFieldOf("carry_amount", DEFAULT.carryAmount()).forGetter(ZoneSettings::carryAmount),
+			Codec.BOOL.optionalFieldOf("vanilla_mode", DEFAULT.vanillaMode()).forGetter(ZoneSettings::vanillaMode)
 	).apply(instance, ZoneSettings::new));
 
 	public ZoneSettings {

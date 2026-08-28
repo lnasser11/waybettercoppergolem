@@ -21,7 +21,7 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 	private static final int WIDGET_WIDTH = 220;
 	private static final int WIDGET_HEIGHT = 20;
 	private static final int GAP = 4;
-	private static final int ROWS = 8;
+	private static final int ROWS = 9;
 	private static final int RADIUS_STEP = 4;
 	private static final int CARRY_STEP = 16;
 
@@ -48,6 +48,11 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		int x = this.width / 2 - WIDGET_WIDTH / 2;
 		int y = Math.max(30, this.height / 2 - (ROWS * (WIDGET_HEIGHT + GAP)) / 2);
 
+		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.vanillaMode())
+				.create(x, y, WIDGET_WIDTH, WIDGET_HEIGHT,
+						Component.translatable("waybettercoppergolem.settings.vanilla"),
+						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_VANILLA)));
+		y += WIDGET_HEIGHT + GAP;
 		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.reorganize())
 				.create(x, y, WIDGET_WIDTH, WIDGET_HEIGHT,
 						Component.translatable("waybettercoppergolem.settings.reorganize"),

@@ -142,7 +142,13 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
    stack back to the copper chest and retries ~30 s later. It must never
    freeze holding an item.
 
-## 12. Carry amount and category editor
+## 12. Vanilla mode, carry amount, category editor
+
+0. Toggle **Vanilla mode ON** in the copper chest GUI: feed mixed items →
+   the golem sorts like stock Minecraft (nearest empty-or-matching chest,
+   labels ignored, 16 per trip), and misplaced stacks in labeled chests
+   stay put. Toggle it OFF → label sorting resumes and reorganize cleans
+   up what vanilla mode misplaced.
 
 1. In the copper chest GUI set **Carry amount: 64**; put 40+ of one item
    in the copper chest → the golem moves it in a **single trip**. Set it
