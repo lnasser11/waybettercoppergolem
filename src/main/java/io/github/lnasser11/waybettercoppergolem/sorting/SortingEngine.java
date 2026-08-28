@@ -64,6 +64,7 @@ public final class SortingEngine {
 		AABB searchArea = new AABB(golem.blockPosition()).inflate(horizontalRadius, verticalRadius, horizontalRadius);
 		TransportItemTarget best = null;
 		long bestRank = Long.MAX_VALUE;
+		boolean bestContainsItem = false;
 		double bestDistSq = Double.MAX_VALUE;
 
 		for (ChunkPos chunkPos : ChunkPos.rangeClosed(
@@ -85,10 +86,17 @@ public final class SortingEngine {
 				if (rank == Long.MAX_VALUE) {
 					continue;
 				}
+				// Between equally-labeled chests, prefer the one already holding
+				// this item, so twin chests consolidate instead of scattering.
+				boolean containsItem = containsSameItem(candidate.container(), held);
 				double distSq = candidate.pos().distToCenterSqr(golem.position());
-				if (rank < bestRank || (rank == bestRank && distSq < bestDistSq)) {
+				boolean better = rank < bestRank
+						|| (rank == bestRank && containsItem && !bestContainsItem)
+						|| (rank == bestRank && containsItem == bestContainsItem && distSq < bestDistSq);
+				if (better) {
 					best = candidate;
 					bestRank = rank;
+					bestContainsItem = containsItem;
 					bestDistSq = distSq;
 				}
 			}
@@ -144,6 +152,9 @@ public final class SortingEngine {
 	private static long depositRank(ServerLevel level, TransportItemTarget target, ItemStack held) {
 		Container container = target.container();
 		List<ChestLabel> labels = ChestLabels.effectiveLabels(level, target.pos(), target.state());
+		if (labels.stream().anyMatch(ChestLabel::isOffLimits)) {
+			return Long.MAX_VALUE;
+		}
 		if (labels.isEmpty()) {
 			boolean vanillaAccepts = container.isEmpty() || containsSameItem(container, held);
 			return vanillaAccepts && canAcceptAny(container, held) ? UNLABELED_RANK : Long.MAX_VALUE;
@@ -170,6 +181,9 @@ public final class SortingEngine {
 	public static boolean acceptsDeposit(ServerLevel level, TransportItemTarget target, PathfinderMob golem) {
 		ItemStack held = golem.getMainHandItem();
 		List<ChestLabel> labels = ChestLabels.effectiveLabels(level, target.pos(), target.state());
+		if (labels.stream().anyMatch(ChestLabel::isOffLimits)) {
+			return false;
+		}
 		if (labels.isEmpty()) {
 			Container container = target.container();
 			return container.isEmpty() || containsSameItem(container, held);
@@ -244,7 +258,7 @@ public final class SortingEngine {
 	 */
 	public static ItemStack firstMisplacedStack(ServerLevel level, TransportItemTarget target) {
 		List<ChestLabel> labels = ChestLabels.effectiveLabels(level, target.pos(), target.state());
-		if (labels.isEmpty() || labels.stream().anyMatch(ChestLabel::isCatchAll)) {
+		if (labels.isEmpty() || labels.stream().anyMatch(label -> label.isCatchAll() || label.isOffLimits())) {
 			return ItemStack.EMPTY;
 		}
 		for (ItemStack stack : target.container()) {

@@ -98,6 +98,9 @@ public final class LabelResolver {
 
 	/** Actionbar text describing a label, e.g. "Label: #c:ingots/iron". */
 	public static Component describe(ChestLabel label) {
+		if (label.isOffLimits()) {
+			return Component.translatable("waybettercoppergolem.label.off_limits");
+		}
 		if (label.isCatchAll()) {
 			return Component.translatable("waybettercoppergolem.label.catch_all");
 		}
@@ -108,5 +111,21 @@ public final class LabelResolver {
 		}
 		Identifier tagId = orderedTags(labelItem).get(level - 1).location();
 		return Component.translatable("waybettercoppergolem.label.tag", "#" + tagId);
+	}
+
+	/** Compact name for one label, used in the multi-label summary line. */
+	public static Component shortName(ChestLabel label) {
+		if (label.isOffLimits()) {
+			return Component.translatable("waybettercoppergolem.label.short.off_limits");
+		}
+		if (label.isCatchAll()) {
+			return Component.translatable("waybettercoppergolem.label.short.catch_all");
+		}
+		Item labelItem = BuiltInRegistries.ITEM.getValue(label.itemId().orElseThrow());
+		int level = clampLevel(label, labelItem);
+		if (level == 0) {
+			return labelItem.getName(labelItem.getDefaultInstance());
+		}
+		return Component.literal("#" + orderedTags(labelItem).get(level - 1).location());
 	}
 }

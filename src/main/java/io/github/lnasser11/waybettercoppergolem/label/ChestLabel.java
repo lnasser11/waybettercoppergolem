@@ -35,4 +35,9 @@ public record ChestLabel(Optional<Identifier> itemId, int expansionLevel) {
 	public boolean isCatchAll() {
 		return itemId.isEmpty();
 	}
+
+	/** A framed cobweb marks the chest fully off-limits to golems. */
+	public boolean isOffLimits() {
+		return itemId.map(id -> id.equals(Identifier.withDefaultNamespace("cobweb"))).orElse(false);
+	}
 }

@@ -82,9 +82,14 @@ public class WayBetterCopperGolem implements ModInitializer {
 			return InteractionResult.SUCCESS;
 		}
 		ServerLevel serverLevel = (ServerLevel) level;
-		ChestLabel label = frame.getItem().isEmpty()
-				? ChestLabels.labelFromFrame(frame)
+		ChestLabel current = ChestLabels.labelFromFrame(frame);
+		// Cobweb frames and empty frames have fixed meanings; nothing to cycle.
+		ChestLabel label = (frame.getItem().isEmpty() || current.isOffLimits())
+				? current
 				: ChestLabels.cycleFrame(serverLevel, frame, supportPos);
+		if (label.isOffLimits()) {
+			ChestLabels.labelsForHalf(serverLevel, supportPos);
+		}
 		if (player instanceof ServerPlayer serverPlayer) {
 			serverPlayer.sendOverlayMessage(LabelResolver.describe(label));
 		}
@@ -95,8 +100,35 @@ public class WayBetterCopperGolem implements ModInitializer {
 	private static InteractionResult onUseBlock(net.minecraft.world.entity.player.Player player,
 			net.minecraft.world.level.Level level, InteractionHand hand,
 			net.minecraft.world.phys.BlockHitResult hitResult) {
-		if (hand != InteractionHand.MAIN_HAND || !player.isShiftKeyDown() || player.isSpectator()
-				|| !player.getMainHandItem().isEmpty()) {
+		if (hand != InteractionHand.MAIN_HAND || player.isSpectator()) {
+			return InteractionResult.PASS;
+		}
+		// Opening a labeled chest normally also shows its labels in the
+		// actionbar; the chest still opens (PASS).
+		if (!player.isShiftKeyDown()) {
+			if (player instanceof ServerPlayer serverPlayer && level instanceof ServerLevel serverLevel) {
+				BlockPos chestPos = hitResult.getBlockPos();
+				net.minecraft.world.level.block.state.BlockState chestState = level.getBlockState(chestPos);
+				if (ChestLabels.isLabelableChest(chestState)) {
+					java.util.List<ChestLabel> labels =
+							ChestLabels.effectiveLabels(serverLevel, chestPos, chestState);
+					if (!labels.isEmpty()) {
+						net.minecraft.network.chat.MutableComponent summary =
+								net.minecraft.network.chat.Component.empty();
+						for (int i = 0; i < labels.size(); i++) {
+							if (i > 0) {
+								summary.append(", ");
+							}
+							summary.append(LabelResolver.shortName(labels.get(i)));
+						}
+						serverPlayer.sendOverlayMessage(net.minecraft.network.chat.Component
+								.translatable("waybettercoppergolem.label.summary", summary));
+					}
+				}
+			}
+			return InteractionResult.PASS;
+		}
+		if (!player.getMainHandItem().isEmpty()) {
 			return InteractionResult.PASS;
 		}
 		BlockPos pos = hitResult.getBlockPos();
