@@ -59,5 +59,10 @@
   "waybettercoppergolem.editor.new_name": "New category name",
   "waybettercoppergolem.editor.create": "Create",
   "waybettercoppergolem.editor.new_hint": "Type a name, then Create - the new category starts empty",
-  "waybettercoppergolem.editor.other_items": "Other items"
+  "waybettercoppergolem.editor.other_items": "Other items",
+  "waybettercoppergolem.editor.in_this_category": "In category",
+  "waybettercoppergolem.editor.empty_category": "Nothing in here yet - search above, or pick a section on the left",
+  "waybettercoppergolem.editor.no_results": "No items match that search",
+  "waybettercoppergolem.editor.showing_search": "Search results: %s items - click one to add or remove it",
+  "waybettercoppergolem.editor.showing_section": "%s - %s items"
 }

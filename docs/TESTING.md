@@ -159,10 +159,12 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
 1. In the copper chest GUI set **Carry amount: 64**; put 40+ of one item
    in the copper chest → the golem moves it in a **single trip**. Set it
    back to 16 → back to small armfuls.
-2. Open **Categories…** from the settings screen: the dropdown switches
-   categories, the item list is grouped under creative-tab headings, and
-   clicking items toggles membership (green = in category; corner marks =
-   your tweaks). Changes show in `/wbcg category list`.
+2. Open **Categories…** from the settings screen. It should open showing
+   **In category (N)** — the items already in the selected category, not
+   the whole registry. The left list switches to one creative section at
+   a time with counts; the scrollbar shows position; typing searches
+   everything. Clicking an item toggles it (corner marks = your tweaks),
+   and the change shows in `/wbcg category list`.
 2b. Press **+**, type a name, hit Create → your category appears in the
    dropdown, starts empty, and you can click items into it. Label a chest
    by cycling a frame of one of those items until your category's name

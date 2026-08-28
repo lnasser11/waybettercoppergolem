@@ -99,11 +99,12 @@ because no preset will ever match your storage room exactly:
   category, persists with the world, and never modifies the base tag.
 - The same works on any tag label (`c:` and curated `minecraft:` tags
   included), so you can patch their gaps too.
-- The settings screen's **Categories…** button opens a
-  creative-inventory-style editor: pick a category from the dropdown,
-  search, and click items to add or remove them. The item list is grouped
-  under the same headings the creative inventory uses, so you're scanning
-  sections rather than one endless scroll.
+- The settings screen's **Categories…** button opens the editor: pick a
+  category from the dropdown, then work through a panel that never shows
+  the whole item registry. It opens on **the items already in that
+  category**; a section list on the left switches to one creative tab at a
+  time (with item counts), a scrollbar shows how much of a section is
+  left, and typing searches across everything regardless of section.
 - **Make your own categories.** The `+` button in the editor (or
   `/wbcg category create <name>`) adds a category with whatever name you
   type — "Ocean Loot", "Villager Trades", anything. It starts empty; click
