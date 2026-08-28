@@ -39,6 +39,19 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 		return this.wbcg$zoneChest;
 	}
 
+	@Unique
+	private long wbcg$nextReorganizeTime;
+
+	@Override
+	public long wbcg$nextReorganizeTime() {
+		return this.wbcg$nextReorganizeTime;
+	}
+
+	@Override
+	public void wbcg$setNextReorganizeTime(long gameTime) {
+		this.wbcg$nextReorganizeTime = gameTime;
+	}
+
 	@Override
 	public ZoneSettings wbcg$zoneSettings(ServerLevel level) {
 		long now = level.getGameTime();

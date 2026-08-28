@@ -18,4 +18,9 @@ public interface ZoneAwareGolem {
 	@Nullable BlockPos wbcg$zoneChest();
 
 	ZoneSettings wbcg$zoneSettings(ServerLevel level);
+
+	/** Game time before which this golem won't look for misplaced stacks. */
+	long wbcg$nextReorganizeTime();
+
+	void wbcg$setNextReorganizeTime(long gameTime);
 }

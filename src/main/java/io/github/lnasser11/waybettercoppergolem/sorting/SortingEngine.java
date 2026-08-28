@@ -93,6 +93,10 @@ public final class SortingEngine {
 				}
 			}
 		}
+		if (best != null) {
+			WayBetterCopperGolem.LOGGER.debug("[WBCG-DEBUG] deposit target for {} -> {} (rank {})",
+					held.getItem(), best.pos(), bestRank);
+		}
 		return Optional.ofNullable(best);
 	}
 
@@ -173,6 +177,86 @@ public final class SortingEngine {
 		boolean accepted = labels.stream()
 				.anyMatch(label -> label.isCatchAll() || LabelResolver.matches(label, held));
 		return accepted && canAcceptAny(target.container(), held);
+	}
+
+	/**
+	 * Nearest labeled chest holding a stack that matches none of its labels,
+	 * verified to have somewhere better for that stack to go. Chests with a
+	 * catch-all label never have misplaced contents. Copper chests and
+	 * unlabeled chests are never touched.
+	 */
+	public static Optional<TransportItemTarget> findMisplacedSource(
+			ServerLevel level, PathfinderMob golem,
+			Predicate<BlockState> destinationBlockType,
+			Set<GlobalPos> visited, Set<GlobalPos> unreachable,
+			int horizontalRadius, int verticalRadius) {
+		AABB searchArea = new AABB(golem.blockPosition()).inflate(horizontalRadius, verticalRadius, horizontalRadius);
+		record MisplacedCandidate(TransportItemTarget target, ItemStack stack, double distSq) {
+		}
+		List<MisplacedCandidate> candidates = new java.util.ArrayList<>();
+
+		for (ChunkPos chunkPos : ChunkPos.rangeClosed(
+				ChunkPos.containing(golem.blockPosition()), Math.floorDiv(horizontalRadius, 16) + 1).toList()) {
+			LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
+			if (chunk == null) {
+				continue;
+			}
+			for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+				if (!(blockEntity instanceof ChestBlockEntity)
+						|| !ChestLabels.isLabelableChest(blockEntity.getBlockState())) {
+					continue;
+				}
+				TransportItemTarget candidate = validCandidate(
+						level, blockEntity, ChestLabels::isLabelableChest, visited, unreachable, searchArea);
+				if (candidate == null) {
+					continue;
+				}
+				ItemStack misplaced = firstMisplacedStack(level, candidate);
+				if (!misplaced.isEmpty()) {
+					candidates.add(new MisplacedCandidate(candidate, misplaced,
+							candidate.pos().distToCenterSqr(golem.position())));
+				}
+			}
+		}
+		candidates.sort(java.util.Comparator.comparingDouble(MisplacedCandidate::distSq));
+
+		for (MisplacedCandidate candidate : candidates) {
+			// Only worth picking up if a better home actually exists right now.
+			Set<GlobalPos> excludingSource = new java.util.HashSet<>(visited);
+			excludingSource.add(new GlobalPos(level.dimension(), candidate.target().pos()));
+			BlockState state = candidate.target().state();
+			if (state.getValueOrElse(ChestBlock.TYPE, ChestType.SINGLE) != ChestType.SINGLE) {
+				excludingSource.add(new GlobalPos(level.dimension(),
+						ChestBlock.getConnectedBlockPos(candidate.target().pos(), state)));
+			}
+			ItemStack preview = candidate.stack().copyWithCount(Math.min(candidate.stack().getCount(), 16));
+			if (findDepositTarget(level, golem, preview, destinationBlockType,
+					excludingSource, unreachable, horizontalRadius, verticalRadius).isPresent()) {
+				return Optional.of(candidate.target());
+			}
+		}
+		return Optional.empty();
+	}
+
+	/**
+	 * The first stack in this labeled chest that matches none of its labels;
+	 * empty if the chest is unlabeled, has a catch-all label, or is tidy.
+	 */
+	public static ItemStack firstMisplacedStack(ServerLevel level, TransportItemTarget target) {
+		List<ChestLabel> labels = ChestLabels.effectiveLabels(level, target.pos(), target.state());
+		if (labels.isEmpty() || labels.stream().anyMatch(ChestLabel::isCatchAll)) {
+			return ItemStack.EMPTY;
+		}
+		for (ItemStack stack : target.container()) {
+			if (stack.isEmpty()) {
+				continue;
+			}
+			boolean matchesAnyLabel = labels.stream().anyMatch(label -> LabelResolver.matches(label, stack));
+			if (!matchesAnyLabel) {
+				return stack;
+			}
+		}
+		return ItemStack.EMPTY;
 	}
 
 	public static boolean containsSameItem(Container container, ItemStack stack) {
