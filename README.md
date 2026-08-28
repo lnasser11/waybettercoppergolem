@@ -100,8 +100,17 @@ because no preset will ever match your storage room exactly:
 - The same works on any tag label (`c:` and curated `minecraft:` tags
   included), so you can patch their gaps too.
 - The settings screen's **Categories…** button opens a
-  creative-inventory-style editor: pick a category, search the full item
-  list, and click items to add or remove them — same tuning, visual.
+  creative-inventory-style editor: pick a category from the dropdown,
+  search, and click items to add or remove them. The item list is grouped
+  under the same headings the creative inventory uses, so you're scanning
+  sections rather than one endless scroll.
+- **Make your own categories.** The `+` button in the editor (or
+  `/wbcg category create <name>`) adds a category with whatever name you
+  type — "Ocean Loot", "Villager Trades", anything. It starts empty; click
+  items into it, and it then shows up as a cycle stop on the frames of
+  any item you put in it, exactly like the presets. `✕` (or
+  `/wbcg category delete <name>`) removes one; the shipped presets can't
+  be deleted, only tweaked or reset.
 - **Frame icons are yours to choose**: once a frame is set to a category,
   pop the displayed item out and put any item you like in — the category
   sticks to the frame, only the icon changes. (Sneak-click an emptied
@@ -118,6 +127,8 @@ The `/wbcg` command inspects and edits the same data:
 /wbcg category add <name> <item>        include an item            (op)
 /wbcg category remove <name> <item>     exclude an item            (op)
 /wbcg category reset <name>             drop all tweaks            (op)
+/wbcg category create <name>            make your own category
+/wbcg category delete <name>            remove one of your categories
 /wbcg chest info                        what is the chest you're looking at labeled?
 /wbcg chest clear                       forget a frameless chest's remembered label
 ```

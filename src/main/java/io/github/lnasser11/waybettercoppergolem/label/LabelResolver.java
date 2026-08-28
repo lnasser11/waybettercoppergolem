@@ -12,6 +12,8 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -79,6 +81,31 @@ public final class LabelResolver {
 		return TagKey.create(Registries.ITEM, tagId);
 	}
 
+	/**
+	 * Every label a frame showing this item can cycle through, narrow to
+	 * broad: the item's real tags, then any player-made categories it
+	 * belongs to. Custom categories are looked up live rather than cached,
+	 * since their membership is world data a player edits at any time.
+	 */
+	public static List<Identifier> cycleStops(ServerLevel level, Item item) {
+		List<Identifier> stops = new java.util.ArrayList<>(
+				orderedTags(item).stream().map(TagKey::location).toList());
+		stops.addAll(io.github.lnasser11.waybettercoppergolem.tuning.CustomCategories
+				.containing(level, item.getDefaultInstance()));
+		return stops;
+	}
+
+	/**
+	 * How many items a category actually holds right now: its base tag plus
+	 * the world's added items, minus removed ones. Custom categories have no
+	 * base tag, so this is simply how many items were put in them.
+	 */
+	public static int effectiveSize(ServerLevel level, Identifier tagId) {
+		var override = io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning
+				.overridesFor(level, tagId);
+		return Math.max(0, tagSize(itemTag(tagId)) + override.added().size() - override.removed().size());
+	}
+
 	private static int tagSize(TagKey<Item> tag) {
 		return BuiltInRegistries.ITEM.get(tag).map(HolderSet.Named::size).orElse(0);
 	}
@@ -113,11 +140,18 @@ public final class LabelResolver {
 		if (label.tagId().isEmpty()) {
 			return 0;
 		}
-		return Math.max(1, tagSize(itemTag(label.tagId().get())));
+		return Math.max(1, effectiveSize(level, label.tagId().get()));
 	}
 
-	/** Friendly name for a category tag: lang entry for wbcg, "#id" otherwise. */
-	public static Component tagName(Identifier tagId) {
+	/**
+	 * Friendly name for a category: the player's own name for a custom one,
+	 * a translated name for a shipped preset, "#id" for a plain item tag.
+	 */
+	public static Component tagName(@Nullable ServerLevel level, Identifier tagId) {
+		if (level != null && io.github.lnasser11.waybettercoppergolem.tuning.CustomCategories.isCustom(tagId)) {
+			String name = io.github.lnasser11.waybettercoppergolem.tuning.CustomCategories.nameOf(level, tagId);
+			return Component.literal(name == null ? tagId.getPath() : name);
+		}
 		if (tagId.getNamespace().equals(CATEGORY_NAMESPACE)) {
 			return Component.translatable("waybettercoppergolem.category." + tagId.getPath());
 		}
@@ -125,7 +159,7 @@ public final class LabelResolver {
 	}
 
 	/** Actionbar text describing a label, e.g. "Label: #c:ingots/iron". */
-	public static Component describe(ChestLabel label) {
+	public static Component describe(@Nullable ServerLevel level, ChestLabel label) {
 		if (label.isOffLimits()) {
 			return Component.translatable("waybettercoppergolem.label.off_limits");
 		}
@@ -137,11 +171,11 @@ public final class LabelResolver {
 			return Component.translatable("waybettercoppergolem.label.exact",
 					labelItem.getName(labelItem.getDefaultInstance()));
 		}
-		return Component.translatable("waybettercoppergolem.label.tag", tagName(label.tagId().get()));
+		return Component.translatable("waybettercoppergolem.label.tag", tagName(level, label.tagId().get()));
 	}
 
 	/** Compact name for one label, used in the multi-label summary line. */
-	public static Component shortName(ChestLabel label) {
+	public static Component shortName(@Nullable ServerLevel level, ChestLabel label) {
 		if (label.isOffLimits()) {
 			return Component.translatable("waybettercoppergolem.label.short.off_limits");
 		}
@@ -152,6 +186,6 @@ public final class LabelResolver {
 			Item labelItem = BuiltInRegistries.ITEM.getValue(label.itemId().orElseThrow());
 			return labelItem.getName(labelItem.getDefaultInstance());
 		}
-		return tagName(label.tagId().get());
+		return tagName(level, label.tagId().get());
 	}
 }

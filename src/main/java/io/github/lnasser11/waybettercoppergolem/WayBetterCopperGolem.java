@@ -44,6 +44,11 @@ public class WayBetterCopperGolem implements ModInitializer {
 			AttachmentRegistry.createPersistent(id("category_overrides"),
 					io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning.CODEC);
 
+	/** Player-made categories: id to the name they typed for it. */
+	public static final AttachmentType<java.util.Map<Identifier, String>> CUSTOM_CATEGORIES =
+			AttachmentRegistry.createPersistent(id("custom_categories"),
+					io.github.lnasser11.waybettercoppergolem.tuning.CustomCategories.CODEC);
+
 	/** Sorting-zone settings, stored on a copper chest block entity. */
 	public static final AttachmentType<io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings> ZONE_SETTINGS =
 			AttachmentRegistry.createPersistent(id("zone_settings"),
@@ -81,6 +86,18 @@ public class WayBetterCopperGolem implements ModInitializer {
 		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.serverboundPlay().register(
 				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Query.TYPE,
 				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Query.CODEC);
+		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.serverboundPlay().register(
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.ListRequest.TYPE,
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.ListRequest.CODEC);
+		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.serverboundPlay().register(
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Create.TYPE,
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Create.CODEC);
+		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.serverboundPlay().register(
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Delete.TYPE,
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Delete.CODEC);
+		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.clientboundPlay().register(
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.ListSync.TYPE,
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.ListSync.CODEC);
 		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.clientboundPlay().register(
 				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Sync.TYPE,
 				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Sync.CODEC);
@@ -101,6 +118,48 @@ public class WayBetterCopperGolem implements ModInitializer {
 					net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 							.send(context.player(), syncFor(level, payload.tagId()));
 				});
+		net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.ListRequest.TYPE,
+				(payload, context) -> net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
+						.send(context.player(), categoryList(context.player().level())));
+		net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Create.TYPE, (payload, context) -> {
+					ServerLevel level = context.player().level();
+					io.github.lnasser11.waybettercoppergolem.tuning.CustomCategories.create(level, payload.name());
+					net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
+							.send(context.player(), categoryList(level));
+				});
+		net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Delete.TYPE, (payload, context) -> {
+					ServerLevel level = context.player().level();
+					// Only player-made categories can be deleted; the shipped
+					// presets are datapack data, not world data.
+					if (io.github.lnasser11.waybettercoppergolem.tuning.CustomCategories
+							.isCustom(payload.tagId())) {
+						io.github.lnasser11.waybettercoppergolem.tuning.CustomCategories
+								.delete(level, payload.tagId());
+					}
+					net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
+							.send(context.player(), categoryList(level));
+				});
+	}
+
+	/** Preset categories plus this world's player-made ones, for the editor. */
+	private static io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.ListSync categoryList(
+			ServerLevel level) {
+		List<io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Entry> entries =
+				new java.util.ArrayList<>();
+		net.minecraft.core.registries.BuiltInRegistries.ITEM.getTags()
+				.map(named -> named.key().location())
+				.filter(id -> id.getNamespace().equals(LabelResolver.CATEGORY_NAMESPACE))
+				.sorted(java.util.Comparator.comparing(Identifier::getPath))
+				.forEach(id -> entries.add(new io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Entry(
+						id, LabelResolver.tagName(level, id), false)));
+		io.github.lnasser11.waybettercoppergolem.tuning.CustomCategories.all(level).keySet().stream()
+				.sorted(java.util.Comparator.comparing(Identifier::getPath))
+				.forEach(id -> entries.add(new io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Entry(
+						id, LabelResolver.tagName(level, id), true)));
+		return new io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.ListSync(List.copyOf(entries));
 	}
 
 	private static io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Sync syncFor(
@@ -143,7 +202,7 @@ public class WayBetterCopperGolem implements ModInitializer {
 				String key = result == io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning.ToggleResult.ADDED
 						? "waybettercoppergolem.tuning.added" : "waybettercoppergolem.tuning.removed";
 				message = net.minecraft.network.chat.Component.translatable(key,
-						heldItem.getItem().getName(heldItem), LabelResolver.tagName(tagId));
+						heldItem.getItem().getName(heldItem), LabelResolver.tagName(serverLevel, tagId));
 			} else {
 				message = net.minecraft.network.chat.Component
 						.translatable("waybettercoppergolem.tuning.needs_category");
@@ -171,7 +230,7 @@ public class WayBetterCopperGolem implements ModInitializer {
 			ChestLabels.labelsForHalf(serverLevel, supportPos);
 		}
 		if (player instanceof ServerPlayer serverPlayer) {
-			serverPlayer.sendOverlayMessage(LabelResolver.describe(label));
+			serverPlayer.sendOverlayMessage(LabelResolver.describe(serverLevel, label));
 		}
 		return InteractionResult.SUCCESS;
 	}
@@ -199,7 +258,7 @@ public class WayBetterCopperGolem implements ModInitializer {
 							if (i > 0) {
 								summary.append(", ");
 							}
-							summary.append(LabelResolver.shortName(labels.get(i)));
+							summary.append(LabelResolver.shortName(serverLevel, labels.get(i)));
 						}
 						serverPlayer.sendOverlayMessage(net.minecraft.network.chat.Component
 								.translatable("waybettercoppergolem.label.summary", summary));

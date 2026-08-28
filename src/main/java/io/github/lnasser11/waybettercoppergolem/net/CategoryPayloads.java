@@ -47,6 +47,72 @@ public final class CategoryPayloads {
 		}
 	}
 
+	/** C2S: ask for the list of categories that exist right now. */
+	public record ListRequest() implements CustomPacketPayload {
+		public static final CustomPacketPayload.Type<ListRequest> TYPE =
+				new CustomPacketPayload.Type<>(WayBetterCopperGolem.id("category_list_request"));
+		public static final StreamCodec<io.netty.buffer.ByteBuf, ListRequest> CODEC =
+				StreamCodec.unit(new ListRequest());
+
+		@Override
+		public CustomPacketPayload.Type<ListRequest> type() {
+			return TYPE;
+		}
+	}
+
+	/** C2S: create a player-made category with this name. */
+	public record Create(String name) implements CustomPacketPayload {
+		public static final CustomPacketPayload.Type<Create> TYPE =
+				new CustomPacketPayload.Type<>(WayBetterCopperGolem.id("category_create"));
+		public static final StreamCodec<io.netty.buffer.ByteBuf, Create> CODEC = StreamCodec.composite(
+				ByteBufCodecs.stringUtf8(64), Create::name,
+				Create::new);
+
+		@Override
+		public CustomPacketPayload.Type<Create> type() {
+			return TYPE;
+		}
+	}
+
+	/** C2S: delete a player-made category. */
+	public record Delete(Identifier tagId) implements CustomPacketPayload {
+		public static final CustomPacketPayload.Type<Delete> TYPE =
+				new CustomPacketPayload.Type<>(WayBetterCopperGolem.id("category_delete"));
+		public static final StreamCodec<io.netty.buffer.ByteBuf, Delete> CODEC = StreamCodec.composite(
+				Identifier.STREAM_CODEC, Delete::tagId,
+				Delete::new);
+
+		@Override
+		public CustomPacketPayload.Type<Delete> type() {
+			return TYPE;
+		}
+	}
+
+	/** One selectable category, as the editor screen shows it. */
+	public record Entry(Identifier id, net.minecraft.network.chat.Component name, boolean custom) {
+		public static final StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, Entry> CODEC =
+				StreamCodec.composite(
+						Identifier.STREAM_CODEC, Entry::id,
+						net.minecraft.network.chat.ComponentSerialization.STREAM_CODEC, Entry::name,
+						ByteBufCodecs.BOOL, Entry::custom,
+						Entry::new);
+	}
+
+	/** S2C: every category the editor can choose from. */
+	public record ListSync(List<Entry> entries) implements CustomPacketPayload {
+		public static final CustomPacketPayload.Type<ListSync> TYPE =
+				new CustomPacketPayload.Type<>(WayBetterCopperGolem.id("category_list_sync"));
+		public static final StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, ListSync> CODEC =
+				StreamCodec.composite(
+						Entry.CODEC.apply(ByteBufCodecs.list()), ListSync::entries,
+						ListSync::new);
+
+		@Override
+		public CustomPacketPayload.Type<ListSync> type() {
+			return TYPE;
+		}
+	}
+
 	/** S2C: a category's current overrides. */
 	public record Sync(Identifier tagId, List<Identifier> added, List<Identifier> removed)
 			implements CustomPacketPayload {

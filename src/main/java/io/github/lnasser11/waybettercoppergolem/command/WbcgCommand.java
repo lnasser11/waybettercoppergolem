@@ -63,7 +63,13 @@ public final class WbcgCommand {
 						.then(Commands.literal("test")
 								.then(Commands.argument("name", IdentifierArgument.id())
 										.then(Commands.argument("item", ItemArgument.item(buildContext))
-												.executes(WbcgCommand::test)))))
+												.executes(WbcgCommand::test))))
+						.then(Commands.literal("create")
+								.then(Commands.argument("displayName", StringArgumentType.greedyString())
+										.executes(WbcgCommand::createCategory)))
+						.then(Commands.literal("delete")
+								.then(Commands.argument("name", IdentifierArgument.id())
+										.executes(WbcgCommand::deleteCategory))))
 				.then(Commands.literal("chest")
 						.then(Commands.literal("info").executes(ctx -> chest(ctx, false)))
 						.then(Commands.literal("clear").executes(ctx -> chest(ctx, true)))));
@@ -78,24 +84,32 @@ public final class WbcgCommand {
 			if (BuiltInRegistries.ITEM.get(LabelResolver.itemTag(category)).isPresent()) {
 				return category;
 			}
+			Identifier custom = Identifier.fromNamespaceAndPath(
+					io.github.lnasser11.waybettercoppergolem.tuning.CustomCategories.NAMESPACE, raw.getPath());
+			if (io.github.lnasser11.waybettercoppergolem.tuning.CustomCategories
+					.all(ctx.getSource().getLevel()).containsKey(custom)) {
+				return custom;
+			}
 		}
 		return raw;
 	}
 
 	private static int listCategories(CommandContext<CommandSourceStack> ctx) {
 		ServerLevel level = ctx.getSource().getLevel();
-		List<Identifier> categories = BuiltInRegistries.ITEM.getTags()
+		List<Identifier> categories = new java.util.ArrayList<>(BuiltInRegistries.ITEM.getTags()
 				.map(named -> named.key().location())
 				.filter(id -> id.getNamespace().equals(LabelResolver.CATEGORY_NAMESPACE))
 				.sorted(Comparator.comparing(Identifier::getPath))
-				.toList();
+				.toList());
+		categories.addAll(io.github.lnasser11.waybettercoppergolem.tuning.CustomCategories.all(level).keySet()
+				.stream().sorted(Comparator.comparing(Identifier::getPath)).toList());
 		ctx.getSource().sendSuccess(
 				() -> Component.translatable("waybettercoppergolem.command.categories", categories.size()), false);
 		for (Identifier id : categories) {
-			int size = BuiltInRegistries.ITEM.get(LabelResolver.itemTag(id)).map(t -> t.size()).orElse(0);
+			int size = LabelResolver.effectiveSize(level, id);
 			CategoryTuning.TagOverride override = CategoryTuning.overridesFor(level, id);
 			ctx.getSource().sendSuccess(() -> Component.literal(" - ")
-					.append(LabelResolver.tagName(id))
+					.append(LabelResolver.tagName(level, id))
 					.append(Component.literal("  (" + id + ", " + size + " items, +"
 							+ override.added().size() + "/-" + override.removed().size() + ")")), false);
 		}
@@ -108,7 +122,7 @@ public final class WbcgCommand {
 		int size = BuiltInRegistries.ITEM.get(LabelResolver.itemTag(id)).map(t -> t.size()).orElse(0);
 		CategoryTuning.TagOverride override = CategoryTuning.overridesFor(level, id);
 		ctx.getSource().sendSuccess(() -> Component.translatable("waybettercoppergolem.command.list_header",
-				LabelResolver.tagName(id), id.toString(), size), false);
+				LabelResolver.tagName(level, id), id.toString(), size), false);
 		ctx.getSource().sendSuccess(() -> Component.translatable("waybettercoppergolem.command.list_added",
 				override.added().isEmpty() ? "-" : String.join(", ",
 						override.added().stream().map(Identifier::toString).sorted().toList())), false);
@@ -125,7 +139,7 @@ public final class WbcgCommand {
 		CategoryTuning.setMembership(level, id, item, include);
 		String key = include ? "waybettercoppergolem.tuning.added" : "waybettercoppergolem.tuning.removed";
 		ctx.getSource().sendSuccess(() -> Component.translatable(key,
-				item.getName(item.getDefaultInstance()), LabelResolver.tagName(id)), true);
+				item.getName(item.getDefaultInstance()), LabelResolver.tagName(level, id)), true);
 		return 1;
 	}
 
@@ -136,7 +150,7 @@ public final class WbcgCommand {
 		boolean member = CategoryTuning.matches(level, id, stack);
 		ctx.getSource().sendSuccess(() -> Component.translatable(
 				member ? "waybettercoppergolem.command.test_yes" : "waybettercoppergolem.command.test_no",
-				stack.getItem().getName(stack), LabelResolver.tagName(id)), false);
+				stack.getItem().getName(stack), LabelResolver.tagName(level, id)), false);
 		return member ? 1 : 0;
 	}
 
@@ -199,7 +213,7 @@ public final class WbcgCommand {
 			if (i > 0) {
 				summary.append(", ");
 			}
-			summary.append(LabelResolver.shortName(labels.get(i)));
+			summary.append(LabelResolver.shortName(level, labels.get(i)));
 		}
 		ctx.getSource().sendSuccess(() -> Component.translatable(
 				fromFrames ? "waybettercoppergolem.command.chest.from_frame"
@@ -207,12 +221,42 @@ public final class WbcgCommand {
 		return labels.size();
 	}
 
+	private static int createCategory(CommandContext<CommandSourceStack> ctx) {
+		ServerLevel level = ctx.getSource().getLevel();
+		String name = StringArgumentType.getString(ctx, "displayName");
+		Identifier created = io.github.lnasser11.waybettercoppergolem.tuning.CustomCategories.create(level, name);
+		if (created == null) {
+			ctx.getSource().sendFailure(Component.translatable("waybettercoppergolem.command.create_failed", name));
+			return 0;
+		}
+		ctx.getSource().sendSuccess(() -> Component.translatable("waybettercoppergolem.command.created",
+				LabelResolver.tagName(level, created), created.toString()), true);
+		return 1;
+	}
+
+	private static int deleteCategory(CommandContext<CommandSourceStack> ctx) {
+		ServerLevel level = ctx.getSource().getLevel();
+		Identifier id = tagId(ctx);
+		if (!io.github.lnasser11.waybettercoppergolem.tuning.CustomCategories.isCustom(id)) {
+			ctx.getSource().sendFailure(Component.translatable("waybettercoppergolem.command.delete_preset"));
+			return 0;
+		}
+		Component name = LabelResolver.tagName(level, id);
+		if (!io.github.lnasser11.waybettercoppergolem.tuning.CustomCategories.delete(level, id)) {
+			ctx.getSource().sendFailure(Component.translatable("waybettercoppergolem.command.delete_missing",
+					id.toString()));
+			return 0;
+		}
+		ctx.getSource().sendSuccess(() -> Component.translatable("waybettercoppergolem.command.deleted", name), true);
+		return 1;
+	}
+
 	private static int reset(CommandContext<CommandSourceStack> ctx) {
 		ServerLevel level = ctx.getSource().getLevel();
 		Identifier id = tagId(ctx);
 		CategoryTuning.reset(level, id);
 		ctx.getSource().sendSuccess(() -> Component.translatable("waybettercoppergolem.command.reset",
-				LabelResolver.tagName(id)), true);
+				LabelResolver.tagName(level, id)), true);
 		return 1;
 	}
 }

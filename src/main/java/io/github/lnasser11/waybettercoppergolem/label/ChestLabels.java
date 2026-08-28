@@ -119,21 +119,14 @@ public final class ChestLabels {
 		if (framed.isEmpty()) {
 			return ChestLabel.catchAll();
 		}
-		List<net.minecraft.tags.TagKey<net.minecraft.world.item.Item>> stops =
-				LabelResolver.orderedTags(framed.getItem());
+		List<net.minecraft.resources.Identifier> stops = LabelResolver.cycleStops(level, framed.getItem());
 		net.minecraft.resources.Identifier current = frame.getAttached(WayBetterCopperGolem.FRAME_TAG);
-		int currentIndex = -1; // -1 = exact item
-		for (int i = 0; i < stops.size(); i++) {
-			if (stops.get(i).location().equals(current)) {
-				currentIndex = i;
-				break;
-			}
-		}
+		int currentIndex = stops.indexOf(current); // -1 = exact item, or a stop no longer offered
 		int nextIndex = currentIndex + 1;
 		if (nextIndex >= stops.size()) {
 			frame.removeAttached(WayBetterCopperGolem.FRAME_TAG); // back to exact
 		} else {
-			frame.setAttached(WayBetterCopperGolem.FRAME_TAG, stops.get(nextIndex).location());
+			frame.setAttached(WayBetterCopperGolem.FRAME_TAG, stops.get(nextIndex));
 		}
 		labelsForHalf(level, chestPos);
 		return labelFromFrame(frame);

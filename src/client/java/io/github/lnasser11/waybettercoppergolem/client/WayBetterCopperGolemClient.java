@@ -17,5 +17,10 @@ public class WayBetterCopperGolemClient implements ClientModInitializer {
 				editor.acceptSync(payload);
 			}
 		});
+		ClientPlayNetworking.registerGlobalReceiver(CategoryPayloads.ListSync.TYPE, (payload, context) -> {
+			if (context.client().gui.screen() instanceof CategoryEditorScreen editor) {
+				editor.acceptList(payload);
+			}
+		});
 	}
 }

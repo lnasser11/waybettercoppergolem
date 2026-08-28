@@ -159,10 +159,15 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
 1. In the copper chest GUI set **Carry amount: 64**; put 40+ of one item
    in the copper chest → the golem moves it in a **single trip**. Set it
    back to 16 → back to small armfuls.
-2. Open **Categories…** from the settings screen: pick a category, use
-   the search box, click items to toggle membership (green = in category;
-   corner marks = your tweaks). Changes behave exactly like frame tuning
-   and show in `/wbcg category list`.
+2. Open **Categories…** from the settings screen: the dropdown switches
+   categories, the item list is grouped under creative-tab headings, and
+   clicking items toggles membership (green = in category; corner marks =
+   your tweaks). Changes show in `/wbcg category list`.
+2b. Press **+**, type a name, hit Create → your category appears in the
+   dropdown, starts empty, and you can click items into it. Label a chest
+   by cycling a frame of one of those items until your category's name
+   shows in the actionbar, then feed a golem such an item → it sorts
+   there. **✕** deletes your category (presets refuse to delete).
 3. Icon swap: on a frame set to a category, pop the item out and put a
    different item in → the chest keeps the category (open it to confirm
    the actionbar), only the shown icon changes. Sneak-click the frame
