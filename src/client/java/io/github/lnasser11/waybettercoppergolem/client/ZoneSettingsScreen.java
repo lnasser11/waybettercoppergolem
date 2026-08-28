@@ -21,10 +21,15 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 	private static final int WIDGET_WIDTH = 220;
 	private static final int WIDGET_HEIGHT = 20;
 	private static final int GAP = 4;
+	private static final int ROWS = 8;
 	private static final int RADIUS_STEP = 4;
+	private static final int CARRY_STEP = 16;
 
 	private final ZoneSettingsMenu menu;
 	private ZoneSettings shown;
+	private int radiusLabelY;
+	private int reachLabelY;
+	private int carryLabelY;
 
 	public ZoneSettingsScreen(ZoneSettingsMenu menu, Inventory inventory, Component title) {
 		super(title);
@@ -41,7 +46,7 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		super.init();
 		this.shown = this.menu.settings();
 		int x = this.width / 2 - WIDGET_WIDTH / 2;
-		int y = this.height / 2 - 3 * (WIDGET_HEIGHT + GAP);
+		int y = Math.max(30, this.height / 2 - (ROWS * (WIDGET_HEIGHT + GAP)) / 2);
 
 		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.reorganize())
 				.create(x, y, WIDGET_WIDTH, WIDGET_HEIGHT,
@@ -58,12 +63,23 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 						Component.translatable("waybettercoppergolem.settings.dry_run"),
 						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_DRY_RUN)));
 		y += WIDGET_HEIGHT + GAP;
+		this.radiusLabelY = y + 6;
 		addStepperRow(x, y, () -> this.shown.searchRadius(), RADIUS_STEP, 4, ZoneSettings.MAX_SEARCH_RADIUS,
 				ZoneSettingsMenu.BUTTON_RADIUS_BASE);
 		y += WIDGET_HEIGHT + GAP;
+		this.reachLabelY = y + 6;
 		addStepperRow(x, y, () -> this.shown.verticalReach(), 1, 1, ZoneSettings.MAX_VERTICAL_REACH,
 				ZoneSettingsMenu.BUTTON_REACH_BASE);
+		y += WIDGET_HEIGHT + GAP;
+		this.carryLabelY = y + 6;
+		addStepperRow(x, y, () -> this.shown.carryAmount(), CARRY_STEP, CARRY_STEP, ZoneSettings.MAX_CARRY_AMOUNT,
+				ZoneSettingsMenu.BUTTON_CARRY_BASE);
 		y += WIDGET_HEIGHT + 2 * GAP;
+		this.addRenderableWidget(Button.builder(
+						Component.translatable("waybettercoppergolem.settings.categories"),
+						button -> openCategoryEditor())
+				.bounds(x, y, WIDGET_WIDTH, WIDGET_HEIGHT).build());
+		y += WIDGET_HEIGHT + GAP;
 		this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
 				.bounds(x, y, WIDGET_WIDTH, WIDGET_HEIGHT).build());
 	}
@@ -84,6 +100,13 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		}
 	}
 
+	private void openCategoryEditor() {
+		if (this.minecraft != null && this.minecraft.player != null) {
+			this.minecraft.player.closeContainer();
+			this.minecraft.gui.setScreen(new CategoryEditorScreen());
+		}
+	}
+
 	@Override
 	public void tick() {
 		super.tick();
@@ -99,16 +122,17 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 		int x = this.width / 2;
-		int top = this.height / 2 - 3 * (WIDGET_HEIGHT + GAP);
-		graphics.centeredText(this.font, this.title, x, top - 2 * WIDGET_HEIGHT, 0xFFFFFFFF);
-		int radiusY = top + 3 * (WIDGET_HEIGHT + GAP) + 6;
+		int top = Math.max(30, this.height / 2 - (ROWS * (WIDGET_HEIGHT + GAP)) / 2);
+		graphics.centeredText(this.font, this.title, x, top - WIDGET_HEIGHT, 0xFFFFFFFF);
 		graphics.centeredText(this.font,
 				Component.translatable("waybettercoppergolem.settings.radius", this.shown.searchRadius()),
-				x, radiusY, 0xFFFFFFFF);
-		int reachY = radiusY + WIDGET_HEIGHT + GAP;
+				x, this.radiusLabelY, 0xFFFFFFFF);
 		graphics.centeredText(this.font,
 				Component.translatable("waybettercoppergolem.settings.reach", this.shown.verticalReach()),
-				x, reachY, 0xFFFFFFFF);
+				x, this.reachLabelY, 0xFFFFFFFF);
+		graphics.centeredText(this.font,
+				Component.translatable("waybettercoppergolem.settings.carry", this.shown.carryAmount()),
+				x, this.carryLabelY, 0xFFFFFFFF);
 	}
 
 	@Override

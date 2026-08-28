@@ -64,12 +64,50 @@ public class WayBetterCopperGolem implements ModInitializer {
 		net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register(
 				(dispatcher, registryAccess, environment) ->
 						io.github.lnasser11.waybettercoppergolem.command.WbcgCommand.register(dispatcher, registryAccess));
+		registerCategoryNetworking();
 		if (net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment()) {
 			// Force the lazily-loaded behavior class so a broken mixin fails
 			// at startup in dev instead of when the first golem spawns.
 			net.minecraft.world.entity.ai.behavior.TransportItemsBetweenContainers.class.getName();
 		}
 		LOGGER.info("Way Better Copper Golem initialized");
+	}
+
+	/** Payloads and server handlers for the category editor screen. */
+	private static void registerCategoryNetworking() {
+		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.serverboundPlay().register(
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Toggle.TYPE,
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Toggle.CODEC);
+		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.serverboundPlay().register(
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Query.TYPE,
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Query.CODEC);
+		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.clientboundPlay().register(
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Sync.TYPE,
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Sync.CODEC);
+
+		net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Toggle.TYPE, (payload, context) -> {
+					ServerLevel level = context.player().level();
+					net.minecraft.world.item.Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM
+							.getValue(payload.itemId());
+					io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning
+							.toggle(level, payload.tagId(), item);
+					net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
+							.send(context.player(), syncFor(level, payload.tagId()));
+				});
+		net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(
+				io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Query.TYPE, (payload, context) -> {
+					ServerLevel level = context.player().level();
+					net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
+							.send(context.player(), syncFor(level, payload.tagId()));
+				});
+	}
+
+	private static io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Sync syncFor(
+			ServerLevel level, Identifier tagId) {
+		var override = io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning.overridesFor(level, tagId);
+		return new io.github.lnasser11.waybettercoppergolem.net.CategoryPayloads.Sync(tagId,
+				List.copyOf(override.added()), List.copyOf(override.removed()));
 	}
 
 	/** Sneak-click on a label frame cycles its expansion level. */
@@ -116,10 +154,19 @@ public class WayBetterCopperGolem implements ModInitializer {
 			return InteractionResult.SUCCESS;
 		}
 
-		// Cobweb frames and empty frames have fixed meanings; nothing to cycle.
-		ChestLabel label = (frame.getItem().isEmpty() || current.isOffLimits())
-				? current
-				: ChestLabels.cycleFrame(serverLevel, frame, supportPos);
+		// An empty frame that still carries a category (its icon was popped
+		// out) resets to catch-all on sneak-click; cobweb frames and plain
+		// empty frames have fixed meanings.
+		ChestLabel label;
+		if (frame.getItem().isEmpty() && current.isTagLabel()) {
+			frame.removeAttached(FRAME_TAG);
+			ChestLabels.labelsForHalf(serverLevel, supportPos);
+			label = ChestLabel.catchAll();
+		} else if (frame.getItem().isEmpty() || current.isOffLimits()) {
+			label = current;
+		} else {
+			label = ChestLabels.cycleFrame(serverLevel, frame, supportPos);
+		}
 		if (label.isOffLimits()) {
 			ChestLabels.labelsForHalf(serverLevel, supportPos);
 		}

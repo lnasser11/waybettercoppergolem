@@ -33,5 +33,13 @@
   "waybettercoppergolem.command.list_removed": "Removed: %s",
   "waybettercoppergolem.command.reset": "Cleared all tweaks for %s",
   "waybettercoppergolem.command.test_yes": "%s IS in %s",
-  "waybettercoppergolem.command.test_no": "%s is NOT in %s"
+  "waybettercoppergolem.command.test_no": "%s is NOT in %s",
+  "waybettercoppergolem.settings.categories": "Categories...",
+  "waybettercoppergolem.settings.carry": "Carry amount: %s",
+  "waybettercoppergolem.editor.title": "Category Editor",
+  "waybettercoppergolem.editor.category": "Category",
+  "waybettercoppergolem.editor.search": "Search items",
+  "waybettercoppergolem.editor.hint": "Click an item to add or remove it from the category",
+  "waybettercoppergolem.editor.in_category": "%s - IN this category (click to remove)",
+  "waybettercoppergolem.editor.not_in_category": "%s - not in this category (click to add)"
 }

@@ -88,11 +88,13 @@ public final class ChestLabels {
 
 	public static ChestLabel labelFromFrame(ItemFrame frame) {
 		ItemStack framed = frame.getItem();
+		net.minecraft.resources.Identifier tagId = frame.getAttached(WayBetterCopperGolem.FRAME_TAG);
 		if (framed.isEmpty()) {
-			return ChestLabel.catchAll();
+			// A category frame keeps its category while empty, so the shown
+			// item can be swapped freely (pop it out, put any icon in).
+			return tagId == null ? ChestLabel.catchAll() : ChestLabel.tagOnly(tagId);
 		}
 		net.minecraft.resources.Identifier itemId = BuiltInRegistries.ITEM.getKey(framed.getItem());
-		net.minecraft.resources.Identifier tagId = frame.getAttached(WayBetterCopperGolem.FRAME_TAG);
 		return tagId == null ? ChestLabel.exact(itemId) : ChestLabel.tag(itemId, tagId);
 	}
 

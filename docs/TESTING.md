@@ -142,6 +142,20 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
    stack back to the copper chest and retries ~30 s later. It must never
    freeze holding an item.
 
+## 12. Carry amount and category editor
+
+1. In the copper chest GUI set **Carry amount: 64**; put 40+ of one item
+   in the copper chest → the golem moves it in a **single trip**. Set it
+   back to 16 → back to small armfuls.
+2. Open **Categories…** from the settings screen: pick a category, use
+   the search box, click items to toggle membership (green = in category;
+   corner marks = your tweaks). Changes behave exactly like frame tuning
+   and show in `/wbcg category list`.
+3. Icon swap: on a frame set to a category, pop the item out and put a
+   different item in → the chest keeps the category (open it to confirm
+   the actionbar), only the shown icon changes. Sneak-click the frame
+   while it's empty to reset it to catch-all.
+
 ---
 
 If all of that passes, the jar that goes on EnxadaHost is the same one

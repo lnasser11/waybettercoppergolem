@@ -92,6 +92,13 @@ because no preset will ever match your storage room exactly:
   category, persists with the world, and never modifies the base tag.
 - The same works on any tag label (`c:` and curated `minecraft:` tags
   included), so you can patch their gaps too.
+- The settings screen's **Categories…** button opens a
+  creative-inventory-style editor: pick a category, search the full item
+  list, and click items to add or remove them — same tuning, visual.
+- **Frame icons are yours to choose**: once a frame is set to a category,
+  pop the displayed item out and put any item you like in — the category
+  sticks to the frame, only the icon changes. (Sneak-click an emptied
+  category frame to reset it to catch-all.)
 - Whole categories can be replaced wholesale with a regular datapack
   (they're plain `data/wbcg/tags/item/*.json` files).
 
@@ -146,6 +153,7 @@ settings screen:
 | Dry run | off | log intended moves, touch nothing |
 | Search radius | 32 | horizontal destination search distance (4–48) |
 | Vertical reach | 4 | how high golems can reach into chest walls (1–6) |
+| Carry amount | 16 | items per trip: 16 for immersion, up to 64 for efficiency |
 
 Normal right-click still opens the copper chest as storage. All copper
 chest variants behave identically (exposed/weathered/oxidized and all

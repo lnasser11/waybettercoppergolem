@@ -46,8 +46,13 @@ public record ChestLabel(Optional<Identifier> itemId, Optional<Identifier> tagId
 		return new ChestLabel(Optional.of(itemId), Optional.of(tagId));
 	}
 
+	/** A category label whose frame is currently showing no item. */
+	public static ChestLabel tagOnly(Identifier tagId) {
+		return new ChestLabel(Optional.empty(), Optional.of(tagId));
+	}
+
 	public boolean isCatchAll() {
-		return itemId.isEmpty();
+		return itemId.isEmpty() && tagId.isEmpty();
 	}
 
 	/** A framed cobweb marks the chest fully off-limits to golems. */

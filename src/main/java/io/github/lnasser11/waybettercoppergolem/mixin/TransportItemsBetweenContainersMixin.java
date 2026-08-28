@@ -253,10 +253,12 @@ public abstract class TransportItemsBetweenContainersMixin {
 		}
 		ZoneSettings settings = golem.wbcg$zoneSettings(level);
 
+		int carryAmount = settings.carryAmount();
+
 		if (settings.dryRun()) {
 			ItemStack would = reorganize
-					? wbcg$previewStack(SortingEngine.firstMisplacedStack(level, this.target))
-					: wbcg$peekFirstStack(container);
+					? wbcg$previewStack(SortingEngine.firstMisplacedStack(level, this.target), carryAmount)
+					: wbcg$peekFirstStack(container, carryAmount);
 			if (!would.isEmpty()) {
 				Optional<TransportItemTarget> destination = SortingEngine.findDepositTarget(
 						level, body, would, this.destinationBlockType,
@@ -278,7 +280,22 @@ public abstract class TransportItemsBetweenContainersMixin {
 		}
 
 		if (!reorganize) {
-			return; // vanilla pickup from the copper chest
+			// Copper-chest pickup, vanilla semantics but with the zone's
+			// configurable carry amount instead of the hardcoded 16.
+			int slot = 0;
+			for (ItemStack stack : container) {
+				if (!stack.isEmpty()) {
+					ItemStack taken = container.removeItem(slot, Math.min(stack.getCount(), carryAmount));
+					body.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, taken);
+					body.setGuaranteedDrop(net.minecraft.world.entity.EquipmentSlot.MAINHAND);
+					container.setChanged();
+					break;
+				}
+				slot++;
+			}
+			this.clearMemoriesAfterMatchingTargetFound(body);
+			ci.cancel();
+			return;
 		}
 
 		// Reorganize pickup: take the misplaced stack, not the first stack.
@@ -292,7 +309,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 		int slot = 0;
 		for (ItemStack stack : container) {
 			if (stack == misplaced) {
-				ItemStack taken = container.removeItem(slot, Math.min(stack.getCount(), 16));
+				ItemStack taken = container.removeItem(slot, Math.min(stack.getCount(), carryAmount));
 				body.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, taken);
 				body.setGuaranteedDrop(net.minecraft.world.entity.EquipmentSlot.MAINHAND);
 				container.setChanged();
@@ -347,8 +364,8 @@ public abstract class TransportItemsBetweenContainersMixin {
 	}
 
 	@org.spongepowered.asm.mixin.Unique
-	private static ItemStack wbcg$previewStack(ItemStack stack) {
-		return stack.isEmpty() ? ItemStack.EMPTY : stack.copyWithCount(Math.min(stack.getCount(), 16));
+	private static ItemStack wbcg$previewStack(ItemStack stack, int carryAmount) {
+		return stack.isEmpty() ? ItemStack.EMPTY : stack.copyWithCount(Math.min(stack.getCount(), carryAmount));
 	}
 
 	/**
@@ -371,10 +388,10 @@ public abstract class TransportItemsBetweenContainersMixin {
 		return body.getBrain().getMemory(type).orElse(Set.of());
 	}
 
-	private static ItemStack wbcg$peekFirstStack(Container container) {
+	private static ItemStack wbcg$peekFirstStack(Container container, int carryAmount) {
 		for (ItemStack stack : container) {
 			if (!stack.isEmpty()) {
-				return stack.copyWithCount(Math.min(stack.getCount(), 16));
+				return stack.copyWithCount(Math.min(stack.getCount(), carryAmount));
 			}
 		}
 		return ItemStack.EMPTY;

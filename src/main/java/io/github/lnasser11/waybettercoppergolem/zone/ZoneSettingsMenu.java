@@ -23,7 +23,8 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	public static final int DATA_REORGANIZE = 2;
 	public static final int DATA_TIDY = 3;
 	public static final int DATA_DRY_RUN = 4;
-	public static final int DATA_COUNT = 5;
+	public static final int DATA_CARRY = 5;
+	public static final int DATA_COUNT = 6;
 
 	public static final int BUTTON_TOGGLE_REORGANIZE = 0;
 	public static final int BUTTON_TOGGLE_TIDY = 1;
@@ -31,6 +32,7 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	/** buttonId = base + value, for slider-style settings. */
 	public static final int BUTTON_RADIUS_BASE = 100;
 	public static final int BUTTON_REACH_BASE = 200;
+	public static final int BUTTON_CARRY_BASE = 300;
 
 	private final ContainerLevelAccess access;
 	private final ContainerData data;
@@ -54,6 +56,7 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 		data.set(DATA_REORGANIZE, settings.reorganize() ? 1 : 0);
 		data.set(DATA_TIDY, settings.tidyInside() ? 1 : 0);
 		data.set(DATA_DRY_RUN, settings.dryRun() ? 1 : 0);
+		data.set(DATA_CARRY, settings.carryAmount());
 		return data;
 	}
 
@@ -63,7 +66,8 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 				this.data.get(DATA_REACH),
 				this.data.get(DATA_REORGANIZE) != 0,
 				this.data.get(DATA_TIDY) != 0,
-				this.data.get(DATA_DRY_RUN) != 0);
+				this.data.get(DATA_DRY_RUN) != 0,
+				this.data.get(DATA_CARRY));
 	}
 
 	@Override
@@ -72,19 +76,22 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 		ZoneSettings updated;
 		if (buttonId == BUTTON_TOGGLE_REORGANIZE) {
 			updated = new ZoneSettings(current.searchRadius(), current.verticalReach(),
-					!current.reorganize(), current.tidyInside(), current.dryRun());
+					!current.reorganize(), current.tidyInside(), current.dryRun(), current.carryAmount());
 		} else if (buttonId == BUTTON_TOGGLE_TIDY) {
 			updated = new ZoneSettings(current.searchRadius(), current.verticalReach(),
-					current.reorganize(), !current.tidyInside(), current.dryRun());
+					current.reorganize(), !current.tidyInside(), current.dryRun(), current.carryAmount());
 		} else if (buttonId == BUTTON_TOGGLE_DRY_RUN) {
 			updated = new ZoneSettings(current.searchRadius(), current.verticalReach(),
-					current.reorganize(), current.tidyInside(), !current.dryRun());
+					current.reorganize(), current.tidyInside(), !current.dryRun(), current.carryAmount());
 		} else if (buttonId >= BUTTON_RADIUS_BASE && buttonId < BUTTON_RADIUS_BASE + 100) {
 			updated = new ZoneSettings(buttonId - BUTTON_RADIUS_BASE, current.verticalReach(),
-					current.reorganize(), current.tidyInside(), current.dryRun());
+					current.reorganize(), current.tidyInside(), current.dryRun(), current.carryAmount());
 		} else if (buttonId >= BUTTON_REACH_BASE && buttonId < BUTTON_REACH_BASE + 100) {
 			updated = new ZoneSettings(current.searchRadius(), buttonId - BUTTON_REACH_BASE,
-					current.reorganize(), current.tidyInside(), current.dryRun());
+					current.reorganize(), current.tidyInside(), current.dryRun(), current.carryAmount());
+		} else if (buttonId >= BUTTON_CARRY_BASE && buttonId < BUTTON_CARRY_BASE + 100) {
+			updated = new ZoneSettings(current.searchRadius(), current.verticalReach(),
+					current.reorganize(), current.tidyInside(), current.dryRun(), buttonId - BUTTON_CARRY_BASE);
 		} else {
 			return false;
 		}
@@ -93,6 +100,7 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 		this.data.set(DATA_REORGANIZE, updated.reorganize() ? 1 : 0);
 		this.data.set(DATA_TIDY, updated.tidyInside() ? 1 : 0);
 		this.data.set(DATA_DRY_RUN, updated.dryRun() ? 1 : 0);
+		this.data.set(DATA_CARRY, updated.carryAmount());
 		this.access.execute((level, pos) -> {
 			if (level.getBlockState(pos).is(BlockTags.COPPER_CHESTS)) {
 				BlockEntity blockEntity = level.getBlockEntity(pos);

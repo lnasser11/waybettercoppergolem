@@ -33,5 +33,13 @@
   "waybettercoppergolem.command.list_removed": "Removidos: %s",
   "waybettercoppergolem.command.reset": "Todos os ajustes de %s foram limpos",
   "waybettercoppergolem.command.test_yes": "%s ESTÁ em %s",
-  "waybettercoppergolem.command.test_no": "%s NÃO está em %s"
+  "waybettercoppergolem.command.test_no": "%s NÃO está em %s",
+  "waybettercoppergolem.settings.categories": "Categorias...",
+  "waybettercoppergolem.settings.carry": "Quantidade carregada: %s",
+  "waybettercoppergolem.editor.title": "Editor de Categorias",
+  "waybettercoppergolem.editor.category": "Categoria",
+  "waybettercoppergolem.editor.search": "Buscar itens",
+  "waybettercoppergolem.editor.hint": "Clique em um item para adicionar ou remover da categoria",
+  "waybettercoppergolem.editor.in_category": "%s - NESTA categoria (clique para remover)",
+  "waybettercoppergolem.editor.not_in_category": "%s - fora desta categoria (clique para adicionar)"
 }
