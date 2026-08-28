@@ -85,9 +85,9 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
 ## 7. Reorganize existing chests
 
 1. Manually shove a stack of dirt into the iron-labeled chest.
-2. Empty the copper chest and wait. This is deliberately slow,
-   low-priority background work: expect up to a minute or two of idling
-   first.
+2. Empty the copper chest and wait. It's low-priority background work,
+   but should start within roughly half a minute of the golem going
+   idle — not minutes.
 3. **Expect:** golem takes exactly the dirt (iron untouched) and moves it
    to the catch-all. One stray stack must never re-label a chest.
 4. Toggle reorganize OFF in the GUI, plant more dirt → it should stay
@@ -144,9 +144,10 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
 
 ## 12. Vanilla mode, carry amount, category editor
 
-0. Toggle **Vanilla mode ON** in the copper chest GUI: feed mixed items →
-   the golem sorts like stock Minecraft (nearest empty-or-matching chest,
-   labels ignored, 16 per trip), and misplaced stacks in labeled chests
+0. Toggle **Vanilla mode ON** in the copper chest GUI: the other settings
+   grey out. Feed mixed items → the golem sorts like stock Minecraft
+   (nearest empty-or-matching chest, labels ignored, **16 per trip even
+   if carry amount says 64**), and misplaced stacks in labeled chests
    stay put. Toggle it OFF → label sorting resumes and reorganize cleans
    up what vanilla mode misplaced.
 

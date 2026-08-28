@@ -77,11 +77,13 @@ public abstract class TransportItemsBetweenContainersMixin {
 	@org.spongepowered.asm.mixin.Unique
 	private static final int WBCG$RETURN_COOLDOWN = 600;
 
+	/** Pause after relocating one misplaced stack, so cleanup stays gentle. */
 	@org.spongepowered.asm.mixin.Unique
-	private static final int WBCG$REORGANIZE_SUCCESS_COOLDOWN = 600;
+	private static final int WBCG$REORGANIZE_SUCCESS_COOLDOWN = 100;
 
+	/** Pause after a scan that found nothing to fix. */
 	@org.spongepowered.asm.mixin.Unique
-	private static final int WBCG$REORGANIZE_IDLE_COOLDOWN = 1200;
+	private static final int WBCG$REORGANIZE_IDLE_COOLDOWN = 200;
 
 	/**
 	 * While a golem is holding an item, destination selection is ours:
@@ -145,9 +147,14 @@ public abstract class TransportItemsBetweenContainersMixin {
 		if (settings.vanillaMode() || !settings.reorganize() || now < golem.wbcg$nextReorganizeTime()) {
 			return;
 		}
+		// Deliberately ignores the visited-positions memory: that memory means
+		// "already tried this chest for the current delivery", and every chest
+		// the golem shrugged at or deposited into during a dump run sits in it
+		// for five minutes - exactly the chests most likely to hold a misplaced
+		// stack. Unreachable positions are still honored: those are pathing
+		// facts, not delivery bookkeeping.
 		Optional<TransportItemTarget> source = SortingEngine.findMisplacedSource(
-				level, body, this.destinationBlockType,
-				wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
+				level, body, this.destinationBlockType, Set.of(),
 				wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
 				settings.searchRadius(), this.verticalSearchDistance);
 		if (source.isPresent()) {
@@ -260,6 +267,9 @@ public abstract class TransportItemsBetweenContainersMixin {
 			golem.wbcg$setZoneChest(this.target.pos());
 		}
 		ZoneSettings settings = golem.wbcg$zoneSettings(level);
+		if (settings.vanillaMode()) {
+			return; // stock pickup: first stack, 16 items
+		}
 
 		int carryAmount = settings.carryAmount();
 

@@ -121,10 +121,11 @@ namespaces address any tag (`c:ingots`, `minecraft:planks`).
 When the copper-chest dump queue is idle, golems slowly fix the storage
 room: they scan labeled chests for stacks that match none of that chest's
 labels, pick up exactly the misplaced stack, and deliver it through the
-normal label-aware flow. It's deliberately low-priority background work
-(one move per ~30 s, a minute's pause when everything is tidy), it only
-ever touches **labeled** chests, and chests with a catch-all or cobweb
-label are never considered misplaced. Toggleable per zone.
+normal label-aware flow. It stays low-priority — it only runs when the
+copper-chest dump queue is idle, with a short breather between moves —
+but it reacts within seconds, not minutes. It only ever touches
+**labeled** chests, and chests with a catch-all or cobweb label are never
+considered misplaced. Toggleable per zone.
 
 ### Tall chest walls
 
@@ -159,8 +160,9 @@ settings screen:
 **Vanilla mode** is the quick preset for players who don't want any of
 this: with it on, golems working that zone behave exactly like stock
 Minecraft — labels ignored, no reorganizing, vanilla reach and 16-item
-carries — while every label, category and setting stays saved for the
-moment it's switched back off. Zones are independent, so one copper
+carries, regardless of what the other settings say (they grey out to
+show they don't apply) — while every label, category and setting stays
+saved for the moment it's switched back off. Zones are independent, so one copper
 chest can run vanilla while another runs fully tuned.
 
 Normal right-click still opens the copper chest as storage. All copper

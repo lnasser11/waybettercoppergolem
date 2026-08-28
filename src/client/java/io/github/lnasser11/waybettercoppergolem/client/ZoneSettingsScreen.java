@@ -25,7 +25,13 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 	private static final int RADIUS_STEP = 4;
 	private static final int CARRY_STEP = 16;
 
+	private static final int LABEL_COLOR = 0xFFFFFFFF;
+	private static final int LABEL_COLOR_INACTIVE = 0xFF707070;
+
 	private final ZoneSettingsMenu menu;
+	/** Widgets whose setting vanilla mode overrides; greyed out while it is on. */
+	private final java.util.List<net.minecraft.client.gui.components.AbstractWidget> overridden =
+			new java.util.ArrayList<>();
 	private ZoneSettings shown;
 	private int radiusLabelY;
 	private int reachLabelY;
@@ -48,25 +54,26 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		int x = this.width / 2 - WIDGET_WIDTH / 2;
 		int y = Math.max(30, this.height / 2 - (ROWS * (WIDGET_HEIGHT + GAP)) / 2);
 
+		this.overridden.clear();
 		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.vanillaMode())
 				.create(x, y, WIDGET_WIDTH, WIDGET_HEIGHT,
 						Component.translatable("waybettercoppergolem.settings.vanilla"),
 						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_VANILLA)));
 		y += WIDGET_HEIGHT + GAP;
-		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.reorganize())
+		this.overridden.add(this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.reorganize())
 				.create(x, y, WIDGET_WIDTH, WIDGET_HEIGHT,
 						Component.translatable("waybettercoppergolem.settings.reorganize"),
-						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_REORGANIZE)));
+						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_REORGANIZE))));
 		y += WIDGET_HEIGHT + GAP;
-		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.tidyInside())
+		this.overridden.add(this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.tidyInside())
 				.create(x, y, WIDGET_WIDTH, WIDGET_HEIGHT,
 						Component.translatable("waybettercoppergolem.settings.tidy"),
-						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_TIDY)));
+						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_TIDY))));
 		y += WIDGET_HEIGHT + GAP;
-		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.dryRun())
+		this.overridden.add(this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.dryRun())
 				.create(x, y, WIDGET_WIDTH, WIDGET_HEIGHT,
 						Component.translatable("waybettercoppergolem.settings.dry_run"),
-						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_DRY_RUN)));
+						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_DRY_RUN))));
 		y += WIDGET_HEIGHT + GAP;
 		this.radiusLabelY = y + 6;
 		addStepperRow(x, y, () -> this.shown.searchRadius(), RADIUS_STEP, 4, ZoneSettings.MAX_SEARCH_RADIUS,
@@ -80,6 +87,12 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		addStepperRow(x, y, () -> this.shown.carryAmount(), CARRY_STEP, CARRY_STEP, ZoneSettings.MAX_CARRY_AMOUNT,
 				ZoneSettingsMenu.BUTTON_CARRY_BASE);
 		y += WIDGET_HEIGHT + 2 * GAP;
+
+		// Vanilla mode overrides every other behavior setting, so show them as
+		// inactive rather than letting them look like they still apply.
+		for (net.minecraft.client.gui.components.AbstractWidget widget : this.overridden) {
+			widget.active = !this.shown.vanillaMode();
+		}
 		this.addRenderableWidget(Button.builder(
 						Component.translatable("waybettercoppergolem.settings.categories"),
 						button -> openCategoryEditor())
@@ -91,12 +104,12 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 
 	private void addStepperRow(int x, int y, java.util.function.IntSupplier value,
 			int step, int min, int max, int buttonBase) {
-		this.addRenderableWidget(Button.builder(Component.literal("-"),
+		this.overridden.add(this.addRenderableWidget(Button.builder(Component.literal("-"),
 						button -> click(buttonBase + Math.max(min, value.getAsInt() - step)))
-				.bounds(x, y, WIDGET_HEIGHT, WIDGET_HEIGHT).build());
-		this.addRenderableWidget(Button.builder(Component.literal("+"),
+				.bounds(x, y, WIDGET_HEIGHT, WIDGET_HEIGHT).build()));
+		this.overridden.add(this.addRenderableWidget(Button.builder(Component.literal("+"),
 						button -> click(buttonBase + Math.min(max, value.getAsInt() + step)))
-				.bounds(x + WIDGET_WIDTH - WIDGET_HEIGHT, y, WIDGET_HEIGHT, WIDGET_HEIGHT).build());
+				.bounds(x + WIDGET_WIDTH - WIDGET_HEIGHT, y, WIDGET_HEIGHT, WIDGET_HEIGHT).build()));
 	}
 
 	private void click(int buttonId) {
@@ -128,16 +141,17 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 		int x = this.width / 2;
 		int top = Math.max(30, this.height / 2 - (ROWS * (WIDGET_HEIGHT + GAP)) / 2);
-		graphics.centeredText(this.font, this.title, x, top - WIDGET_HEIGHT, 0xFFFFFFFF);
+		graphics.centeredText(this.font, this.title, x, top - WIDGET_HEIGHT, LABEL_COLOR);
+		int valueColor = this.shown.vanillaMode() ? LABEL_COLOR_INACTIVE : LABEL_COLOR;
 		graphics.centeredText(this.font,
 				Component.translatable("waybettercoppergolem.settings.radius", this.shown.searchRadius()),
-				x, this.radiusLabelY, 0xFFFFFFFF);
+				x, this.radiusLabelY, valueColor);
 		graphics.centeredText(this.font,
 				Component.translatable("waybettercoppergolem.settings.reach", this.shown.verticalReach()),
-				x, this.reachLabelY, 0xFFFFFFFF);
+				x, this.reachLabelY, valueColor);
 		graphics.centeredText(this.font,
 				Component.translatable("waybettercoppergolem.settings.carry", this.shown.carryAmount()),
-				x, this.carryLabelY, 0xFFFFFFFF);
+				x, this.carryLabelY, valueColor);
 	}
 
 	@Override
