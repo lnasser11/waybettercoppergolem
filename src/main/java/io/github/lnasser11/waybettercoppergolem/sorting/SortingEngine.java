@@ -108,6 +108,56 @@ public final class SortingEngine {
 		return Optional.ofNullable(best);
 	}
 
+	/**
+	 * When nothing accepts the held item (its labeled chest is full or its
+	 * category was tuned away mid-carry), the golem brings it back to a
+	 * copper chest instead of standing around holding it forever - the zone
+	 * chest if it can take the stack, else the nearest copper chest with
+	 * room.
+	 */
+	public static Optional<TransportItemTarget> findReturnTarget(
+			ServerLevel level, PathfinderMob golem, ItemStack held, @Nullable BlockPos preferred,
+			Set<GlobalPos> visited, Set<GlobalPos> unreachable,
+			int horizontalRadius, int verticalRadius) {
+		Predicate<BlockState> copperChests = state -> state.is(net.minecraft.tags.BlockTags.COPPER_CHESTS);
+		AABB searchArea = new AABB(golem.blockPosition()).inflate(horizontalRadius, verticalRadius, horizontalRadius);
+		if (preferred != null && level.isLoaded(preferred)) {
+			BlockEntity blockEntity = level.getBlockEntity(preferred);
+			if (blockEntity != null) {
+				TransportItemTarget zoneChest = validCandidate(
+						level, blockEntity, copperChests, visited, unreachable, searchArea);
+				if (zoneChest != null && canAcceptAny(zoneChest.container(), held)) {
+					return Optional.of(zoneChest);
+				}
+			}
+		}
+		TransportItemTarget best = null;
+		double bestDistSq = Double.MAX_VALUE;
+		for (ChunkPos chunkPos : ChunkPos.rangeClosed(
+				ChunkPos.containing(golem.blockPosition()), Math.floorDiv(horizontalRadius, 16) + 1).toList()) {
+			LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
+			if (chunk == null) {
+				continue;
+			}
+			for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+				if (!(blockEntity instanceof ChestBlockEntity)) {
+					continue;
+				}
+				TransportItemTarget candidate = validCandidate(
+						level, blockEntity, copperChests, visited, unreachable, searchArea);
+				if (candidate == null || !canAcceptAny(candidate.container(), held)) {
+					continue;
+				}
+				double distSq = candidate.pos().distToCenterSqr(golem.position());
+				if (distSq < bestDistSq) {
+					best = candidate;
+					bestDistSq = distSq;
+				}
+			}
+		}
+		return Optional.ofNullable(best);
+	}
+
 	/** Vanilla validity rules: in area, resolvable container, unvisited, unlocked. */
 	private static @Nullable TransportItemTarget validCandidate(
 			ServerLevel level, BlockEntity blockEntity,

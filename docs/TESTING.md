@@ -90,7 +90,9 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
    first.
 3. **Expect:** golem takes exactly the dirt (iron untouched) and moves it
    to the catch-all. One stray stack must never re-label a chest.
-4. Toggle reorganize OFF in the GUI, plant more dirt → it should stay put.
+4. Toggle reorganize OFF in the GUI, plant more dirt → it should stay
+   put. (Golems obey the nearest copper chest even before their first
+   pickup, so the toggle applies to freshly spawned golems too.)
 
 ## 8. Tidy-inside (off by default)
 
@@ -135,6 +137,10 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
    Redstone" (back to normal).
 4. `/wbcg categories` lists 12 presets; `/wbcg category test redstone
    minecraft:piston` answers membership questions without a golem.
+5. Remove an item's category **while a golem is carrying that item** (or
+   fill/remove every chest that would take it) → the golem brings the
+   stack back to the copper chest and retries ~30 s later. It must never
+   freeze holding an item.
 
 ---
 

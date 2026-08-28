@@ -29,4 +29,35 @@ public final class Zones {
 	public static void store(BlockEntity copperChest, ZoneSettings settings) {
 		copperChest.setAttached(WayBetterCopperGolem.ZONE_SETTINGS, settings);
 	}
+
+	/**
+	 * Nearest copper chest to {@code center}, or null. Used to bind a golem
+	 * to its sorting zone even before its first successful pickup, so zone
+	 * settings (dry-run included) always apply to golems working a room.
+	 */
+	public static net.minecraft.core.@Nullable BlockPos findNearestCopperChest(
+			ServerLevel level, net.minecraft.core.BlockPos center, int radius) {
+		net.minecraft.core.BlockPos best = null;
+		double bestDistSq = Double.MAX_VALUE;
+		for (net.minecraft.world.level.ChunkPos chunkPos : net.minecraft.world.level.ChunkPos.rangeClosed(
+				net.minecraft.world.level.ChunkPos.containing(center), Math.floorDiv(radius, 16) + 1).toList()) {
+			net.minecraft.world.level.chunk.LevelChunk chunk =
+					level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
+			if (chunk == null) {
+				continue;
+			}
+			for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+				if (!blockEntity.getBlockState().is(BlockTags.COPPER_CHESTS)) {
+					continue;
+				}
+				net.minecraft.core.BlockPos pos = blockEntity.getBlockPos();
+				double distSq = pos.distToCenterSqr(center.getX() + 0.5, center.getY() + 0.5, center.getZ() + 0.5);
+				if (distSq < bestDistSq && distSq <= (double) radius * radius) {
+					best = pos;
+					bestDistSq = distSq;
+				}
+			}
+		}
+		return best;
+	}
 }

@@ -67,6 +67,16 @@ public abstract class TransportItemsBetweenContainersMixin {
 	@org.spongepowered.asm.mixin.Unique
 	private boolean wbcg$reorganizeActive;
 
+	/** True while the golem is bringing an unsortable held stack back to a copper chest. */
+	@org.spongepowered.asm.mixin.Unique
+	private boolean wbcg$returnActive;
+
+	@org.spongepowered.asm.mixin.Unique
+	private boolean wbcg$depositWasReturn;
+
+	@org.spongepowered.asm.mixin.Unique
+	private static final int WBCG$RETURN_COOLDOWN = 600;
+
 	@org.spongepowered.asm.mixin.Unique
 	private static final int WBCG$REORGANIZE_SUCCESS_COOLDOWN = 600;
 
@@ -83,12 +93,24 @@ public abstract class TransportItemsBetweenContainersMixin {
 		if (!(body instanceof CopperGolem) || body.getMainHandItem().isEmpty()) {
 			return;
 		}
-		ZoneSettings settings = ((ZoneAwareGolem) body).wbcg$zoneSettings(level);
-		cir.setReturnValue(SortingEngine.findDepositTarget(
+		ZoneAwareGolem golem = (ZoneAwareGolem) body;
+		ZoneSettings settings = golem.wbcg$zoneSettings(level);
+		Optional<TransportItemTarget> destination = SortingEngine.findDepositTarget(
 				level, body, body.getMainHandItem(), this.destinationBlockType,
 				wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
 				wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
-				settings.searchRadius(), this.verticalSearchDistance));
+				settings.searchRadius(), this.verticalSearchDistance);
+		if (destination.isEmpty()) {
+			// Nothing accepts this item right now - bring it back to a
+			// copper chest instead of standing around holding it forever.
+			destination = SortingEngine.findReturnTarget(
+					level, body, body.getMainHandItem(), golem.wbcg$zoneChest(),
+					wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
+					wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
+					settings.searchRadius(), this.verticalSearchDistance);
+			this.wbcg$returnActive = destination.isPresent();
+		}
+		cir.setReturnValue(destination);
 	}
 
 	/**
@@ -101,8 +123,17 @@ public abstract class TransportItemsBetweenContainersMixin {
 	@Inject(method = "getTransportTarget", at = @At("RETURN"), cancellable = true)
 	private void wbcg$reorganizeSource(ServerLevel level, PathfinderMob body,
 			CallbackInfoReturnable<Optional<TransportItemTarget>> cir) {
-		if (!(body instanceof CopperGolem) || !body.getMainHandItem().isEmpty()
-				|| cir.getReturnValue().isPresent()) {
+		if (!(body instanceof CopperGolem) || !body.getMainHandItem().isEmpty()) {
+			return;
+		}
+		if (cir.getReturnValue().isPresent()) {
+			// Bind the golem to its zone as soon as it targets a copper
+			// chest, not only after a successful pickup - otherwise a golem
+			// working an empty copper chest would ignore its zone settings.
+			TransportItemTarget target = cir.getReturnValue().get();
+			if (target.state().is(BlockTags.COPPER_CHESTS)) {
+				((ZoneAwareGolem) body).wbcg$setZoneChest(target.pos());
+			}
 			return;
 		}
 		ZoneAwareGolem golem = (ZoneAwareGolem) body;
@@ -132,9 +163,15 @@ public abstract class TransportItemsBetweenContainersMixin {
 	@Inject(method = "isWantedBlock", at = @At("HEAD"), cancellable = true)
 	private void wbcg$reorganizeWantedBlock(PathfinderMob mob, BlockState block,
 			CallbackInfoReturnable<Boolean> cir) {
-		if (this.wbcg$reorganizeActive && mob instanceof CopperGolem
-				&& mob.getMainHandItem().isEmpty()
+		if (!(mob instanceof CopperGolem)) {
+			return;
+		}
+		if (this.wbcg$reorganizeActive && mob.getMainHandItem().isEmpty()
 				&& io.github.lnasser11.waybettercoppergolem.label.ChestLabels.isLabelableChest(block)) {
+			cir.setReturnValue(true);
+		}
+		if (this.wbcg$returnActive && !mob.getMainHandItem().isEmpty()
+				&& block.is(BlockTags.COPPER_CHESTS)) {
 			cir.setReturnValue(true);
 		}
 	}
@@ -142,6 +179,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 	@Inject(method = "stopTargetingCurrentTarget", at = @At("TAIL"))
 	private void wbcg$clearReorganizeFlag(PathfinderMob body, CallbackInfo ci) {
 		this.wbcg$reorganizeActive = false;
+		this.wbcg$returnActive = false;
 	}
 
 	/**
@@ -188,6 +226,9 @@ public abstract class TransportItemsBetweenContainersMixin {
 			target = "Lnet/minecraft/world/entity/ai/behavior/TransportItemsBetweenContainers;matchesLeavingItemsRequirement(Lnet/minecraft/world/entity/PathfinderMob;Lnet/minecraft/world/Container;)Z"))
 	private boolean wbcg$labelAwareAccept(PathfinderMob body, Container container) {
 		if (body instanceof CopperGolem && this.target != null && body.level() instanceof ServerLevel level) {
+			if (this.wbcg$returnActive && this.target.state().is(BlockTags.COPPER_CHESTS)) {
+				return SortingEngine.canAcceptAny(this.target.container(), body.getMainHandItem());
+			}
 			return SortingEngine.acceptsDeposit(level, this.target, body);
 		}
 		return matchesLeavingItemsRequirement(body, container);
@@ -277,9 +318,22 @@ public abstract class TransportItemsBetweenContainersMixin {
 		wbcg$maybeTidy(body, container);
 	}
 
+	@Inject(method = "putDownItem", at = @At("HEAD"))
+	private void wbcg$captureReturnDeposit(PathfinderMob body, Container container, CallbackInfo ci) {
+		// The flag is cleared by stopTargetingCurrentTarget inside
+		// putDownItem, so remember it for the TAIL hook.
+		this.wbcg$depositWasReturn = this.wbcg$returnActive;
+	}
+
 	@Inject(method = "putDownItem", at = @At("TAIL"))
 	private void wbcg$tidyAfterDeposit(PathfinderMob body, Container container, CallbackInfo ci) {
 		wbcg$maybeTidy(body, container);
+		if (this.wbcg$depositWasReturn && body instanceof CopperGolem) {
+			// Returned an unsortable stack to the copper chest; wait a while
+			// before trying it again so the golem doesn't shuttle in a loop.
+			body.getBrain().setMemory(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS, WBCG$RETURN_COOLDOWN);
+			this.wbcg$depositWasReturn = false;
+		}
 	}
 
 	@org.spongepowered.asm.mixin.Unique

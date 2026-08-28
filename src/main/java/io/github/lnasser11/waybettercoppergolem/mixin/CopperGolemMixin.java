@@ -59,6 +59,16 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 		long now = level.getGameTime();
 		if (this.wbcg$settingsCacheDirty || now - this.wbcg$settingsCachedAt >= 100
 				|| now < this.wbcg$settingsCachedAt) {
+			// A golem with no zone yet (or whose copper chest is gone) binds
+			// to the nearest copper chest, so zone settings - dry-run
+			// included - apply even before its first successful pickup.
+			BlockPos zone = this.wbcg$zoneChest;
+			boolean zoneValid = zone != null && level.isLoaded(zone)
+					&& level.getBlockState(zone).is(net.minecraft.tags.BlockTags.COPPER_CHESTS);
+			if (!zoneValid) {
+				CopperGolem self = (CopperGolem) (Object) this;
+				this.wbcg$zoneChest = Zones.findNearestCopperChest(level, self.blockPosition(), 32);
+			}
 			this.wbcg$cachedSettings = Zones.at(level, this.wbcg$zoneChest);
 			this.wbcg$settingsCachedAt = now;
 			this.wbcg$settingsCacheDirty = false;

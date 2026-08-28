@@ -65,7 +65,10 @@ destination by **narrowest matching label first**:
    that item).
 
 Full chests are skipped, so a full narrow chest **cascades** to the next
-broader one. Between equally-labeled chests, the golem prefers the one
+broader one. If *nothing* accepts an item (its chest is full and there's
+no catch-all, or its category was tuned away mid-carry), the golem
+returns it to a copper chest and retries half a minute later instead of
+standing around holding it. Between equally-labeled chests, the golem prefers the one
 already holding that item (twin chests consolidate instead of scattering),
 then the nearest. A labeled chest never accepts items that match none of
 its labels — one stray stack can't redefine a chest.
@@ -128,8 +131,10 @@ solid walls.
 ### Sorting-zone settings
 
 Copper chests aren't bound to a golem, so settings configure a **zone**:
-whatever golems work out of that copper chest obey its settings (a golem
-remembers the last copper chest it picked up from).
+whatever golems work out of that copper chest obey its settings. A golem
+binds to the last copper chest it worked from — or, before its first
+pickup, simply to the nearest one — so settings (dry-run included) apply
+the moment a golem is in the room.
 
 **Sneak-right-click a copper chest with an empty hand** to open the
 settings screen:
