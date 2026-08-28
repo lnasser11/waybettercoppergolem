@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "waybettercoppergolem",
+	"version": "${version}",
+	"name": "Way Better Copper Golem",
+	"description": "Copper golems organize your storage room using item-frame chest labels.",
+	"authors": [
+		"lnasser11"
+	],
+	"contact": {
+		"homepage": "https://github.com/lnasser11/waybettercoppergolem",
+		"sources": "https://github.com/lnasser11/waybettercoppergolem"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/waybettercoppergolem/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"io.github.lnasser11.waybettercoppergolem.WayBetterCopperGolem"
+		],
+		"client": [
+			"io.github.lnasser11.waybettercoppergolem.client.WayBetterCopperGolemClient"
+		]
+	},
+	"mixins": [
+		"waybettercoppergolem.mixins.json",
+		{
+			"config": "waybettercoppergolem.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
