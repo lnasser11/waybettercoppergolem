@@ -43,10 +43,18 @@ public class WayBetterCopperGolem implements ModInitializer {
 			AttachmentRegistry.createPersistent(id("zone_settings"),
 					io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings.CODEC);
 
+	public static final net.minecraft.world.inventory.MenuType<io.github.lnasser11.waybettercoppergolem.zone.ZoneSettingsMenu> ZONE_SETTINGS_MENU =
+			net.minecraft.core.Registry.register(net.minecraft.core.registries.BuiltInRegistries.MENU,
+					id("zone_settings"),
+					new net.minecraft.world.inventory.MenuType<>(
+							io.github.lnasser11.waybettercoppergolem.zone.ZoneSettingsMenu::new,
+							net.minecraft.world.flag.FeatureFlags.VANILLA_SET));
+
 	@Override
 	public void onInitialize() {
 		CommonLifecycleEvents.TAGS_LOADED.register((registries, client) -> LabelResolver.invalidateCaches());
 		UseEntityCallback.EVENT.register(WayBetterCopperGolem::onUseEntity);
+		net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register(WayBetterCopperGolem::onUseBlock);
 		if (net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment()) {
 			// Force the lazily-loaded behavior class so a broken mixin fails
 			// at startup in dev instead of when the first golem spawns.
@@ -79,6 +87,31 @@ public class WayBetterCopperGolem implements ModInitializer {
 				: ChestLabels.cycleFrame(serverLevel, frame, supportPos);
 		if (player instanceof ServerPlayer serverPlayer) {
 			serverPlayer.sendOverlayMessage(LabelResolver.describe(label));
+		}
+		return InteractionResult.SUCCESS;
+	}
+
+	/** Sneak-right-click with an empty hand on a copper chest opens the zone settings. */
+	private static InteractionResult onUseBlock(net.minecraft.world.entity.player.Player player,
+			net.minecraft.world.level.Level level, InteractionHand hand,
+			net.minecraft.world.phys.BlockHitResult hitResult) {
+		if (hand != InteractionHand.MAIN_HAND || !player.isShiftKeyDown() || player.isSpectator()
+				|| !player.getMainHandItem().isEmpty()) {
+			return InteractionResult.PASS;
+		}
+		BlockPos pos = hitResult.getBlockPos();
+		if (!level.getBlockState(pos).is(net.minecraft.tags.BlockTags.COPPER_CHESTS)) {
+			return InteractionResult.PASS;
+		}
+		if (player instanceof ServerPlayer serverPlayer && level instanceof ServerLevel serverLevel) {
+			io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings settings =
+					io.github.lnasser11.waybettercoppergolem.zone.Zones.at(serverLevel, pos);
+			serverPlayer.openMenu(new net.minecraft.world.SimpleMenuProvider(
+					(containerId, inventory, p) -> new io.github.lnasser11.waybettercoppergolem.zone.ZoneSettingsMenu(
+							containerId,
+							net.minecraft.world.inventory.ContainerLevelAccess.create(serverLevel, pos),
+							io.github.lnasser11.waybettercoppergolem.zone.ZoneSettingsMenu.dataFor(settings)),
+					net.minecraft.network.chat.Component.translatable("waybettercoppergolem.settings.title")));
 		}
 		return InteractionResult.SUCCESS;
 	}

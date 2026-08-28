@@ -1,5 +1,11 @@
 {
   "waybettercoppergolem.label.catch_all": "Label: catch-all (unmatched items go here)",
   "waybettercoppergolem.label.exact": "Label: %s (exact item only)",
-  "waybettercoppergolem.label.tag": "Label: %s"
+  "waybettercoppergolem.label.tag": "Label: %s",
+  "waybettercoppergolem.settings.title": "Sorting Zone Settings",
+  "waybettercoppergolem.settings.reorganize": "Reorganize existing chests",
+  "waybettercoppergolem.settings.tidy": "Tidy inside chests",
+  "waybettercoppergolem.settings.dry_run": "Dry run (log only)",
+  "waybettercoppergolem.settings.radius": "Search radius: %s",
+  "waybettercoppergolem.settings.reach": "Vertical reach: %s"
 }
