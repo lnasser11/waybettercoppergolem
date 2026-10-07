@@ -32,14 +32,20 @@ Removing the mod is always safe — see [Safety guarantees](#safety-guarantees).
 ### Label chests with item frames
 
 A chest's category is declared by an **item frame mounted on the chest
-itself** (any face, top included). The framed item is the example; how
-broadly it counts is up to you:
+itself** (any face, top included). The chest owns the label; the frame is
+the sample it is read from, and **nothing in this mod ever intercepts a
+click on a frame** — rotating or swapping the framed item works exactly
+like vanilla, and click-through mods are fully compatible.
 
-- **Sneak-click the frame with an empty hand** to cycle the label through
-  its stops, shown in the actionbar. For an iron ingot:
-  `Iron Ingot (exact item only)` → `#c:ingots/iron` → `#c:ingots` →
-  `Category: Ores & Minerals` → back to exact.
-- Normal clicks still rotate the framed item, exactly like vanilla.
+How broadly a framed item counts is decided by what the chest already
+holds (the "smart frame" rule):
+
+- An iron ingot frame on an empty chest, or on a chest holding only iron
+  ingots, means **Iron Ingot (exact item only)**.
+- The same frame on a chest holding iron, copper and gold ingots means
+  **#c:ingots**: the narrowest `c:`/vanilla tag of the framed item that
+  covers everything in the chest. Preset categories are never chosen
+  automatically; pick those on purpose (see below).
 - **Empty frame** = the catch-all chest. Items matching no label anywhere
   go here.
 - **Framed cobweb** = this chest is **off-limits**: golems never deposit
@@ -49,6 +55,11 @@ broadly it counts is up to you:
 - An **unlabeled** chest keeps pure vanilla behavior (an empty one gets
   claimed by whatever the golem drops in it first). Labels never apply to
   chests you didn't label.
+
+Frame-derived labels are marked **(auto)** and follow the frame: change
+the framed item and the label changes with it. Labels you set explicitly
+(the learn pass, the label tool, the picker — see the following sections)
+are never changed by frames; the frame then becomes decoration.
 
 Opening a labeled chest shows its full label set in the actionbar.
 
@@ -80,19 +91,15 @@ the mod ships **12 preset categories** as ordinary datapack item tags
 > Ores & Minerals · Tools & Gear · Combat · Mob Drops · Nether & End ·
 > Decoration
 
-They appear as the broadest cycle stops on any item they contain. And
-because no preset will ever match your storage room exactly:
+Because no preset will ever match your storage room exactly, every
+category (and any `c:` or curated `minecraft:` tag) can be tuned per
+world: add or remove single items — *"Added Glowstone to Redstone"*. The
+tweak applies server-wide to every chest labeled with that category,
+persists with the world, and never modifies the base tag. Whole
+categories can be replaced wholesale with a regular datapack (they're
+plain `data/wbcg/tags/item/*.json` files).
 
-- **Sneak-click a category label frame while holding an item** to toggle
-  that item in or out of the category — *"Added Glowstone to Redstone"*.
-  The tweak applies server-wide to every chest labeled with that
-  category, persists with the world, and never modifies the base tag.
-- The same works on any tag label (`c:` and curated `minecraft:` tags
-  included), so you can patch their gaps too.
-- Whole categories can be replaced wholesale with a regular datapack
-  (they're plain `data/wbcg/tags/item/*.json` files).
-
-The `/wbcg` command inspects and edits the same data:
+Tuning is done with the `/wbcg` command:
 
 ```
 /wbcg categories                        list presets with sizes and tweak counts
@@ -174,11 +181,11 @@ switch it off. Each source chest is logged once per pass (~5 min cycle).
   is flagged guaranteed-drop (a golem dying mid-carry drops the stack).
   Tidying only moves counts between existing stacks within one server
   tick.
-- **Frames are the source of truth, the chest is the backup.** Resolved
-  labels are cached on the chest, so a creeper blowing up a frame doesn't
-  scramble the room — the chest keeps sorting as labeled until you hang a
-  new frame, which takes over immediately.
-- **Mod-proof labels.** A frame stores the tag id it means, not a
+- **The chest owns its labels.** Labels live on the chest, so a creeper
+  blowing up a frame doesn't scramble the room — the chest keeps sorting
+  as labeled. Explicit labels never change on their own; frame-derived
+  ones follow the frame the moment a new one is hung.
+- **Mod-proof labels.** A label stores the tag id it means, not a
   position in a list, so adding or removing mods never silently changes
   what an existing label matches.
 - **No extra tick loops.** All logic rides the golem's own vanilla

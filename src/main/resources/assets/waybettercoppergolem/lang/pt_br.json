@@ -26,12 +26,12 @@
   "waybettercoppergolem.category.decoration": "Decoração",
   "waybettercoppergolem.tuning.added": "%s adicionado a %s",
   "waybettercoppergolem.tuning.removed": "%s removido de %s",
-  "waybettercoppergolem.tuning.needs_category": "Primeiro mude o quadro para um rótulo de categoria (shift-clique com a mão vazia)",
   "waybettercoppergolem.command.categories": "%s categorias predefinidas:",
   "waybettercoppergolem.command.list_header": "%s (%s) - %s itens na tag base",
   "waybettercoppergolem.command.list_added": "Adicionados: %s",
   "waybettercoppergolem.command.list_removed": "Removidos: %s",
   "waybettercoppergolem.command.reset": "Todos os ajustes de %s foram limpos",
   "waybettercoppergolem.command.test_yes": "%s ESTÁ em %s",
-  "waybettercoppergolem.command.test_no": "%s NÃO está em %s"
+  "waybettercoppergolem.command.test_no": "%s NÃO está em %s",
+  "waybettercoppergolem.label.summary.auto": "Rótulos do golem: %s (auto)"
 }

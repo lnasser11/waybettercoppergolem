@@ -19,18 +19,24 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
 
 ---
 
-## 1. Labels and the actionbar
+## 1. Labels from frames (never clicked)
 
 1. Place a regular chest. Put an item frame on its front face with an
-   **iron ingot** in it.
-2. **Sneak-click the frame** repeatedly. The actionbar should cycle:
-   `Label: Iron Ingot (exact item only)` → `Label: #c:ingots/iron` →
-   `Label: #c:ingots` → back to exact.
-3. Normal (non-sneak) click should still rotate the framed item.
-4. Put an **empty frame** on a second chest; sneak-click →
-   `Label: catch-all (unmatched items go here)`.
-5. A frame on a block that isn't a chest: sneak-click should rotate as
-   vanilla (no label message).
+   **iron ingot** in it. Right-click the chest: the actionbar should show
+   `Golem labels: Iron Ingot (auto)` and the chest opens normally.
+2. Put copper ingots and gold ingots into the chest, close and reopen →
+   `Golem labels: #c:ingots (auto)` (the smart-frame rule: narrowest tag
+   of the framed item that covers everything inside). Take them out
+   again → back to `Iron Ingot (auto)`.
+3. Sneak-click the frame to rotate the item, swap the item for a diamond:
+   pure vanilla behavior, no mod message. Right-click the chest →
+   `Diamond (auto)`.
+4. Put an **empty frame** on a second chest; right-click it →
+   `Golem labels: catch-all (auto)`.
+5. A frame on a block that isn't a chest never produces a label message.
+6. If you have a click-through mod installed, right-clicking the frame
+   opens the chest and shows the labels; sneak-clicking rotates. Nothing
+   from this mod fires on the frame itself.
 
 ## 2. Settings GUI
 
@@ -103,11 +109,15 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
 
 ## 9. Frame persistence (creeper insurance)
 
-1. Break the iron chest's label frame (punch it).
+1. Break the iron chest's label frame (punch it twice).
 2. Feed iron into the copper chest → it must **still** go to that chest
-   (the label is cached on the chest itself).
-3. Put a frame with a **diamond** on that chest → its category updates;
-   iron now goes elsewhere.
+   (the label lives on the chest itself).
+3. Put a frame with a **diamond** on that chest → its label updates to
+   diamond; iron now goes elsewhere.
+4. **Migration:** on a world from before this version with frames that
+   were cycled to a tag, right-click the chest → the summary shows the
+   old tag **without** `(auto)` (it was converted to an explicit label),
+   and golems keep sorting as before.
 
 ## 10. Safety checks
 
@@ -125,16 +135,17 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
 
 ## 11. Categories and tuning
 
-1. Frame a **piston** on a chest; sneak-click with an empty hand until the
-   actionbar shows `Label: Category: Redstone`. Feed redstone items into
-   the copper chest → they land there.
-2. Hold **glowstone** and sneak-click that frame → "Added Glowstone to
-   Redstone". Feed glowstone → it now sorts into the Redstone chest.
-   `/wbcg category list redstone` shows the tweak; it survives a restart.
-3. Hold glowstone and sneak-click again → "Removed Glowstone from
-   Redstone" (back to normal).
-4. `/wbcg categories` lists 12 presets; `/wbcg category test redstone
+1. `/wbcg categories` lists 12 presets; `/wbcg category test redstone
    minecraft:piston` answers membership questions without a golem.
+2. Label a chest **Redstone** explicitly (learn pass, label tool or
+   picker; until those ship, use a frame on a chest whose contents only
+   share the preset — presets are never auto-derived, so expect an exact
+   label there). Feed redstone items into the copper chest → they land
+   in the Redstone chest.
+3. `/wbcg category add redstone minecraft:glowstone` → feed glowstone → it
+   now sorts into the Redstone chest. `/wbcg category list redstone`
+   shows the tweak; it survives a restart.
+4. `/wbcg category remove redstone minecraft:glowstone` → back to normal.
 
 ---
 

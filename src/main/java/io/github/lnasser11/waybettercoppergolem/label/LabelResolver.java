@@ -67,6 +67,11 @@ public final class LabelResolver {
 				.toList());
 	}
 
+	/** Whether this is one of the mod's {@code wbcg:} preset categories. */
+	public static boolean isPresetCategory(TagKey<Item> tag) {
+		return tag.location().getNamespace().equals(CATEGORY_NAMESPACE);
+	}
+
 	private static boolean isCycleStop(TagKey<Item> tag) {
 		String namespace = tag.location().getNamespace();
 		if (namespace.equals(CONVENTIONAL_NAMESPACE) || namespace.equals(CATEGORY_NAMESPACE)) {

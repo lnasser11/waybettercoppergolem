@@ -26,12 +26,12 @@
   "waybettercoppergolem.category.decoration": "Decoration",
   "waybettercoppergolem.tuning.added": "Added %s to %s",
   "waybettercoppergolem.tuning.removed": "Removed %s from %s",
-  "waybettercoppergolem.tuning.needs_category": "Cycle this frame to a category label first (sneak-click with an empty hand)",
   "waybettercoppergolem.command.categories": "%s preset categories:",
   "waybettercoppergolem.command.list_header": "%s (%s) - %s items in base tag",
   "waybettercoppergolem.command.list_added": "Added: %s",
   "waybettercoppergolem.command.list_removed": "Removed: %s",
   "waybettercoppergolem.command.reset": "Cleared all tweaks for %s",
   "waybettercoppergolem.command.test_yes": "%s IS in %s",
-  "waybettercoppergolem.command.test_no": "%s is NOT in %s"
+  "waybettercoppergolem.command.test_no": "%s is NOT in %s",
+  "waybettercoppergolem.label.summary.auto": "Golem labels: %s (auto)"
 }
