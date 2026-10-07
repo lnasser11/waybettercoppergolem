@@ -63,6 +63,26 @@ are never changed by frames; the frame then becomes decoration.
 
 Opening a labeled chest shows its full label set in the actionbar.
 
+### The label tool: copy and paste labels
+
+Hold the **label tool** (a feather by default, see [Configuration](#configuration))
+in your main hand and sneak:
+
+| | chest / trapped chest | copper chest |
+|---|---|---|
+| **sneak-left-click** | copy its labels (an unlabeled chest clears the clipboard) | copy its zone settings |
+| **sneak-right-click** | paste the copied labels onto it, replacing what was there | paste the copied zone settings |
+
+The actionbar confirms each copy and paste and the chest sparkles. Pasted
+labels are **explicit**: frames on that chest become decoration and the
+label stays until you paste something else. The two clipboard slots
+(labels, zone settings) are independent and survive death and relogging.
+Nothing is stored on the feather itself; it stays an ordinary feather.
+
+Sneak-right-click the air (or any other block) to see what the clipboard
+holds. Labeling a wall of chests is: copy once, then sneak-right-click
+along the wall.
+
 ### How golems decide where things go
 
 When a golem picks up items from a copper chest, it chooses the

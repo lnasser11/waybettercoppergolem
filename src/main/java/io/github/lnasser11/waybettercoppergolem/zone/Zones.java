@@ -26,6 +26,18 @@ public final class Zones {
 		return settings == null ? ZoneSettings.DEFAULT : settings;
 	}
 
+	/** "radius 32 · reach 4 · reorganize on · tidy off · dry run off". */
+	public static net.minecraft.network.chat.Component describe(ZoneSettings settings) {
+		return net.minecraft.network.chat.Component.translatable("waybettercoppergolem.zone.summary",
+				settings.searchRadius(), settings.verticalReach(),
+				onOff(settings.reorganize()), onOff(settings.tidyInside()), onOff(settings.dryRun()));
+	}
+
+	private static net.minecraft.network.chat.Component onOff(boolean value) {
+		return value ? net.minecraft.network.chat.CommonComponents.OPTION_ON
+				: net.minecraft.network.chat.CommonComponents.OPTION_OFF;
+	}
+
 	public static void store(BlockEntity copperChest, ZoneSettings settings) {
 		copperChest.setAttached(WayBetterCopperGolem.ZONE_SETTINGS, settings);
 	}

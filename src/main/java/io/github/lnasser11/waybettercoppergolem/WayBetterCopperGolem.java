@@ -7,6 +7,8 @@ import io.github.lnasser11.waybettercoppergolem.label.ChestLabelSet;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabels;
 import io.github.lnasser11.waybettercoppergolem.label.LabelResolver;
 import io.github.lnasser11.waybettercoppergolem.net.ConfigPayload;
+import io.github.lnasser11.waybettercoppergolem.tool.Clipboard;
+import io.github.lnasser11.waybettercoppergolem.tool.LabelTool;
 import io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettingsMenu;
@@ -28,7 +30,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -77,6 +78,15 @@ public class WayBetterCopperGolem implements ModInitializer {
 	public static final AttachmentType<Map<Identifier, CategoryTuning.TagOverride>> CATEGORY_OVERRIDES =
 			AttachmentRegistry.createPersistent(id("category_overrides"), CategoryTuning.CODEC);
 
+	/**
+	 * What a player's label tool carries. Survives death and relog; synced
+	 * only to its owner, for the HUD.
+	 */
+	public static final AttachmentType<Clipboard> CLIPBOARD = AttachmentRegistry.create(
+			id("clipboard"),
+			builder -> builder.persistent(Clipboard.CODEC).copyOnDeath()
+					.syncWith(Clipboard.STREAM_CODEC, AttachmentSyncPredicate.targetOnly()));
+
 	/** Sorting-zone settings, stored on a copper chest block entity. */
 	public static final AttachmentType<ZoneSettings> ZONE_SETTINGS =
 			AttachmentRegistry.createPersistent(id("zone_settings"), ZoneSettings.CODEC);
@@ -95,6 +105,7 @@ public class WayBetterCopperGolem implements ModInitializer {
 			}
 		});
 		CommonLifecycleEvents.TAGS_LOADED.register((registries, client) -> LabelResolver.invalidateCaches());
+		LabelTool.register();
 		UseBlockCallback.EVENT.register(WayBetterCopperGolem::onUseBlock);
 		ServerEntityEvents.ENTITY_LOAD.register(WayBetterCopperGolem::onEntityLoad);
 		CommandRegistrationCallback.EVENT.register(
@@ -158,16 +169,9 @@ public class WayBetterCopperGolem implements ModInitializer {
 
 	/** "Golem labels: Iron Ingot, catch-all", marked "(auto)" when frame-derived. */
 	public static Component describeSummary(ChestLabelSet labels) {
-		MutableComponent summary = Component.empty();
-		for (int i = 0; i < labels.labels().size(); i++) {
-			if (i > 0) {
-				summary.append(", ");
-			}
-			summary.append(LabelResolver.shortName(labels.labels().get(i)));
-		}
 		String key = labels.explicit()
 				? "waybettercoppergolem.label.summary" : "waybettercoppergolem.label.summary.auto";
-		return Component.translatable(key, summary);
+		return Component.translatable(key, LabelResolver.listNames(labels.labels()));
 	}
 
 	public static Identifier id(String path) {

@@ -33,5 +33,20 @@
   "waybettercoppergolem.command.reset": "Cleared all tweaks for %s",
   "waybettercoppergolem.command.test_yes": "%s IS in %s",
   "waybettercoppergolem.command.test_no": "%s is NOT in %s",
-  "waybettercoppergolem.label.summary.auto": "Golem labels: %s (auto)"
+  "waybettercoppergolem.label.summary.auto": "Golem labels: %s (auto)",
+  "waybettercoppergolem.tool.copied": "Copied labels: %s",
+  "waybettercoppergolem.tool.copied_zone": "Copied zone settings: %s",
+  "waybettercoppergolem.tool.cleared_clipboard": "Clipboard cleared (that chest has no labels)",
+  "waybettercoppergolem.tool.pasted": "Labeled chest: %s",
+  "waybettercoppergolem.tool.pasted_zone": "Applied zone settings: %s",
+  "waybettercoppergolem.tool.cleared_chest": "Cleared labels: chest is back to vanilla behavior",
+  "waybettercoppergolem.tool.cleared_chest_frames": "Cleared labels: chest now follows its frames (%s)",
+  "waybettercoppergolem.tool.nothing_to_paste": "Nothing to paste. Sneak-left-click a chest to copy its labels",
+  "waybettercoppergolem.tool.nothing_to_paste_zone": "No zone settings to paste. Sneak-left-click a copper chest to copy its settings",
+  "waybettercoppergolem.tool.clipboard": "Clipboard: %s",
+  "waybettercoppergolem.tool.clipboard_zone": "Clipboard: zone settings (%s)",
+  "waybettercoppergolem.tool.clipboard_both": "Clipboard: %s · zone settings (%s)",
+  "waybettercoppergolem.tool.clipboard_clear_marker": "clear labels",
+  "waybettercoppergolem.tool.clipboard_empty": "Clipboard empty. Sneak-left-click a chest to copy its labels",
+  "waybettercoppergolem.zone.summary": "radius %s · reach %s · reorganize %s · tidy %s · dry run %s"
 }

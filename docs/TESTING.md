@@ -38,6 +38,27 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
    opens the chest and shows the labels; sneak-clicking rotates. Nothing
    from this mod fires on the frame itself.
 
+## 1b. The label tool (feather)
+
+1. Hold a **feather** in your main hand. Sneak-**left**-click the
+   iron-labeled chest from step 1 → `Copied labels: Iron Ingot`, sparkle
+   particles, the chest is **not** damaged and mining does not start.
+2. Sneak-**right**-click three unlabeled chests → each says
+   `Labeled chest: Iron Ingot` with green particles; right-clicking one
+   normally shows `Golem labels: Iron Ingot` **without** `(auto)`.
+3. Hang a diamond frame on one of those chests → the label stays Iron
+   Ingot (explicit labels ignore frames).
+4. Sneak-left-click an unlabeled chest → `Clipboard cleared …`. Then
+   sneak-right-click a chest → `Nothing to paste …` and nothing changes.
+5. Sneak-right-click the air → the clipboard message. Die and respawn, or
+   relog → the clipboard is still there.
+6. Without sneaking, right-clicking a chest with the feather opens it as
+   usual; left-clicking mines it as usual.
+7. Copper chests: change a zone's settings in the GUI (step 2), then
+   sneak-left-click it → `Copied zone settings: radius … reach …`.
+   Sneak-right-click another copper chest → `Applied zone settings …`;
+   open its GUI → values match.
+
 ## 2. Settings GUI
 
 1. Place a copper chest. **Sneak-right-click it with an empty hand** →

@@ -15,7 +15,9 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -51,15 +53,35 @@ public record WbcgConfig(Identifier toolItemId, int learnRadius, boolean learnRe
 	).apply(instance, WbcgConfig::new));
 
 	private static volatile WbcgConfig current = DEFAULT;
+	/** What the server we are connected to told us (client side only). */
+	private static volatile Identifier remoteToolItemId = DEFAULT_TOOL;
 
-	/** The active configuration (defaults until {@link #load()} has run). */
+	/** The active server configuration (defaults until {@link #load()} has run). */
 	public static WbcgConfig get() {
 		return current;
 	}
 
-	/** The item that acts as the label tool, resolved and validated. */
-	public static Item toolItem() {
-		return BuiltInRegistries.ITEM.getOptional(current.toolItemId()).orElse(Items.FEATHER);
+	/**
+	 * The item that acts as the label tool on this logical side: the file's
+	 * choice on the server, the joined server's choice on the client.
+	 */
+	public static Item toolItem(Level level) {
+		Identifier id = level.isClientSide() ? remoteToolItemId : current.toolItemId();
+		return BuiltInRegistries.ITEM.getOptional(id).orElse(Items.FEATHER);
+	}
+
+	public static boolean isTool(Level level, ItemStack stack) {
+		return !stack.isEmpty() && stack.is(toolItem(level));
+	}
+
+	/** Client side: remember the tool item the server announced on join. */
+	public static void applyRemote(Identifier toolItemId) {
+		remoteToolItemId = toolItemId;
+	}
+
+	/** Client side: forget the previous server's choice. */
+	public static void resetRemote() {
+		remoteToolItemId = DEFAULT_TOOL;
 	}
 
 	/** Reads the config file, creating it with defaults when missing. */

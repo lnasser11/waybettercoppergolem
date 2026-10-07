@@ -33,5 +33,20 @@
   "waybettercoppergolem.command.reset": "Todos os ajustes de %s foram limpos",
   "waybettercoppergolem.command.test_yes": "%s ESTÁ em %s",
   "waybettercoppergolem.command.test_no": "%s NÃO está em %s",
-  "waybettercoppergolem.label.summary.auto": "Rótulos do golem: %s (auto)"
+  "waybettercoppergolem.label.summary.auto": "Rótulos do golem: %s (auto)",
+  "waybettercoppergolem.tool.copied": "Rótulos copiados: %s",
+  "waybettercoppergolem.tool.copied_zone": "Configurações da zona copiadas: %s",
+  "waybettercoppergolem.tool.cleared_clipboard": "Área de transferência limpa (esse baú não tem rótulos)",
+  "waybettercoppergolem.tool.pasted": "Baú rotulado: %s",
+  "waybettercoppergolem.tool.pasted_zone": "Configurações da zona aplicadas: %s",
+  "waybettercoppergolem.tool.cleared_chest": "Rótulos removidos: o baú voltou ao comportamento padrão",
+  "waybettercoppergolem.tool.cleared_chest_frames": "Rótulos removidos: o baú agora segue suas molduras (%s)",
+  "waybettercoppergolem.tool.nothing_to_paste": "Nada para colar. Agache e clique com o botão esquerdo em um baú para copiar os rótulos",
+  "waybettercoppergolem.tool.nothing_to_paste_zone": "Nenhuma configuração de zona para colar. Agache e clique com o botão esquerdo em um baú de cobre para copiar",
+  "waybettercoppergolem.tool.clipboard": "Área de transferência: %s",
+  "waybettercoppergolem.tool.clipboard_zone": "Área de transferência: configurações de zona (%s)",
+  "waybettercoppergolem.tool.clipboard_both": "Área de transferência: %s · configurações de zona (%s)",
+  "waybettercoppergolem.tool.clipboard_clear_marker": "remover rótulos",
+  "waybettercoppergolem.tool.clipboard_empty": "Área de transferência vazia. Agache e clique com o botão esquerdo em um baú para copiar os rótulos",
+  "waybettercoppergolem.zone.summary": "raio %s · alcance %s · reorganizar %s · arrumar %s · simulação %s"
 }

@@ -145,6 +145,18 @@ public final class LabelResolver {
 		return Component.translatable("waybettercoppergolem.label.tag", tagName(label.tagId().get()));
 	}
 
+	/** "Iron Ingot, catch-all": the short names of several labels joined. */
+	public static Component listNames(List<ChestLabel> labels) {
+		net.minecraft.network.chat.MutableComponent joined = Component.empty();
+		for (int i = 0; i < labels.size(); i++) {
+			if (i > 0) {
+				joined.append(", ");
+			}
+			joined.append(shortName(labels.get(i)));
+		}
+		return joined;
+	}
+
 	/** Compact name for one label, used in the multi-label summary line. */
 	public static Component shortName(ChestLabel label) {
 		if (label.isOffLimits()) {

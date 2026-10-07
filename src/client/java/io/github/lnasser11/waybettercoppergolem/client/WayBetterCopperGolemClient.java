@@ -1,6 +1,7 @@
 package io.github.lnasser11.waybettercoppergolem.client;
 
 import io.github.lnasser11.waybettercoppergolem.WayBetterCopperGolem;
+import io.github.lnasser11.waybettercoppergolem.config.WbcgConfig;
 import io.github.lnasser11.waybettercoppergolem.net.ConfigPayload;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -14,7 +15,7 @@ public class WayBetterCopperGolemClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		MenuScreens.register(WayBetterCopperGolem.ZONE_SETTINGS_MENU, ZoneSettingsScreen::new);
 		ClientPlayNetworking.registerGlobalReceiver(ConfigPayload.TYPE,
-				(payload, context) -> ClientConfig.setToolItem(payload.toolItem()));
-		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientConfig.reset());
+				(payload, context) -> WbcgConfig.applyRemote(payload.toolItem()));
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> WbcgConfig.resetRemote());
 	}
 }
