@@ -28,6 +28,8 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	public static final int BUTTON_TOGGLE_REORGANIZE = 0;
 	public static final int BUTTON_TOGGLE_TIDY = 1;
 	public static final int BUTTON_TOGGLE_DRY_RUN = 2;
+	/** Run the learn pass centered on this copper chest, radius = the zone's search radius. */
+	public static final int BUTTON_LEARN = 3;
 	/** buttonId = base + value, for slider-style settings. */
 	public static final int BUTTON_RADIUS_BASE = 100;
 	public static final int BUTTON_REACH_BASE = 200;
@@ -69,6 +71,23 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	@Override
 	public boolean clickMenuButton(Player player, int buttonId) {
 		ZoneSettings current = settings();
+		if (buttonId == BUTTON_LEARN) {
+			if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+				this.access.execute((level, pos) -> {
+					if (!(level instanceof net.minecraft.server.level.ServerLevel serverLevel)) {
+						return;
+					}
+					if (!io.github.lnasser11.waybettercoppergolem.learn.LearnSession.allowed(serverPlayer)) {
+						serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component
+								.translatable("waybettercoppergolem.learn.not_allowed"));
+						return;
+					}
+					io.github.lnasser11.waybettercoppergolem.learn.LearnSession.preview(
+							serverPlayer, serverLevel, pos, current.searchRadius(), false);
+				});
+			}
+			return true;
+		}
 		ZoneSettings updated;
 		if (buttonId == BUTTON_TOGGLE_REORGANIZE) {
 			updated = new ZoneSettings(current.searchRadius(), current.verticalReach(),

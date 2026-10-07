@@ -63,6 +63,32 @@ are never changed by frames; the frame then becomes decoration.
 
 Opening a labeled chest shows its full label set in the actionbar.
 
+### Learn: label a whole room from what it already holds
+
+Most storage rooms are already sorted by hand, so the mod can read them
+instead of asking you to describe them. Open any copper chest's settings
+(sneak-right-click it with an empty hand) and press **Learn this zone's
+chests…**, or run `/wbcg learn [radius]` where you stand. Every chest in
+range gets a proposed label:
+
+- one kind of item inside → that **exact item**;
+- several kinds → the **narrowest tag or category covering all of them**
+  (iron, copper and gold ingots → `#c:ingots`);
+- everything but one kind fits → that label, and the odd kind is reported
+  as **misplaced** (the golems' reorganize pass moves it later);
+- nothing fits → **skipped** as mixed. Empty chests and chests you labeled
+  explicitly are skipped too (`/wbcg learn <radius> overwrite` revisits
+  the explicit ones).
+
+The proposal appears in chat: click a chest's coordinates to make it
+sparkle so you can find it, then click **[Apply]** to label everything
+in one go (or **[Cancel]**; proposals expire after two minutes). Applied
+labels are explicit. Running learn again later only touches chests that
+are still unlabeled, so it is safe to repeat as the room grows.
+
+Learn needs operator permission unless `learn_requires_op` is turned off
+in the config.
+
 ### The label tool: copy and paste labels
 
 Hold the **label tool** (a feather by default, see [Configuration](#configuration))
@@ -128,6 +154,9 @@ Tuning is done with the `/wbcg` command:
 /wbcg category add <name> <item>        include an item            (op)
 /wbcg category remove <name> <item>     exclude an item            (op)
 /wbcg category reset <name>             drop all tweaks            (op)
+/wbcg learn [radius] [overwrite]        propose labels for the chests around you (op by default)
+/wbcg learn apply | cancel              write or drop the pending proposal
+/wbcg highlight <x> <y> <z>             make a chest sparkle so you can find it
 ```
 
 Bare names resolve to presets (`redstone` → `wbcg:redstone`); explicit
@@ -255,6 +284,7 @@ destination choice, the acceptance rule, and the reach.
 ./gradlew build        # jar lands in build/libs/
 ./gradlew runClient    # launch a dev client
 ./gradlew runServer    # launch a dev server
+./gradlew runGameTest  # server-side game tests (src/gametest)
 ```
 
 Requires JDK 25 and network access to `maven.fabricmc.net`,

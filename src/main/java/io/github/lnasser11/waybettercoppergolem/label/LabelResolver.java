@@ -59,13 +59,16 @@ public final class LabelResolver {
 	public static List<TagKey<Item>> orderedTags(Item item) {
 		return TAG_CACHE.computeIfAbsent(item, it -> it.builtInRegistryHolder().tags()
 				.filter(LabelResolver::isCycleStop)
-				.sorted(Comparator
-						.comparingInt(LabelResolver::tagSize)
-						.thenComparing((TagKey<Item> tag) -> tag.location().getPath().split("/").length,
-								Comparator.reverseOrder())
-						.thenComparing(tag -> tag.location().toString()))
+				.sorted(NARROW_TO_BROAD)
 				.toList());
 	}
+
+	/** Fewest member items first, deeper tag paths breaking ties, then by id. */
+	public static final Comparator<TagKey<Item>> NARROW_TO_BROAD = Comparator
+			.comparingInt(LabelResolver::tagSize)
+			.thenComparing((TagKey<Item> tag) -> tag.location().getPath().split("/").length,
+					Comparator.reverseOrder())
+			.thenComparing(tag -> tag.location().toString());
 
 	/** Whether this is one of the mod's {@code wbcg:} preset categories. */
 	public static boolean isPresetCategory(TagKey<Item> tag) {
@@ -84,7 +87,8 @@ public final class LabelResolver {
 		return TagKey.create(Registries.ITEM, tagId);
 	}
 
-	private static int tagSize(TagKey<Item> tag) {
+	/** Number of items in the tag (0 if the tag is unknown). */
+	public static int tagSize(TagKey<Item> tag) {
 		return BuiltInRegistries.ITEM.get(tag).map(HolderSet.Named::size).orElse(0);
 	}
 

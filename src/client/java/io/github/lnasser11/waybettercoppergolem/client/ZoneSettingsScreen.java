@@ -41,7 +41,7 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		super.init();
 		this.shown = this.menu.settings();
 		int x = this.width / 2 - WIDGET_WIDTH / 2;
-		int y = this.height / 2 - 3 * (WIDGET_HEIGHT + GAP);
+		int y = this.height / 2 - 7 * (WIDGET_HEIGHT + GAP) / 2;
 
 		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.reorganize())
 				.create(x, y, WIDGET_WIDTH, WIDGET_HEIGHT,
@@ -64,6 +64,16 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		addStepperRow(x, y, () -> this.shown.verticalReach(), 1, 1, ZoneSettings.MAX_VERTICAL_REACH,
 				ZoneSettingsMenu.BUTTON_REACH_BASE);
 		y += WIDGET_HEIGHT + 2 * GAP;
+		this.addRenderableWidget(Button.builder(
+						Component.translatable("waybettercoppergolem.settings.learn"), button -> {
+							// The proposal arrives in chat, so close the screen to read it.
+							click(ZoneSettingsMenu.BUTTON_LEARN);
+							this.onClose();
+						})
+				.tooltip(net.minecraft.client.gui.components.Tooltip.create(
+						Component.translatable("waybettercoppergolem.settings.learn.tooltip")))
+				.bounds(x, y, WIDGET_WIDTH, WIDGET_HEIGHT).build());
+		y += WIDGET_HEIGHT + GAP;
 		this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
 				.bounds(x, y, WIDGET_WIDTH, WIDGET_HEIGHT).build());
 	}
@@ -99,7 +109,7 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 		int x = this.width / 2;
-		int top = this.height / 2 - 3 * (WIDGET_HEIGHT + GAP);
+		int top = this.height / 2 - 7 * (WIDGET_HEIGHT + GAP) / 2;
 		graphics.centeredText(this.font, this.title, x, top - 2 * WIDGET_HEIGHT, 0xFFFFFFFF);
 		int radiusY = top + 3 * (WIDGET_HEIGHT + GAP) + 6;
 		graphics.centeredText(this.font,

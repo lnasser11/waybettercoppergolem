@@ -59,6 +59,26 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
    Sneak-right-click another copper chest → `Applied zone settings …`;
    open its GUI → values match.
 
+## 1c. Learn pass
+
+1. Build a small room: a chest of only diamonds, a chest of iron + copper
+   + gold ingots, a chest of ingots plus one stack of dirt, a chest of
+   dirt + a bow + a cake, and an empty chest. Stand in the middle.
+2. `/wbcg learn 8` → chat shows a header like `Learn: 3 chests get a
+   label, 2 skipped`, one line per chest (`Diamond`, `#c:ingots`,
+   `#c:ingots misplaced: Dirt`), and `Skipped: … empty … mixed contents`.
+3. Click a chest's `[x y z]` → white sparkles rise over that chest.
+4. Click **[Apply]** → `Labeled 3 chests.` Right-click each → summary
+   **without** `(auto)`. The dirt is still in its chest; with a golem and
+   a catch-all chest nearby it gets moved later.
+5. `/wbcg learn 8` again → the three are now `already labeled`; `/wbcg
+   learn 8 overwrite` proposes them again.
+6. Open a copper chest's settings and press **Learn this zone's
+   chests…** → the screen closes and the same kind of preview appears,
+   centered on the copper chest with the zone's search radius.
+7. As a non-op (default config), `/wbcg learn` is not available and the
+   zone-screen button says the pass needs operator permission.
+
 ## 2. Settings GUI
 
 1. Place a copper chest. **Sneak-right-click it with an empty hand** →

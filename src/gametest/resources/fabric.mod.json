@@ -1,0 +1,17 @@
+{
+	"schemaVersion": 1,
+	"id": "waybettercoppergolem_tests",
+	"version": "1.0.0",
+	"name": "Way Better Copper Golem — game tests",
+	"environment": "*",
+	"license": "CC0-1.0",
+	"entrypoints": {
+		"fabric-gametest": [
+			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgGameTests"
+		]
+	},
+	"depends": {
+		"waybettercoppergolem": "*",
+		"fabric-api": "*"
+	}
+}
