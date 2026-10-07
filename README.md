@@ -168,6 +168,29 @@ switch it off. Each source chest is logged once per pass (~5 min cycle).
 
 ---
 
+## Configuration
+
+The server writes `config/waybettercoppergolem.json` on first start:
+
+```json
+{
+  "tool_item": "minecraft:feather",
+  "learn_radius": 32,
+  "learn_requires_op": true
+}
+```
+
+| Key | Default | |
+|---|---|---|
+| `tool_item` | `minecraft:feather` | the vanilla item that acts as the label tool (copy/paste labels, open the picker). Any item id works; an unknown id logs a warning and the feather is used. Pick something without a right-click action of its own. |
+| `learn_radius` | 32 | default horizontal radius of `/wbcg learn` around the player (4–64) |
+| `learn_requires_op` | true | whether the learn pass needs permission level 2 |
+
+Clients learn the tool item from the server on join, so only the server
+file matters.
+
+---
+
 ## Safety guarantees
 
 - **No world-format changes.** Labels, tweaks, and settings live in

@@ -1,10 +1,12 @@
 package io.github.lnasser11.waybettercoppergolem;
 
 import io.github.lnasser11.waybettercoppergolem.command.WbcgCommand;
+import io.github.lnasser11.waybettercoppergolem.config.WbcgConfig;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabel;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabelSet;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabels;
 import io.github.lnasser11.waybettercoppergolem.label.LabelResolver;
+import io.github.lnasser11.waybettercoppergolem.net.ConfigPayload;
 import io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettingsMenu;
@@ -18,6 +20,9 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
@@ -82,6 +87,13 @@ public class WayBetterCopperGolem implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		WbcgConfig.load();
+		PayloadTypeRegistry.clientboundPlay().register(ConfigPayload.TYPE, ConfigPayload.STREAM_CODEC);
+		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+			if (ServerPlayNetworking.canSend(handler, ConfigPayload.TYPE)) {
+				sender.sendPacket(new ConfigPayload(WbcgConfig.get().toolItemId()));
+			}
+		});
 		CommonLifecycleEvents.TAGS_LOADED.register((registries, client) -> LabelResolver.invalidateCaches());
 		UseBlockCallback.EVENT.register(WayBetterCopperGolem::onUseBlock);
 		ServerEntityEvents.ENTITY_LOAD.register(WayBetterCopperGolem::onEntityLoad);
