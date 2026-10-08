@@ -305,11 +305,12 @@ switch it off. Each source chest is logged once per pass (~5 min cycle).
 
 ### Tall chest walls
 
-Vanilla golems can only reach chests at their own height. This mod raises
-their vertical reach to 6 blocks and fixes the vanilla line-of-sight check
-that made any chest two or more blocks up a chest wall count as
-"unreachable", so a golem standing on the floor serves a wall of chests
-six high. It still can't grab through solid walls.
+Vanilla golems can only reach chests at their own height. This mod gives
+each zone a **vertical reach**, 6 blocks by default and up to 16, set
+with the stepper in the zone screen, and fixes the vanilla line-of-sight
+check that made any chest two or more blocks up a chest wall count as
+"unreachable". A golem standing on the floor serves a wall of chests as
+tall as the reach. It still can't grab through solid walls.
 
 ---
 

@@ -39,7 +39,8 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	public static final int DATA_MAX_X = 9;
 	public static final int DATA_MAX_Y = 10;
 	public static final int DATA_MAX_Z = 11;
-	public static final int DATA_COUNT = 12;
+	public static final int DATA_REACH = 12;
+	public static final int DATA_COUNT = 13;
 
 	public static final int BUTTON_TOGGLE_REORGANIZE = 0;
 	public static final int BUTTON_TOGGLE_TIDY = 1;
@@ -60,6 +61,9 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	public static final int BUTTON_SAVE_DEFAULTS = 9;
 	/** Give every zone in this dimension these settings (operators). */
 	public static final int BUTTON_APPLY_ALL = 10;
+	/** Vertical reach one block lower / higher. */
+	public static final int BUTTON_REACH_DOWN = 11;
+	public static final int BUTTON_REACH_UP = 12;
 
 	private final ContainerLevelAccess access;
 	private final ContainerData data;
@@ -100,10 +104,11 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 		data.set(DATA_MAX_X, area.maxX());
 		data.set(DATA_MAX_Y, area.maxY());
 		data.set(DATA_MAX_Z, area.maxZ());
+		data.set(DATA_REACH, settings.verticalReach());
 	}
 
 	public ZoneSettings settings() {
-		return new ZoneSettings(ZoneSettings.MAX_VERTICAL_REACH,
+		return new ZoneSettings(this.data.get(DATA_REACH),
 				this.data.get(DATA_REORGANIZE) != 0,
 				this.data.get(DATA_TIDY) != 0,
 				this.data.get(DATA_DRY_RUN) != 0);
@@ -136,6 +141,8 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 				case BUTTON_TOGGLE_REORGANIZE -> zone = zone.withSettings(current.withReorganize(!current.reorganize()));
 				case BUTTON_TOGGLE_TIDY -> zone = zone.withSettings(current.withTidyInside(!current.tidyInside()));
 				case BUTTON_TOGGLE_DRY_RUN -> zone = zone.withSettings(current.withDryRun(!current.dryRun()));
+				case BUTTON_REACH_DOWN -> zone = zone.withSettings(current.withVerticalReach(current.verticalReach() - 1));
+				case BUTTON_REACH_UP -> zone = zone.withSettings(current.withVerticalReach(current.verticalReach() + 1));
 				case BUTTON_RESET_AREA -> zone = zone.withArea(Zone.defaultArea(ref.anchor()));
 				case BUTTON_LEARN -> {
 					if (!LearnSession.allowed(serverPlayer)) {

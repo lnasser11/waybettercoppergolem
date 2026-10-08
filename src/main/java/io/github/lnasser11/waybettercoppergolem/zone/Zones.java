@@ -185,10 +185,10 @@ public final class Zones {
 		return AABB.of(area);
 	}
 
-	/** "radius 32 · reach 4 · reorganize on · tidy off · dry run off". */
+	/** "reorganize on · tidy off · dry run off · reach 6". */
 	public static Component describe(ZoneSettings settings) {
 		return Component.translatable("waybettercoppergolem.zone.summary",
-				onOff(settings.reorganize()), onOff(settings.tidyInside()), onOff(settings.dryRun()));
+				onOff(settings.reorganize()), onOff(settings.tidyInside()), onOff(settings.dryRun()), settings.verticalReach());
 	}
 
 	/** "20 × 6 × 14". */

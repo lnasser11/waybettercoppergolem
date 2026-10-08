@@ -16,6 +16,7 @@ import io.github.lnasser11.waybettercoppergolem.tuning.TuningNet;
 import io.github.lnasser11.waybettercoppergolem.zone.Zone;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneOverview;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSimulation;
+import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings;
 import io.github.lnasser11.waybettercoppergolem.zone.Zones;
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
@@ -180,6 +181,18 @@ public final class WbcgClientGameTest implements FabricClientGameTest {
 
 	private void zoneScreenAndAreaMode(ClientGameTestContext context, TestServerContext server, String size) {
 		openZoneScreen(context, server, size);
+
+		// The reach stepper: one press of "+" must show up in the label and on the server.
+		context.clickScreenButton("waybettercoppergolem.settings.reach_up");
+		context.waitTicks(5);
+		int reach = server.computeOnServer(s -> Zones.settingsAt(player(s).level(), this.anchor).verticalReach());
+		assertEquals(ZoneSettings.DEFAULT_VERTICAL_REACH + 1, reach, "zone reach after one press of +");
+		assertTrue(context.computeOnClient(mc -> mc.gui.screen() != null && mc.gui.screen().children().stream()
+						.anyMatch(w -> w instanceof AbstractWidget widget
+								&& widget.getMessage().getString().equals("Reach: " + (ZoneSettings.DEFAULT_VERTICAL_REACH + 1)))),
+				"the reach label shows the new value");
+		context.clickScreenButton("waybettercoppergolem.settings.reach_down");
+		context.waitTicks(5);
 
 		// "Set area with the tool…" closes the screen and starts area mode on the server.
 		context.clickScreenButton("waybettercoppergolem.settings.set_area");
