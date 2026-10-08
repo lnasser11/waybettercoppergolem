@@ -1,155 +1,225 @@
 # Way Better Copper Golem
 
 A Fabric mod that turns vanilla copper golems into actual storage-room
-organizers. Instead of dumping copper-chest items into whichever chest
-happens to contain a match, golems deliver every item to the chest you
-labeled for it — using the item frames you already hang on chests — and
-slowly clean up misplaced stacks while they're at it.
+organizers. You tell the mod what each chest is for — or let it read your
+room and work that out itself — and golems deliver every item from your
+copper chests to the right chest, then slowly clean up misplaced stacks
+while they're at it.
 
 Built for **Minecraft Java 26.2** · Fabric Loader 0.19.3 · Fabric API
 0.152.1+26.2 · Java 25. Works in singleplayer and on dedicated servers.
+Compatible with click-through mods: nothing here ever reacts to a click
+on an item frame.
 
 ---
 
 ## Installation
 
-Put three things in the `mods` folder of a Fabric 26.2 profile:
+Put two things in the `mods` folder of a Fabric 26.2 profile:
 
 1. Fabric API
 2. `waybettercoppergolem-<version>.jar` (from `build/libs/` after building,
    see below)
 
-…plus Fabric Loader itself as the profile. On a server, install the mod
-**both server-side and on every client**: the golem AI, labels, and
-sorting all run on the server; the client part adds the settings screen.
+On a server, install the mod **both server-side and on every client**:
+the golem AI, labels, zones and sorting run on the server; the client
+part adds the screens and the HUD.
 
 Removing the mod is always safe — see [Safety guarantees](#safety-guarantees).
 
 ---
 
-## How to use it
+## Quick start
 
-### Label chests with item frames
+1. **Place a copper chest** in your storage room. That is where you dump
+   things for the golems to sort.
+2. **Sneak-right-click it with an empty hand.** This opens its *zone*:
+   the box golems work in and the settings they obey. Press **Set area
+   with the tool…**, then, holding a **feather**, sneak-right-click two
+   opposite corners of the room. (Skip this and the zone is a 65 × 17 × 65
+   box around the copper chest.)
+3. **Press "Learn this zone's chests…".** The mod reads every chest in
+   the box and proposes a label for each from what it already holds. Read
+   the preview in chat, click **[Apply]**.
+4. **Fix the exceptions with the feather.** Hold it to see every chest's
+   label on the HUD as you look around. Sneak-left-click a chest to copy
+   its label, sneak-right-click another to paste it. Sneak-right-click
+   the air to pick any label from a list instead.
+5. **Summon or build golems.** Fill the copper chest and watch.
 
-A chest's category is declared by an **item frame mounted on the chest
-itself** (any face, top included). The chest owns the label; the frame is
-the sample it is read from, and **nothing in this mod ever intercepts a
-click on a frame** — rotating or swapping the framed item works exactly
-like vanilla, and click-through mods are fully compatible.
+Everything below is the long version.
 
-How broadly a framed item counts is decided by what the chest already
-holds (the "smart frame" rule):
+---
 
-- An iron ingot frame on an empty chest, or on a chest holding only iron
-  ingots, means **Iron Ingot (exact item only)**.
-- The same frame on a chest holding iron, copper and gold ingots means
-  **Ingots** (the `c:ingots` tag): the narrowest `c:`/vanilla tag of the
-  framed item that covers everything in the chest. Preset categories are never chosen
-  automatically; pick those on purpose (see below).
-- **Empty frame** = the catch-all chest. Items matching no label anywhere
-  go here.
-- **Framed cobweb** = this chest is **off-limits**: golems never deposit
-  into it, never claim it, never reorganize it.
-- Several frames on one chest give it several categories (the union).
-  A double chest is one container; a frame on either half labels all of it.
-- An **unlabeled** chest keeps pure vanilla behavior (an empty one gets
-  claimed by whatever the golem drops in it first). Labels never apply to
-  chests you didn't label.
+## Labels and zones, the two ideas
 
-Frame-derived labels are marked **(auto)** and follow the frame: change
-the framed item and the label changes with it. Labels you set explicitly
-(the learn pass, the label tool, the picker — see the following sections)
-are never changed by frames; the frame then becomes decoration.
+A **label** says what a chest is for. It is one of:
 
-Opening a labeled chest shows its full label set in the actionbar.
+| Label | Means |
+|---|---|
+| an **exact item** (*Iron Ingot*) | only that item |
+| a **tag** (*Ingots › Iron*, *Ingots*, *Wooden Slabs*) | everything in that item tag; narrower tags win over broader ones |
+| a **preset category** (*Redstone*, *Food*, …) | one of the mod's 12 curated buckets, tunable per world |
+| **catch-all** | anything that matches no other label anywhere |
+| **off-limits** | golems never deposit into, claim or reorganize this chest |
+
+A chest can carry several labels (the union). A double chest is one
+container with one label set. An **unlabeled** chest keeps pure vanilla
+behavior: golems put items in it only if it is empty or already holds
+that item.
+
+Labels are either **explicit** (you set them: learn, feather, picker) or
+**auto** (derived from an item frame hanging on the chest, see
+[Frames](#frames-free-labels-you-never-click)). Explicit always wins and
+never changes on its own.
+
+A **zone** is a box in the world with the settings golems obey inside it,
+anchored at a copper chest. Golems working for a zone only take from
+copper chests inside the box and only deliver inside it. See
+[Zones](#zones-a-room-its-area-its-settings).
+
+---
+
+## Labeling chests
 
 ### Learn: label a whole room from what it already holds
 
-Most storage rooms are already sorted by hand, so the mod can read them
-instead of asking you to describe them. Open any copper chest's zone
-(sneak-right-click it with an empty hand) and press **Learn this zone's
-chests…** to scan the zone's area, or run `/wbcg learn [radius]` where
-you stand. Every chest in range gets a proposed label:
+Most storage rooms are already sorted by hand, so the mod reads them
+instead of asking you to describe them. Open a copper chest's zone and
+press **Learn this zone's chests…** to scan the zone's area, or run
+`/wbcg learn [radius]` where you stand. Every chest in range gets a
+proposed label:
 
 - one kind of item inside → that **exact item**;
 - several kinds → the **narrowest tag or category covering all of them**
-  (iron, copper and gold ingots → Ingots);
+  (iron, copper and gold ingots → *Ingots*);
 - everything but one kind fits → that label, and the odd kind is reported
   as **misplaced** (the golems' reorganize pass moves it later);
 - nothing fits → **skipped** as mixed. Empty chests and chests you labeled
   explicitly are skipped too (`/wbcg learn <radius> overwrite` revisits
   the explicit ones).
 
-The proposal appears in chat: click a chest's coordinates to make it
+The proposal appears in chat. Click a chest's coordinates to make it
 sparkle so you can find it, then click **[Apply]** to label everything
-in one go (or **[Cancel]**; proposals expire after two minutes). Applied
-labels are explicit. Running learn again later only touches chests that
-are still unlabeled, so it is safe to repeat as the room grows.
+in one go (or **[Cancel]**; proposals expire after two minutes). Running
+learn again later only touches chests that are still unlabeled, so it is
+safe to repeat as the room grows. Learn needs operator permission unless
+`learn_requires_op` is turned off in the config.
 
-Learn needs operator permission unless `learn_requires_op` is turned off
-in the config.
+### The feather: copy and paste labels
 
-### The label tool: copy and paste labels
-
-Hold the **label tool** (a feather by default, see [Configuration](#configuration))
-in your main hand and sneak:
+The **label tool** is an ordinary vanilla item, a feather by default
+(see [Configuration](#configuration)). Hold it in your main hand and
+sneak:
 
 | | chest / trapped chest | copper chest |
 |---|---|---|
 | **sneak-left-click** | copy its labels (an unlabeled chest clears the clipboard) | copy its zone's settings |
 | **sneak-right-click** | paste the copied labels onto it, replacing what was there | paste the settings into its zone (the area is left alone) |
+| **sneak-right-click the air** | open the [picker](#the-picker-choose-any-label-from-a-list) | |
 
 The actionbar confirms each copy and paste and the chest sparkles. Pasted
-labels are **explicit**: frames on that chest become decoration and the
-label stays until you paste something else. The two clipboard slots
-(labels, zone settings) are independent and survive death and relogging.
-Nothing is stored on the feather itself; it stays an ordinary feather.
+labels are explicit. The clipboard has two independent slots (labels and
+zone settings), survives death and relogging, and lives on the player,
+not on the item — the feather stays an ordinary feather. Labeling a wall
+of chests is: copy once (or pick once), then sneak-right-click along the
+wall.
 
-Sneak-right-click the air to open the picker (next section) and see what
-the clipboard holds. Labeling a wall of chests is: copy once (or pick
-once), then sneak-right-click along the wall.
+### The picker: choose any label from a list
 
-### The picker: choose any label without a sample item
-
-**Sneak-right-click the air** while holding the label tool to open the
-picker. Whatever you choose goes onto the clipboard, ready to paste onto
-chests:
+Sneak-right-click the air while holding the feather. Whatever you choose
+goes onto the clipboard, ready to paste:
 
 - the twelve **preset categories** as buttons;
 - **Catch-all**, **Off-limits**, **Remove labels** (pasting it unlabels a
   chest) and **Empty clipboard**;
 - an **item search**, pre-filled with what you carry. Pick an item and
   its stops appear: the exact item, then its tags narrow to broad
-  (`Ingots › Iron · 1 items`, `Ingots · 12 items`), with the raw tag id
+  (*Ingots › Iron · 2 items*, *Ingots · 12 items*), with the raw tag id
   in the tooltip.
 
-Labels are shown by friendly names everywhere: a `c:ingots/iron` label
-reads **Ingots › Iron**, `minecraft:wooden_slabs` reads **Wooden Slabs**,
-presets use their names.
+### Frames: free labels you never click
 
-### Seeing labels and zones: the tool HUD
+An item frame mounted on a chest (any face) gives it an **auto** label
+without any clicks. The framed item is the sample; what the chest holds
+decides how broadly it counts:
 
-While the label tool is in either hand, a small panel above the hotbar
-tells you what you are looking at:
+- an iron ingot frame on an empty chest, or on a chest of iron ingots,
+  means *Iron Ingot*;
+- the same frame on a chest holding iron, copper and gold ingots means
+  *Ingots*: the narrowest `c:`/vanilla tag of the framed item that covers
+  everything inside. Preset categories are never chosen automatically;
+- an **empty frame** means catch-all, a **framed cobweb** means
+  off-limits.
 
-- a chest: its labels (`Labels: Ingots › Iron`), marked **(auto, from the
-  frame)** when they come from a frame, or `Unlabeled chest — vanilla
-  behavior`; looking at a frame shows the chest it hangs on;
-- a copper chest: its zone (`Zone at x y z · area 20 × 6 × 14`) and the
-  zone's settings, while the zone's outline is drawn around you;
-- always: what the clipboard holds, or the area-mode prompt while you are
-  picking corners.
+Auto labels follow the frame: swap the framed item and the label changes.
+Once a chest has explicit labels, its frames are decoration. The mod never
+intercepts a click on a frame, so rotating and swapping framed items works
+exactly like vanilla, with or without a click-through mod.
 
-Put the tool away and the panel disappears.
+### The HUD: see labels and zones without opening anything
 
-### How golems decide where things go
+While the feather is in either hand, a small panel above the hotbar shows
+what you are looking at: a chest's labels (marked *auto, from the frame*
+when derived) or *Unlabeled chest — vanilla behavior*; a copper chest's
+zone and settings, while the zone's outline is drawn around you; and
+always the clipboard, or the area-mode prompt while you pick corners.
+Looking at a frame shows the chest it hangs on. Right-clicking a chest
+normally also shows its labels in the actionbar.
+
+---
+
+## Zones: a room, its area, its settings
+
+A zone is a box with settings, anchored at a copper chest. Every copper
+chest inside the box belongs to the same zone, so one storage room is one
+zone however many copper chests it has. Golems working for a zone **only
+take from copper chests inside the box and only deposit or reorganize
+inside it**. A golem that wanders into another room starts serving that
+room's zone; one carrying items still delivers to the room it took them
+from. Outside every zone, golems behave as in vanilla with default
+settings.
+
+**Sneak-right-click any copper chest with an empty hand** to open its
+zone, creating a default 65 × 17 × 65 zone around that chest if it is in
+none. The screen shows the anchor and the area size, and the area's
+outline is drawn with particles for a moment.
+
+| Setting | Default | |
+|---|---|---|
+| Reorganize existing chests | on | background cleanup on/off |
+| Tidy inside chests | off | merge partial stacks + close gaps in chests the golem visits |
+| Dry run | off | log intended moves, touch nothing |
+
+Buttons on the same screen:
+
+- **Set area with the tool…** closes the screen; the next two
+  sneak-right-clicks with the feather on any blocks are the opposite
+  corners of the zone (up to 128 blocks per side; the anchor chest is
+  always included). Sneak-right-click the air to cancel.
+- **Reset area** goes back to the default box; **Show area outline**
+  draws it again; **Learn this zone's chests…** runs the learn pass over
+  the area.
+- `/wbcg zone` tells you which zone you are standing in and draws it.
+
+The feather copies and pastes zone **settings** between zones; the area
+stays with the place. Normal right-click still opens the copper chest as
+storage. All copper chest variants behave identically (exposed, weathered,
+oxidized, waxed), and zones survive oxidation and waxing. Breaking the
+anchor chest dissolves the zone.
+
+---
+
+## What the golems do
+
+### Where an item goes
 
 When a golem picks up items from a copper chest, it chooses the
-destination by **narrowest matching label first**:
+destination by **narrowest matching label first**, inside its zone:
 
 1. a chest labeled with the exact item;
 2. a chest labeled with a matching tag, smaller tags first
-   (Ingots › Iron beats Ingots beats the Ores & Minerals category);
+   (*Ingots › Iron* beats *Ingots* beats the *Ores & Minerals* category);
 3. the catch-all chest;
 4. an unlabeled chest, under the vanilla rule (empty, or already contains
    that item).
@@ -158,9 +228,48 @@ Full chests are skipped, so a full narrow chest **cascades** to the next
 broader one. Between equally-labeled chests, the golem prefers the one
 already holding that item (twin chests consolidate instead of scattering),
 then the nearest. A labeled chest never accepts items that match none of
-its labels — one stray stack can't redefine a chest.
+its labels: one stray stack can't redefine a chest.
 
-### Categories: presets you can tune in-game
+### Reorganizing existing chests
+
+When the copper-chest dump queue is idle, golems slowly fix the room: they
+scan labeled chests for stacks that match none of that chest's labels,
+pick up exactly the misplaced stack, and deliver it through the normal
+flow. It is deliberately low-priority background work (one move per
+~30 s, a minute's pause when everything is tidy), it only ever touches
+**labeled** chests, and catch-all and off-limits chests are never
+considered misplaced. Toggleable per zone.
+
+### Tidy inside chests
+
+Off by default. When on, after a golem picks up from or deposits into a
+chest it merges partial stacks of the same item and closes gaps, within
+one server tick. Nothing is created or lost.
+
+### Dry run
+
+Turn on **Dry run** for a zone and its golems log every intended move
+without touching a single chest:
+
+```
+[DRY-RUN] would move 12x minecraft:iron_ingot from minecraft:copper_chest@0,-59,0 to minecraft:chest@8,-59,0
+```
+
+Watch a full pass in the server log (or `.minecraft/logs/latest.log` in
+singleplayer) before letting golems loose on a real storage room, then
+switch it off. Each source chest is logged once per pass (~5 min cycle).
+
+### Tall chest walls
+
+Vanilla golems can only reach chests at their own height. This mod raises
+their vertical reach to 6 blocks and fixes the vanilla line-of-sight check
+that made any chest two or more blocks up a chest wall count as
+"unreachable", so a golem standing on the floor serves a wall of chests
+six high. It still can't grab through solid walls.
+
+---
+
+## Categories and tuning
 
 Tags are precise but patchy for the categories players actually use, so
 the mod ships **12 preset categories** as ordinary datapack item tags
@@ -178,91 +287,27 @@ persists with the world, and never modifies the base tag. Whole
 categories can be replaced wholesale with a regular datapack (they're
 plain `data/wbcg/tags/item/*.json` files).
 
-Tuning is done with the `/wbcg` command:
+Labels show friendly names everywhere: `c:ingots/iron` reads *Ingots ›
+Iron*, `minecraft:wooden_slabs` reads *Wooden Slabs*, presets use their
+names. The raw id is in tooltips and in `/wbcg category` output.
+
+### Command reference
 
 ```
+/wbcg learn [radius] [overwrite]        propose labels for the chests around you (op by default)
+/wbcg learn apply | cancel              write or drop the pending proposal
+/wbcg zone                              which zone you stand in, with its outline drawn
+/wbcg highlight <x> <y> <z>             make a chest sparkle so you can find it
 /wbcg categories                        list presets with sizes and tweak counts
 /wbcg category list <name>              a category's added/removed items
 /wbcg category test <name> <item>       is this item currently in the category?
 /wbcg category add <name> <item>        include an item            (op)
 /wbcg category remove <name> <item>     exclude an item            (op)
 /wbcg category reset <name>             drop all tweaks            (op)
-/wbcg learn [radius] [overwrite]        propose labels for the chests around you (op by default)
-/wbcg learn apply | cancel              write or drop the pending proposal
-/wbcg highlight <x> <y> <z>             make a chest sparkle so you can find it
-/wbcg zone                              which zone you stand in, with its outline drawn
 ```
 
 Bare names resolve to presets (`redstone` → `wbcg:redstone`); explicit
 namespaces address any tag (`c:ingots`, `minecraft:planks`).
-
-### Reorganizing existing chests
-
-When the copper-chest dump queue is idle, golems slowly fix the storage
-room: they scan labeled chests for stacks that match none of that chest's
-labels, pick up exactly the misplaced stack, and deliver it through the
-normal label-aware flow. It's deliberately low-priority background work
-(one move per ~30 s, a minute's pause when everything is tidy), it only
-ever touches **labeled** chests, and chests with a catch-all or cobweb
-label are never considered misplaced. Toggleable per zone.
-
-### Tall chest walls
-
-Vanilla golems can only reach chests at their own height. This mod raises
-their **vertical reach** to 6 blocks and fixes the vanilla line-of-sight
-check that made any chest two or more blocks up a chest wall count as
-"unreachable" — so a golem standing on the floor serves a wall of chests
-five or six high. It still can't grab through solid walls.
-
-### Sorting zones: a room, its settings, its area
-
-A **zone** is a box in the world with the settings golems obey inside it.
-It is anchored at a copper chest; every copper chest inside the box
-belongs to the same zone, so one storage room is one zone however many
-copper chests it has. Golems working for a zone **only take from copper
-chests inside the box and only deposit or reorganize inside it** — a golem
-that wanders into another room starts serving that room's zone, and one
-carrying items still delivers to the room it took them from. Outside
-every zone, golems behave as in vanilla with default settings.
-
-**Sneak-right-click any copper chest with an empty hand** to open its
-zone (creating a default 65 × 17 × 65 zone around that chest if it is in
-none). The outline of the area is drawn with particles for a moment.
-
-| Setting | Default | |
-|---|---|---|
-| Reorganize existing chests | on | background cleanup on/off |
-| Tidy inside chests | off | merge partial stacks + close gaps in chests the golem visits |
-| Dry run | off | log intended moves, touch nothing |
-
-Buttons on the same screen:
-
-- **Set area with the tool…** closes the screen; the next two
-  sneak-right-clicks with the label tool on any blocks are the opposite
-  corners of the zone (up to 128 blocks per side; the anchor chest is
-  always included). Sneak-right-click the air to cancel.
-- **Reset area** goes back to the default box; **Show area outline**
-  draws it again; **Learn this zone's chests…** runs the learn pass over
-  the area.
-- `/wbcg zone` tells you which zone you are standing in and draws it.
-
-Normal right-click still opens the copper chest as storage. All copper
-chest variants behave identically (exposed/weathered/oxidized and all
-waxed versions), and zones survive oxidation and waxing. Breaking the
-anchor chest dissolves the zone.
-
-### Dry-run mode
-
-Turn on **Dry run** for a zone and its golems log every intended move
-without touching a single chest:
-
-```
-[DRY-RUN] would move 12x minecraft:iron_ingot from minecraft:copper_chest@0,-59,0 to minecraft:chest@8,-59,0
-```
-
-Watch a full pass in the server log (or `.minecraft/logs/latest.log` in
-singleplayer) before letting golems loose on a real storage room, then
-switch it off. Each source chest is logged once per pass (~5 min cycle).
 
 ---
 
@@ -280,8 +325,8 @@ The server writes `config/waybettercoppergolem.json` on first start:
 
 | Key | Default | |
 |---|---|---|
-| `tool_item` | `minecraft:feather` | the vanilla item that acts as the label tool (copy/paste labels, open the picker). Any item id works; an unknown id logs a warning and the feather is used. Pick something without a right-click action of its own. |
-| `learn_radius` | 32 | default horizontal radius of `/wbcg learn` around the player (4–64) |
+| `tool_item` | `minecraft:feather` | the vanilla item that acts as the label tool. Any item id works; an unknown id logs a warning and the feather is used. Pick something without a right-click action of its own. |
+| `learn_radius` | 32 | default radius of `/wbcg learn` around the player (4–64) |
 | `learn_requires_op` | true | whether the learn pass needs permission level 2 |
 
 Clients learn the tool item from the server on join, so only the server
@@ -291,27 +336,29 @@ file matters.
 
 ## Safety guarantees
 
-- **No world-format changes.** Labels, tweaks, and settings live in
-  Fabric data attachments on *vanilla* block entities and the world —
-  no custom blocks, no custom block entities, no chest subclasses. If
-  the mod is removed, vanilla silently drops the attachment data and
-  everything else (chests, contents, golems) is untouched; golems revert
-  to stock behavior because all AI changes are runtime-only mixins.
+- **No world-format changes.** Labels, zones, tweaks and clipboards live
+  in Fabric data attachments on *vanilla* block entities, levels and
+  players — no custom blocks, items or block entities. If the mod is
+  removed, vanilla silently drops the attachment data and everything else
+  (chests, contents, golems) is untouched; golems revert to stock
+  behavior because all AI changes are runtime-only mixins.
 - **No item loss or duplication.** Transfers use the vanilla hand-carry
   mechanism: items leave a chest only into the golem's hand, and the hand
   is flagged guaranteed-drop (a golem dying mid-carry drops the stack).
   Tidying only moves counts between existing stacks within one server
   tick.
-- **The chest owns its labels.** Labels live on the chest, so a creeper
-  blowing up a frame doesn't scramble the room — the chest keeps sorting
-  as labeled. Explicit labels never change on their own; frame-derived
-  ones follow the frame the moment a new one is hung.
+- **The chest owns its labels.** A creeper blowing up a frame doesn't
+  scramble the room; the chest keeps sorting as labeled. Explicit labels
+  never change on their own.
 - **Mod-proof labels.** A label stores the tag id it means, not a
   position in a list, so adding or removing mods never silently changes
   what an existing label matches.
 - **No extra tick loops.** All logic rides the golem's own vanilla
   behavior cycle; tag lookups are cached per item and invalidated on
   datapack reload.
+- **Upgrading from the frame-click version** is automatic: labels that
+  were cycled on frames become explicit chest labels, and per-chest
+  settings become zones, the first time each is seen.
 
 ## Vanilla behavior, for reference
 
@@ -323,18 +370,18 @@ and deposit only if it's empty or already contains that item — contents
 are checked on arrival, not during the search. Search volume is 32 blocks
 horizontal / 8 vertical; up to 10 chests are tried per cycle before a 7 s
 cooldown. This mod keeps all of that machinery and replaces only the
-destination choice, the acceptance rule, the reach, and — inside a
-zone — the search volume.
+destination choice, the acceptance rule, the reach, and, inside a zone,
+the search volume.
 
 ---
 
 ## Building from source
 
 ```
-./gradlew build        # jar lands in build/libs/
+./gradlew build        # jar lands in build/libs/; also runs the game tests
 ./gradlew runClient    # launch a dev client
 ./gradlew runServer    # launch a dev server
-./gradlew runGameTest  # server-side game tests (src/gametest)
+./gradlew runGameTest  # server-side game tests only (src/gametest)
 ```
 
 Requires JDK 25 and network access to `maven.fabricmc.net`,
@@ -344,10 +391,11 @@ Requires JDK 25 and network access to `maven.fabricmc.net`,
 
 Mappings are **Mojang official** — Yarn was discontinued after snapshot
 25w46a and does not exist for 26.x. Version pins live in
-`gradle.properties`.
-
-Before deploying to a shared server, run through the in-game checklist in
-[`docs/TESTING.md`](docs/TESTING.md).
+`gradle.properties`. The game tests cover the label model, learn, the
+tool, zones and the picker's server side; what needs a real client is in
+the in-game checklist, [`docs/TESTING.md`](docs/TESTING.md) — run it
+before deploying to a shared server. The design notes and roadmap are in
+[`docs/REVAMP_PLAN.md`](docs/REVAMP_PLAN.md).
 
 ## License
 

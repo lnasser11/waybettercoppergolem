@@ -1,5 +1,9 @@
 # Usability revamp — implementation plan
 
+**Status:** phase 1 is complete (steps 1–7 below, plus 4b). Phases 2–4
+are the roadmap. The user-facing description of what shipped is the
+README; this document keeps the reasoning and the remaining work.
+
 Goal: configuring a storage room should take minutes, not an evening, and
 must keep working with click-through mods (non-sneak clicks on an item
 frame go to the block behind it; sneak-click is the only frame interaction
@@ -231,12 +235,11 @@ Files: new `client/ToolHud.java`, `WayBetterCopperGolemClient.java`,
 
 ### 7. Docs and strings
 
-- README "How to use it" rewritten around: hang frames or fill chests →
-  run learn → fix exceptions with the feather. Command table updated.
-- `docs/TESTING.md` replaced for the new flow (frame click sections
-  removed; tool, learn, HUD, picker, migration tests added).
-- `en_us.json` / `pt_br.json`: tool messages, learn output, picker,
-  HUD, friendly names.
+Done as a final pass: README rewritten around the new flow (quick start,
+labels and zones as the two ideas, then labeling, zones, golem behavior,
+categories, config, safety); `docs/TESTING.md` reordered to match and
+scoped to what the game tests cannot cover; `en_us.json` / `pt_br.json`
+audited for unused keys; the mod description updated.
 
 ### Networking summary (phase 1)
 
@@ -289,12 +292,32 @@ Files: new `client/ToolHud.java`, `WayBetterCopperGolemClient.java`,
   to highlight, bulk apply/clear.
 - "Simulate" in the zone screen: where each stack in the copper chest
   would go right now, no golem needed.
+- Cheap usability wins folded in here rather than waiting for phase 3:
+  item icons in the picker's search results and stop list, and one
+  consistent set of widths and spacings across the zone screen and the
+  picker.
 
-## Phase 3 — polish
+## Phase 3 — design revamp of the menus
 
-- World-default zone settings with per-chest overrides; sliders and
-  tooltips in the zone screen.
+A visual pass over every client screen once they all exist (zone screen,
+picker/editor, tuning grid, overview, the chest-screen button), so the
+style is designed once for the full set:
+
+- a short design brief first: how the screens should sit next to vanilla
+  (stone panel vs. lighter), density, type sizes, color for state (auto
+  vs. explicit, on vs. off);
+- shared pieces built once and reused: panel background, header/title
+  treatment, section labels, a list widget with item icons and
+  secondary text, consistent button sizes and tooltips;
+- then each screen restyled on top of those pieces.
+
+## Phase 4 — polish
+
+- World-default zone settings with per-zone overrides; sliders and
+  tooltips where numbers remain.
 - Onboarding: one chat hint the first time a player places a frame on a
   chest or picks up the tool item; `/wbcg guide` hands out a written
   book.
 - Optional: sign text as a label hint for the learn pass.
+- Optional: per-golem zone binding, if wandering golems turn out to be a
+  problem in practice (decided against for now).

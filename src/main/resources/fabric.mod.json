@@ -3,7 +3,7 @@
 	"id": "waybettercoppergolem",
 	"version": "${version}",
 	"name": "Way Better Copper Golem",
-	"description": "Copper golems organize your storage room using item-frame chest labels.",
+	"description": "Copper golems that actually sort your storage room: label chests (or let the mod learn them from their contents), set zones with a feather, and golems deliver every item to the right chest.",
 	"authors": [
 		"lnasser11"
 	],
