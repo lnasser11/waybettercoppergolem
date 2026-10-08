@@ -286,9 +286,10 @@ public class CategoryTuningScreen extends Screen {
 		}
 		int pages = Math.max(1, (memberRows().size() + this.rows - 1) / this.rows);
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.tuning.members_header",
-				this.page + 1, pages), this.leftX, this.membersLabelY);
+				this.page + 1, pages), this.leftX, this.membersLabelY, Ui.COLUMN_WIDTH);
 		Panel.sectionLabel(graphics, this.font, Component.translatable(this.query.isBlank()
-				? "waybettercoppergolem.tuning.add_hint" : "waybettercoppergolem.tuning.add_header"), this.rightX, this.addLabelY);
+				? "waybettercoppergolem.tuning.add_hint" : "waybettercoppergolem.tuning.add_header"),
+				this.rightX, this.addLabelY, Ui.COLUMN_WIDTH);
 	}
 
 	@Override

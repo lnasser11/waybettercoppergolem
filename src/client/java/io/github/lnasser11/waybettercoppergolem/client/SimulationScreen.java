@@ -93,11 +93,13 @@ public class SimulationScreen extends Screen {
 			this.rebuildWidgets();
 		}).bounds(this.panel.contentRight() - Ui.BUTTON_HEIGHT, bottom, Ui.BUTTON_HEIGHT, Ui.BUTTON_HEIGHT).build())
 				.active = this.page < pages - 1;
+		int refreshX = left + Ui.BUTTON_HEIGHT + Ui.GAP;
 		this.addRenderableWidget(Button.builder(Component.translatable("waybettercoppergolem.overview.refresh"),
 						button -> ClientPlayNetworking.send(new ZonePayloads.RunSimulation(this.simulation.anchor())))
-				.bounds(this.panel.centerX() - 100 - 84, bottom, 80, Ui.BUTTON_HEIGHT).build());
+				.bounds(refreshX, bottom, 80, Ui.BUTTON_HEIGHT).build());
+		int doneX = refreshX + 80 + Ui.GAP;
 		this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
-				.bounds(this.panel.centerX() - 100 + 2, bottom, 180, Ui.BUTTON_HEIGHT).build());
+				.bounds(doneX, bottom, this.panel.contentRight() - Ui.BUTTON_HEIGHT - Ui.GAP - doneX, Ui.BUTTON_HEIGHT).build());
 	}
 
 	private ListRow row(int x, int y, Move move) {
@@ -142,7 +144,7 @@ public class SimulationScreen extends Screen {
 		this.panel.header(graphics, this.font, this.title, Component.translatable("waybettercoppergolem.simulation.summary",
 				this.simulation.sourceChests(), this.simulation.moves().size(), stuck));
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.simulation.caveat"),
-				this.panel.contentX(), this.listLabelY);
+				this.panel.contentX(), this.listLabelY, this.panel.contentWidth());
 		if (this.simulation.moves().isEmpty()) {
 			graphics.centeredText(this.font, Component.translatable("waybettercoppergolem.simulation.none"),
 					this.panel.centerX(), this.listLabelY + Ui.SECTION_LABEL + 8, Ui.TEXT_HINT);

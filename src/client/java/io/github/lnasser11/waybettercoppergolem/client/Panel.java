@@ -3,8 +3,12 @@ package io.github.lnasser11.waybettercoppergolem.client;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.util.FormattedCharSequence;
 
 import org.jspecify.annotations.Nullable;
+
+import java.util.List;
 
 /**
  * The dark panel every mod screen sits on: background, border, a header
@@ -54,12 +58,27 @@ public record Panel(int x, int y, int width, int height) {
 		separator(graphics, this.y + Ui.HEADER_HEIGHT - 1);
 	}
 
-	/** Title centered in the header, with an optional muted subtitle under it. */
+	/** Title centered in the header, with an optional muted subtitle under it; both cut with "…" to fit. */
 	public void header(GuiGraphicsExtractor graphics, Font font, Component title, @Nullable Component subtitle) {
-		graphics.centeredText(font, title, centerX(), this.y + 8, Ui.TEXT);
+		centered(graphics, font, title, this.y + 8, Ui.TEXT);
 		if (subtitle != null) {
-			graphics.centeredText(font, subtitle, centerX(), this.y + 20, Ui.TEXT_MUTED);
+			centered(graphics, font, subtitle, this.y + 20, Ui.TEXT_MUTED);
 		}
+	}
+
+	private void centered(GuiGraphicsExtractor graphics, Font font, Component text, int textY, int color) {
+		FormattedCharSequence line = fit(font, text, contentWidth());
+		graphics.text(font, line, centerX() - font.width(line) / 2, textY, color);
+	}
+
+	/** The text as one line no wider than {@code maxWidth}, cut with "…" when it would be. */
+	public static FormattedCharSequence fit(Font font, Component text, int maxWidth) {
+		if (font.width(text) <= maxWidth) {
+			return text.getVisualOrderText();
+		}
+		List<FormattedCharSequence> lines = font.split(text, Math.max(1, maxWidth - font.width("…")));
+		FormattedCharSequence first = lines.isEmpty() ? FormattedCharSequence.EMPTY : lines.getFirst();
+		return FormattedCharSequence.composite(first, FormattedCharSequence.forward("…", Style.EMPTY));
 	}
 
 	/** A full-width thin line at {@code y}. */
@@ -70,6 +89,12 @@ public record Panel(int x, int y, int width, int height) {
 	/** A muted label above a group of controls; returns the y where the controls start. */
 	public static int sectionLabel(GuiGraphicsExtractor graphics, Font font, Component text, int x, int y) {
 		graphics.text(font, text, x, y, Ui.TEXT_HINT);
+		return y + Ui.SECTION_LABEL;
+	}
+
+	/** Like {@link #sectionLabel(GuiGraphicsExtractor, Font, Component, int, int)}, cut with "…" past {@code maxWidth}. */
+	public static int sectionLabel(GuiGraphicsExtractor graphics, Font font, Component text, int x, int y, int maxWidth) {
+		graphics.text(font, fit(font, text, maxWidth), x, y, Ui.TEXT_HINT);
 		return y + Ui.SECTION_LABEL;
 	}
 

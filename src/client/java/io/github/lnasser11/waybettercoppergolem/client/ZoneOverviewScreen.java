@@ -215,7 +215,7 @@ public class ZoneOverviewScreen extends Screen {
 						entries.size(), unlabeled, misplaced, duplicate, this.overview.copperChests()));
 		int pages = Math.max(1, (entries.size() + this.rows - 1) / this.rows);
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.overview.section",
-				this.page + 1, pages), this.panel.contentX(), this.listLabelY);
+				this.page + 1, pages), this.panel.contentX(), this.listLabelY, this.panel.contentWidth());
 		if (entries.isEmpty()) {
 			graphics.centeredText(this.font, Component.translatable("waybettercoppergolem.overview.none"),
 					this.panel.centerX(), this.listLabelY + Ui.SECTION_LABEL + 8, Ui.TEXT_HINT);

@@ -475,7 +475,7 @@ public class LabelPickerScreen extends Screen {
 				this.specialX, this.specialLabelY);
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.picker.section.search"),
 				this.searchX, this.searchLabelY);
-		Panel.sectionLabel(graphics, this.font, resultsLabel(), this.searchX, this.resultsLabelY);
+		Panel.sectionLabel(graphics, this.font, resultsLabel(), this.searchX, this.resultsLabelY, Ui.COLUMN_WIDTH);
 	}
 
 	private Component resultsLabel() {
