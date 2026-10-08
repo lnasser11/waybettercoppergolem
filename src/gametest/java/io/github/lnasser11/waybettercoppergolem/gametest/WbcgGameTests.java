@@ -897,6 +897,23 @@ public final class WbcgGameTests {
 		return total;
 	}
 
+	// ---------------------------------------------------------------- the golem button
+
+	/** Opening the editor from a chest's screen must close that chest's menu, or the server keeps syncing it. */
+	@GameTest
+	public void golemButtonClosesTheChestMenu(GameTestHelper helper) {
+		BlockPos chest = chest(helper, new BlockPos(2, 1, 2), Items.IRON_INGOT, 8);
+		ServerPlayer player = mockPlayer(helper);
+		player.teleportTo(chest.getX() + 0.5, chest.getY(), chest.getZ() + 1.5);
+		ChestBlockEntity blockEntity = helper.getBlockEntity(new BlockPos(2, 1, 2), ChestBlockEntity.class);
+		player.openMenu(blockEntity);
+		helper.assertTrue(player.containerMenu != player.inventoryMenu, "the chest menu is open");
+
+		ChestEditor.open(player, chest);
+		helper.assertTrue(player.containerMenu == player.inventoryMenu, "the chest menu was closed before the editor opened");
+		helper.succeed();
+	}
+
 	// ---------------------------------------------------------------- helpers
 
 	private static BlockPos copperChest(GameTestHelper helper, BlockPos relative) {

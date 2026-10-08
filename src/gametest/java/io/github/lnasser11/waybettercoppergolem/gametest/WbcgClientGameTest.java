@@ -28,6 +28,7 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -249,6 +250,24 @@ public final class WbcgClientGameTest implements FabricClientGameTest {
 
 	private void pickers(ClientGameTestContext context, TestServerContext server, String size) {
 		openChestPicker(context, server, size);
+		pressEscape(context);
+
+		// The golem button inside the chest's own screen: open the chest for real, press the button,
+		// and afterwards neither side may still think the chest menu is open.
+		TestInput keys = context.getInput();
+		keys.lookAt(this.ingotChest);
+		context.waitTicks(2);
+		keys.pressMouse(GLFW.GLFW_MOUSE_BUTTON_RIGHT);
+		context.waitForScreen(ContainerScreen.class);
+		context.waitTicks(5);
+		context.takeScreenshot("chest_with_golem_button_" + size);
+		context.clickScreenButton("waybettercoppergolem.chest_button");
+		context.waitForScreen(LabelPickerScreen.class);
+		context.waitTicks(5);
+		assertTrue(context.computeOnClient(mc -> mc.player != null && mc.player.containerMenu == mc.player.inventoryMenu),
+				"the client still has the chest menu open after the golem button");
+		assertTrue(server.computeOnServer(s -> player(s).containerMenu == player(s).inventoryMenu),
+				"the server still has the chest menu open after the golem button");
 		pressEscape(context);
 
 		// Sneak-right-click the sky with the tool → the clipboard picker (client side only).
