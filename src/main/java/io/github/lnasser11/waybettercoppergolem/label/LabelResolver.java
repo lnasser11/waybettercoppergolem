@@ -59,12 +59,41 @@ public final class LabelResolver {
 	public static List<TagKey<Item>> orderedTags(Item item) {
 		return TAG_CACHE.computeIfAbsent(item, it -> it.builtInRegistryHolder().tags()
 				.filter(LabelResolver::isCycleStop)
-				.sorted(Comparator
-						.comparingInt(LabelResolver::tagSize)
-						.thenComparing((TagKey<Item> tag) -> tag.location().getPath().split("/").length,
-								Comparator.reverseOrder())
-						.thenComparing(tag -> tag.location().toString()))
+				.filter(tag -> tagSize(tag) > 1) // a one-item tag says nothing the exact item doesn't
+				.sorted(NARROW_TO_BROAD)
 				.toList());
+	}
+
+	/** Fewest member items first, deeper tag paths breaking ties, then by id. */
+	public static final Comparator<TagKey<Item>> NARROW_TO_BROAD = Comparator
+			.comparingInt(LabelResolver::tagSize)
+			.thenComparing((TagKey<Item> tag) -> tag.location().getPath().split("/").length,
+					Comparator.reverseOrder())
+			.thenComparing(tag -> tag.location().toString());
+
+	/** The mod's preset categories, sorted by id (needs bound tags: server, or client after login). */
+	public static List<TagKey<Item>> presetCategories() {
+		return BuiltInRegistries.ITEM.getTags()
+				.map(named -> named.key())
+				.filter(LabelResolver::isPresetCategory)
+				.sorted(Comparator.comparing(tag -> tag.location().getPath()))
+				.toList();
+	}
+
+	/** Whether a label (from a client, say) names things that exist. */
+	public static boolean isValid(ChestLabel label) {
+		if (label.itemId().isPresent() && !BuiltInRegistries.ITEM.containsKey(label.itemId().get())) {
+			return false;
+		}
+		if (label.tagId().isPresent()) {
+			return label.itemId().isPresent() && BuiltInRegistries.ITEM.get(itemTag(label.tagId().get())).isPresent();
+		}
+		return true;
+	}
+
+	/** Whether this is one of the mod's {@code wbcg:} preset categories. */
+	public static boolean isPresetCategory(TagKey<Item> tag) {
+		return tag.location().getNamespace().equals(CATEGORY_NAMESPACE);
 	}
 
 	private static boolean isCycleStop(TagKey<Item> tag) {
@@ -79,7 +108,8 @@ public final class LabelResolver {
 		return TagKey.create(Registries.ITEM, tagId);
 	}
 
-	private static int tagSize(TagKey<Item> tag) {
+	/** Number of items in the tag (0 if the tag is unknown). */
+	public static int tagSize(TagKey<Item> tag) {
 		return BuiltInRegistries.ITEM.get(tag).map(HolderSet.Named::size).orElse(0);
 	}
 
@@ -116,12 +146,32 @@ public final class LabelResolver {
 		return Math.max(1, tagSize(itemTag(label.tagId().get())));
 	}
 
-	/** Friendly name for a category tag: lang entry for wbcg, "#id" otherwise. */
+	/**
+	 * Friendly name for a tag: the lang entry for presets, otherwise the
+	 * path humanized ({@code c:ingots/iron} → "Ingots › Iron",
+	 * {@code minecraft:wooden_slabs} → "Wooden Slabs"). The raw id belongs
+	 * in a tooltip, not here.
+	 */
 	public static Component tagName(Identifier tagId) {
 		if (tagId.getNamespace().equals(CATEGORY_NAMESPACE)) {
 			return Component.translatable("waybettercoppergolem.category." + tagId.getPath());
 		}
-		return Component.literal("#" + tagId);
+		StringBuilder name = new StringBuilder();
+		for (String segment : tagId.getPath().split("/")) {
+			if (!name.isEmpty()) {
+				name.append(" › ");
+			}
+			for (String word : segment.split("_")) {
+				if (word.isEmpty()) {
+					continue;
+				}
+				if (name.length() > 0 && name.charAt(name.length() - 1) != ' ') {
+					name.append(' ');
+				}
+				name.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+			}
+		}
+		return Component.literal(name.toString());
 	}
 
 	/** Actionbar text describing a label, e.g. "Label: #c:ingots/iron". */
@@ -138,6 +188,18 @@ public final class LabelResolver {
 					labelItem.getName(labelItem.getDefaultInstance()));
 		}
 		return Component.translatable("waybettercoppergolem.label.tag", tagName(label.tagId().get()));
+	}
+
+	/** "Iron Ingot, catch-all": the short names of several labels joined. */
+	public static Component listNames(List<ChestLabel> labels) {
+		net.minecraft.network.chat.MutableComponent joined = Component.empty();
+		for (int i = 0; i < labels.size(); i++) {
+			if (i > 0) {
+				joined.append(", ");
+			}
+			joined.append(shortName(labels.get(i)));
+		}
+		return joined;
 	}
 
 	/** Compact name for one label, used in the multi-label summary line. */

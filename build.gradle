@@ -87,3 +87,13 @@ loom {
 		}
 	}
 }
+
+// Server-side game tests (src/gametest), run with `./gradlew runGameTest`.
+// They live in their own test-only mod, so nothing here ships in the jar.
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "waybettercoppergolem_tests"
+		eula = true
+	}
+}

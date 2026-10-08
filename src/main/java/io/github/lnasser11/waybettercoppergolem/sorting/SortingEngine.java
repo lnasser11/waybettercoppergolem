@@ -23,6 +23,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import org.jspecify.annotations.Nullable;
 
@@ -57,18 +58,16 @@ public final class SortingEngine {
 	}
 
 	public static Optional<TransportItemTarget> findDepositTarget(
-			ServerLevel level, PathfinderMob golem, ItemStack held,
+			ServerLevel level, Vec3 from, ItemStack held,
 			Predicate<BlockState> destinationBlockType,
 			Set<GlobalPos> visited, Set<GlobalPos> unreachable,
-			int horizontalRadius, int verticalRadius) {
-		AABB searchArea = new AABB(golem.blockPosition()).inflate(horizontalRadius, verticalRadius, horizontalRadius);
+			AABB searchArea) {
 		TransportItemTarget best = null;
 		long bestRank = Long.MAX_VALUE;
 		boolean bestContainsItem = false;
 		double bestDistSq = Double.MAX_VALUE;
 
-		for (ChunkPos chunkPos : ChunkPos.rangeClosed(
-				ChunkPos.containing(golem.blockPosition()), Math.floorDiv(horizontalRadius, 16) + 1).toList()) {
+		for (ChunkPos chunkPos : chunksCovering(searchArea)) {
 			LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
 			if (chunk == null) {
 				continue;
@@ -89,7 +88,7 @@ public final class SortingEngine {
 				// Between equally-labeled chests, prefer the one already holding
 				// this item, so twin chests consolidate instead of scattering.
 				boolean containsItem = containsSameItem(candidate.container(), held);
-				double distSq = candidate.pos().distToCenterSqr(golem.position());
+				double distSq = candidate.pos().distToCenterSqr(from);
 				boolean better = rank < bestRank
 						|| (rank == bestRank && containsItem && !bestContainsItem)
 						|| (rank == bestRank && containsItem == bestContainsItem && distSq < bestDistSq);
@@ -106,6 +105,13 @@ public final class SortingEngine {
 					held.getItem(), best.pos(), bestRank);
 		}
 		return Optional.ofNullable(best);
+	}
+
+	/** Every chunk the search box touches (the box is clamped to zone size upstream). */
+	private static List<ChunkPos> chunksCovering(AABB area) {
+		ChunkPos min = ChunkPos.containing(BlockPos.containing(area.minX, area.minY, area.minZ));
+		ChunkPos max = ChunkPos.containing(BlockPos.containing(area.maxX, area.maxY, area.maxZ));
+		return ChunkPos.rangeClosed(min, max).toList();
 	}
 
 	/** Vanilla validity rules: in area, resolvable container, unvisited, unlocked. */
@@ -200,17 +206,15 @@ public final class SortingEngine {
 	 * unlabeled chests are never touched.
 	 */
 	public static Optional<TransportItemTarget> findMisplacedSource(
-			ServerLevel level, PathfinderMob golem,
+			ServerLevel level, Vec3 from,
 			Predicate<BlockState> destinationBlockType,
 			Set<GlobalPos> visited, Set<GlobalPos> unreachable,
-			int horizontalRadius, int verticalRadius) {
-		AABB searchArea = new AABB(golem.blockPosition()).inflate(horizontalRadius, verticalRadius, horizontalRadius);
+			AABB searchArea) {
 		record MisplacedCandidate(TransportItemTarget target, ItemStack stack, double distSq) {
 		}
 		List<MisplacedCandidate> candidates = new java.util.ArrayList<>();
 
-		for (ChunkPos chunkPos : ChunkPos.rangeClosed(
-				ChunkPos.containing(golem.blockPosition()), Math.floorDiv(horizontalRadius, 16) + 1).toList()) {
+		for (ChunkPos chunkPos : chunksCovering(searchArea)) {
 			LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
 			if (chunk == null) {
 				continue;
@@ -228,7 +232,7 @@ public final class SortingEngine {
 				ItemStack misplaced = firstMisplacedStack(level, candidate);
 				if (!misplaced.isEmpty()) {
 					candidates.add(new MisplacedCandidate(candidate, misplaced,
-							candidate.pos().distToCenterSqr(golem.position())));
+							candidate.pos().distToCenterSqr(from)));
 				}
 			}
 		}
@@ -244,8 +248,8 @@ public final class SortingEngine {
 						ChestBlock.getConnectedBlockPos(candidate.target().pos(), state)));
 			}
 			ItemStack preview = candidate.stack().copyWithCount(Math.min(candidate.stack().getCount(), 16));
-			if (findDepositTarget(level, golem, preview, destinationBlockType,
-					excludingSource, unreachable, horizontalRadius, verticalRadius).isPresent()) {
+			if (findDepositTarget(level, from, preview, destinationBlockType,
+					excludingSource, unreachable, searchArea).isPresent()) {
 				return Optional.of(candidate.target());
 			}
 		}

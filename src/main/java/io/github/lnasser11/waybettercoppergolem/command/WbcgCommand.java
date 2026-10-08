@@ -1,21 +1,27 @@
 package io.github.lnasser11.waybettercoppergolem.command;
 
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.StringArgumentType;
-import net.minecraft.commands.arguments.IdentifierArgument;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
+import io.github.lnasser11.waybettercoppergolem.config.WbcgConfig;
 import io.github.lnasser11.waybettercoppergolem.label.LabelResolver;
+import io.github.lnasser11.waybettercoppergolem.learn.LearnSession;
 import io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning;
 
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.IdentifierArgument;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.commands.arguments.item.ItemArgument;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 
 import java.util.Comparator;
@@ -30,6 +36,11 @@ import java.util.List;
  * /wbcg category add &lt;name&gt; &lt;item&gt;        include an item        (op)
  * /wbcg category remove &lt;name&gt; &lt;item&gt;     exclude an item        (op)
  * /wbcg category reset &lt;name&gt;             drop all tweaks        (op)
+ * /wbcg learn [radius] [overwrite]         propose labels for the chests around you
+ * /wbcg learn apply | cancel               write / drop the pending proposal
+ * /wbcg highlight &lt;pos&gt;                   sparkle a chest so you can find it
+ * /wbcg zone                               which zone you stand in, with its outline
+ * /wbcg guide                              a written book with the basics
  * </pre>
  *
  * Names resolve in the {@code wbcg} namespace by default; any tag works
@@ -42,6 +53,24 @@ public final class WbcgCommand {
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext buildContext) {
 		dispatcher.register(Commands.literal("wbcg")
 				.then(Commands.literal("categories").executes(WbcgCommand::listCategories))
+				.then(Commands.literal("learn")
+						.requires(source -> !WbcgConfig.get().learnRequiresOp()
+								|| Commands.LEVEL_GAMEMASTERS.check(source.permissions()))
+						.executes(ctx -> learn(ctx, WbcgConfig.get().learnRadius(), false))
+						.then(Commands.literal("apply").executes(WbcgCommand::learnApply))
+						.then(Commands.literal("cancel").executes(WbcgCommand::learnCancel))
+						.then(Commands.argument("radius", IntegerArgumentType.integer(4, 64))
+								.executes(ctx -> learn(ctx, IntegerArgumentType.getInteger(ctx, "radius"), false))
+								.then(Commands.literal("overwrite")
+										.executes(ctx -> learn(ctx, IntegerArgumentType.getInteger(ctx, "radius"), true)))))
+				.then(Commands.literal("zone").executes(WbcgCommand::zoneInfo))
+				.then(Commands.literal("guide").executes(ctx -> {
+					io.github.lnasser11.waybettercoppergolem.tool.GuideBook.give(ctx.getSource().getPlayerOrException());
+					return 1;
+				}))
+				.then(Commands.literal("highlight")
+						.then(Commands.argument("pos", BlockPosArgument.blockPos())
+								.executes(WbcgCommand::highlight)))
 				.then(Commands.literal("category")
 						.then(Commands.literal("list")
 								.then(Commands.argument("name", IdentifierArgument.id())
@@ -64,6 +93,47 @@ public final class WbcgCommand {
 								.then(Commands.argument("name", IdentifierArgument.id())
 										.then(Commands.argument("item", ItemArgument.item(buildContext))
 												.executes(WbcgCommand::test))))));
+	}
+
+	private static int learn(CommandContext<CommandSourceStack> ctx, int radius, boolean overwrite)
+			throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		LearnSession.preview(player, ctx.getSource().getLevel(), player.blockPosition(), radius, overwrite);
+		return 1;
+	}
+
+	private static int learnApply(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		int applied = LearnSession.apply(ctx.getSource().getPlayerOrException());
+		return Math.max(applied, 0);
+	}
+
+	private static int learnCancel(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		return LearnSession.cancel(ctx.getSource().getPlayerOrException()) ? 1 : 0;
+	}
+
+	/** Which zone the player stands in, with its outline drawn. */
+	private static int zoneInfo(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		ServerLevel level = ctx.getSource().getLevel();
+		var zone = io.github.lnasser11.waybettercoppergolem.zone.Zones.zoneAt(level, player.blockPosition());
+		if (zone.isEmpty()) {
+			ctx.getSource().sendSuccess(() -> Component.translatable("waybettercoppergolem.zone.none"), false);
+			return 0;
+		}
+		BlockPos anchor = zone.get().anchor();
+		ctx.getSource().sendSuccess(() -> Component.translatable("waybettercoppergolem.zone.info",
+				anchor.getX() + " " + anchor.getY() + " " + anchor.getZ(),
+				io.github.lnasser11.waybettercoppergolem.zone.Zones.describeArea(zone.get().area()),
+				io.github.lnasser11.waybettercoppergolem.zone.Zones.describe(zone.get().settings())), false);
+		io.github.lnasser11.waybettercoppergolem.zone.Zones.showOutline(player, level, zone.get().area());
+		return 1;
+	}
+
+	private static int highlight(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		BlockPos pos = BlockPosArgument.getLoadedBlockPos(ctx, "pos");
+		LearnSession.highlight(player, ctx.getSource().getLevel(), pos);
+		return 1;
 	}
 
 	private static Identifier tagId(CommandContext<CommandSourceStack> ctx) {
@@ -115,7 +185,7 @@ public final class WbcgCommand {
 		return 1;
 	}
 
-	private static int edit(CommandContext<CommandSourceStack> ctx, boolean include) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+	private static int edit(CommandContext<CommandSourceStack> ctx, boolean include) throws CommandSyntaxException {
 		ServerLevel level = ctx.getSource().getLevel();
 		Identifier id = tagId(ctx);
 		Item item = ItemArgument.getItem(ctx, "item").createItemStack(1).getItem();
@@ -126,7 +196,7 @@ public final class WbcgCommand {
 		return 1;
 	}
 
-	private static int test(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+	private static int test(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		ServerLevel level = ctx.getSource().getLevel();
 		Identifier id = tagId(ctx);
 		net.minecraft.world.item.ItemStack stack = ItemArgument.getItem(ctx, "item").createItemStack(1);
