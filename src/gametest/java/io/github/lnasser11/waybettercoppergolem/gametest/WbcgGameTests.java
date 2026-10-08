@@ -834,12 +834,15 @@ public final class WbcgGameTests {
 				}
 			}
 		});
+		long start = level.getGameTime();
 		helper.succeedWhen(() -> {
 			helper.assertValueEqual(count(level, iron, Items.IRON_INGOT), 64, "iron delivered");
 			helper.assertValueEqual(count(level, gold, Items.GOLD_INGOT), 64, "gold delivered");
 			helper.assertValueEqual(count(level, cobble, Items.COBBLESTONE), 64, "cobblestone delivered");
 			helper.assertValueEqual(count(level, planks, Items.OAK_PLANKS), 32, "planks delivered");
 			helper.assertValueEqual(count(level, wheat, Items.WHEAT), 64, "wheat delivered");
+			WayBetterCopperGolem.LOGGER.info("[gametest] three golems sorted 288 items across the big room in {} ticks",
+					level.getGameTime() - start);
 		});
 	}
 
