@@ -45,6 +45,8 @@ public class CategoryTuningScreen extends Screen {
 	private static final int MAX_ROWS = 12;
 	/** Rows per page, chosen to fit the screen. */
 	private int rows = MIN_ROWS;
+	private int pagerY;
+	private int pages = 1;
 
 	/** The tuning screen currently open, if any, so the server's refresh can update it in place. */
 	private static @Nullable CategoryTuningScreen open;
@@ -119,6 +121,8 @@ public class CategoryTuningScreen extends Screen {
 		int pages = Math.max(1, (rows.size() + this.rows - 1) / this.rows);
 		this.page = Math.clamp(this.page, 0, pages - 1);
 		int pagerY = top + Ui.SECTION_LABEL;
+		this.pagerY = pagerY;
+		this.pages = pages;
 		this.addRenderableWidget(Button.builder(Component.literal("<"), button -> {
 			this.page = Math.max(0, this.page - 1);
 			this.rebuildWidgets();
@@ -279,14 +283,16 @@ public class CategoryTuningScreen extends Screen {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 		int memberCount = (int) memberRows().stream().filter(row -> !row.removed()).count();
 		this.panel.header(graphics, this.font, this.title, Component.translatable("waybettercoppergolem.tuning.subtitle",
-				this.context.tagId().toString(), memberCount, this.context.added().size(), this.context.removed().size()));
+				this.context.tagId().toString(), Ui.count(memberCount, "items"),
+				Ui.count(this.context.added().size(), "added"), Ui.count(this.context.removed().size(), "excluded")));
 		if (!this.context.canEdit()) {
 			graphics.centeredText(this.font, Component.translatable("waybettercoppergolem.tuning.readonly"),
 					this.panel.centerX(), this.panel.contentTop(), Ui.PROBLEM);
 		}
-		int pages = Math.max(1, (memberRows().size() + this.rows - 1) / this.rows);
-		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.tuning.members_header",
-				this.page + 1, pages), this.leftX, this.membersLabelY, Ui.COLUMN_WIDTH);
+		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.tuning.members_header"),
+				this.leftX, this.membersLabelY, Ui.COLUMN_WIDTH);
+		graphics.centeredText(this.font, Component.translatable("waybettercoppergolem.tuning.page", this.page + 1, this.pages),
+				this.leftX + Ui.COLUMN_WIDTH / 2, this.pagerY + 6, Ui.TEXT_MUTED);
 		Panel.sectionLabel(graphics, this.font, Component.translatable(this.query.isBlank()
 				? "waybettercoppergolem.tuning.add_hint" : "waybettercoppergolem.tuning.add_header"),
 				this.rightX, this.addLabelY, Ui.COLUMN_WIDTH);

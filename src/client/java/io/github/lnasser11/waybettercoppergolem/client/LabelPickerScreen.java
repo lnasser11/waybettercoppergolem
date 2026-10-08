@@ -84,6 +84,7 @@ public class LabelPickerScreen extends Screen {
 	private int categoriesLabelY;
 	private int specialLabelY;
 	private int chestLabelY = -1;
+	private int noLabelsY = -1;
 	private int searchLabelY;
 	private int resultsLabelY;
 	private int resultsTop;
@@ -154,6 +155,9 @@ public class LabelPickerScreen extends Screen {
 			this.categoriesX = this.searchX;
 		}
 		int specialTop = top;
+		this.addRenderableWidget(Button.builder(Component.literal("✕"), button -> this.onClose())
+				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.picker.close.tooltip")))
+				.bounds(this.panel.x() + this.panel.width() - 4 - 16, this.panel.y() + 4, 16, 16).build());
 
 		// ---- categories: a grid of named buttons in their own column, or icon chips under the search box
 		int half = (Ui.COLUMN_WIDTH - Ui.GAP) / 2;
@@ -208,6 +212,7 @@ public class LabelPickerScreen extends Screen {
 					.bounds(this.specialX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
 			y += Ui.ROW;
 			List<ChestLabel> current = this.context.current().labels();
+			this.noLabelsY = current.isEmpty() ? y : -1;
 			for (int i = 0; i < MAX_CHIPS; i++) {
 				if (i < current.size()) {
 					ChestLabel label = current.get(i);
@@ -470,6 +475,10 @@ public class LabelPickerScreen extends Screen {
 		if (this.chestLabelY >= 0) {
 			Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.editor.section.this_chest"),
 					this.specialX, this.chestLabelY);
+		}
+		if (this.noLabelsY >= 0) {
+			graphics.centeredText(this.font, Component.translatable("waybettercoppergolem.editor.no_labels_yet"),
+					this.specialX + Ui.COLUMN_WIDTH / 2, this.noLabelsY + Ui.ROW - 2, Ui.TEXT_HINT);
 		}
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.picker.section.special"),
 				this.specialX, this.specialLabelY);

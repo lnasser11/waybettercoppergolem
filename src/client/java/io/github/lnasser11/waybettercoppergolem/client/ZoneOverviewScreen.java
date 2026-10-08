@@ -150,24 +150,25 @@ public class ZoneOverviewScreen extends Screen {
 	/** "[x y z] labels" with the state in color, problems as the detail text. */
 	private ListRow row(int x, int y, int width, Entry entry) {
 		BlockPos pos = entry.pos();
-		MutableComponent primary = Component.literal("[" + pos.getX() + " " + pos.getY() + " " + pos.getZ() + "] ");
+		MutableComponent primary;
 		int color;
 		int accent = 0;
 		if (entry.labels().isEmpty()) {
-			primary.append(Component.translatable("waybettercoppergolem.overview.unlabeled"));
+			primary = Component.translatable("waybettercoppergolem.overview.unlabeled");
 			color = Ui.ATTENTION;
 			accent = Ui.ATTENTION;
 		} else {
-			primary.append(LabelResolver.listNames(entry.labels().labels()));
+			primary = LabelResolver.listNames(entry.labels().labels()).copy();
 			color = entry.labels().explicit() ? Ui.EXPLICIT : Ui.AUTO;
 		}
-		Component detail = null;
+		MutableComponent coords = Component.literal(pos.getX() + " " + pos.getY() + " " + pos.getZ());
+		Component detail = coords;
 		int detailColor = Ui.TEXT_MUTED;
 		for (String problem : entry.problems()) {
 			if (problem.equals("unlabeled")) {
 				continue;
 			}
-			detail = Component.translatable("waybettercoppergolem.overview.problem." + problem);
+			detail = Component.translatable("waybettercoppergolem.overview.problem." + problem).append(" · ").append(coords);
 			if (!problem.equals("empty")) {
 				detailColor = Ui.ATTENTION;
 				if (accent == 0) {
@@ -212,7 +213,9 @@ public class ZoneOverviewScreen extends Screen {
 				Component.translatable("waybettercoppergolem.overview.heading",
 						anchor.getX() + " " + anchor.getY() + " " + anchor.getZ(), Zones.describeArea(this.overview.area())),
 				Component.translatable("waybettercoppergolem.overview.summary",
-						entries.size(), unlabeled, misplaced, duplicate, this.overview.copperChests()));
+						Ui.count(entries.size(), "chests"), Ui.count((int) unlabeled, "unlabeled"),
+						Ui.count((int) misplaced, "misplaced"), Ui.count((int) duplicate, "duplicate"),
+						Ui.count(this.overview.copperChests(), "copper")));
 		int pages = Math.max(1, (entries.size() + this.rows - 1) / this.rows);
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.overview.section",
 				this.page + 1, pages), this.panel.contentX(), this.listLabelY, this.panel.contentWidth());

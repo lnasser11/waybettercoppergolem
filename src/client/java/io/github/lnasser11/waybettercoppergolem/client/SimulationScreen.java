@@ -142,7 +142,8 @@ public class SimulationScreen extends Screen {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 		long stuck = this.simulation.moves().stream().filter(move -> move.to().isEmpty()).count();
 		this.panel.header(graphics, this.font, this.title, Component.translatable("waybettercoppergolem.simulation.summary",
-				this.simulation.sourceChests(), this.simulation.moves().size(), stuck));
+				Ui.count(this.simulation.sourceChests(), "copper"), Ui.count(this.simulation.moves().size(), "moves"),
+				Ui.count((int) stuck, "stuck")));
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.simulation.caveat"),
 				this.panel.contentX(), this.listLabelY, this.panel.contentWidth());
 		if (this.simulation.moves().isEmpty()) {
