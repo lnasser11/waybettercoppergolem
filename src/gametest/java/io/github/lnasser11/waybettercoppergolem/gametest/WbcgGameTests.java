@@ -693,6 +693,143 @@ public final class WbcgGameTests {
 		helper.succeed();
 	}
 
+	// ---------------------------------------------------------------- golems at work
+	//
+	// Real copper golems in a walled 8x8 room, ticking vanilla's transport
+	// behavior with the mod's hooks: labels decide the destination, the zone
+	// box bounds the search, dry run moves nothing. A trip is ~3 s at each
+	// chest plus walking, and a stack moves 16 at a time, so these tests take
+	// up to a minute each.
+
+	private static final int GOLEM_TIMEOUT = 3000;
+
+	@GameTest(maxTicks = GOLEM_TIMEOUT)
+	public void golemSortsIntoLabeledChests(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 3));
+		fill(helper, source, Items.IRON_INGOT, 20, Items.COBBLESTONE, 30);
+		BlockPos ingots = chest(helper, new BlockPos(6, 1, 1));
+		BlockPos cobble = chest(helper, new BlockPos(6, 1, 6));
+		label(level, ingots, ChestLabel.tag(id(Items.IRON_INGOT), C_INGOTS));
+		label(level, cobble, ChestLabel.exact(id(Items.COBBLESTONE)));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		helper.failIfEver(() -> {
+			helper.assertValueEqual(count(level, ingots, Items.COBBLESTONE), 0, "cobblestone among the ingots");
+			helper.assertValueEqual(count(level, cobble, Items.IRON_INGOT), 0, "ingots among the cobblestone");
+		});
+		helper.succeedWhen(() -> {
+			helper.assertValueEqual(count(level, ingots, Items.IRON_INGOT), 20, "iron ingots in the ingot chest");
+			helper.assertValueEqual(count(level, cobble, Items.COBBLESTONE), 30, "cobblestone in the cobblestone chest");
+			helper.assertValueEqual(count(level, source, Items.IRON_INGOT) + count(level, source, Items.COBBLESTONE), 0,
+					"copper chest emptied");
+		});
+	}
+
+	@GameTest(maxTicks = GOLEM_TIMEOUT)
+	public void golemIgnoresChestsOutsideItsZone(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 3));
+		fill(helper, source, Items.COBBLESTONE, 30);
+		// The perfect destination sits outside the zone box (x > 4); a plain chest sits inside.
+		BlockPos outside = chest(helper, new BlockPos(6, 1, 3));
+		BlockPos inside = chest(helper, new BlockPos(3, 1, 6));
+		label(level, outside, ChestLabel.exact(id(Items.COBBLESTONE)));
+		BoundingBox box = BoundingBox.fromCorners(helper.absolutePos(BlockPos.ZERO), helper.absolutePos(new BlockPos(4, 7, 7)));
+		Zones.put(level, source, new Zone(box, ZoneSettings.DEFAULT));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(2, 1, 3));
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		helper.failIfEver(() -> helper.assertValueEqual(count(level, outside, Items.COBBLESTONE), 0,
+				"cobblestone in the chest outside the zone"));
+		helper.succeedWhen(() -> helper.assertValueEqual(count(level, inside, Items.COBBLESTONE), 30,
+				"cobblestone in the unlabeled chest inside the zone"));
+	}
+
+	@GameTest(maxTicks = 1200)
+	public void golemMovesNothingInDryRun(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 3));
+		fill(helper, source, Items.IRON_INGOT, 20);
+		BlockPos ingots = chest(helper, new BlockPos(6, 1, 3));
+		label(level, ingots, ChestLabel.tag(id(Items.IRON_INGOT), C_INGOTS));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT.withDryRun(true)));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		helper.runAfterDelay(800, () -> {
+			helper.assertValueEqual(count(level, source, Items.IRON_INGOT), 20, "copper chest untouched in dry run");
+			helper.assertValueEqual(count(level, ingots, Items.IRON_INGOT), 0, "nothing delivered in dry run");
+			helper.assertTrue(golem.getMainHandItem().isEmpty(), "golem carries nothing in dry run");
+			helper.succeed();
+		});
+	}
+
+	/** A stone floor at y=0 and glass walls around the structure, so the golem stays in the room. */
+	private static void buildRoom(GameTestHelper helper) {
+		for (int x = 0; x < 8; x++) {
+			for (int z = 0; z < 8; z++) {
+				helper.setBlock(new BlockPos(x, 0, z), Blocks.STONE);
+				if (x == 0 || x == 7 || z == 0 || z == 7) {
+					for (int y = 1; y <= 2; y++) {
+						helper.setBlock(new BlockPos(x, y, z), Blocks.GLASS);
+					}
+				}
+			}
+		}
+	}
+
+	private static CopperGolem spawnGolem(GameTestHelper helper, BlockPos relative) {
+		@SuppressWarnings("unchecked")
+		EntityType<CopperGolem> golemType = (EntityType<CopperGolem>) BuiltInRegistries.ENTITY_TYPE
+				.getValue(Identifier.withDefaultNamespace("copper_golem"));
+		return helper.spawn(golemType, relative);
+	}
+
+	private static void label(ServerLevel level, BlockPos chestAbs, ChestLabel... labels) {
+		ChestLabels.setExplicit(level, chestAbs, level.getBlockState(chestAbs), List.of(labels));
+	}
+
+	/** Fills a container's slots from 0 at the absolute position. */
+	private static void fill(GameTestHelper helper, BlockPos abs, Object... itemsAndCounts) {
+		if (helper.getLevel().getBlockEntity(abs) instanceof net.minecraft.world.level.block.entity.BaseContainerBlockEntity container) {
+			int slot = 0;
+			for (int i = 0; i < itemsAndCounts.length; i += 2) {
+				container.setItem(slot++, new ItemStack((Item) itemsAndCounts[i], (Integer) itemsAndCounts[i + 1]));
+			}
+			container.setChanged();
+		}
+	}
+
+	/** How many of the item a container at the absolute position holds. */
+	private static int count(ServerLevel level, BlockPos abs, Item item) {
+		if (!(level.getBlockEntity(abs) instanceof net.minecraft.world.level.block.entity.BaseContainerBlockEntity container)) {
+			return 0;
+		}
+		int total = 0;
+		for (int i = 0; i < container.getContainerSize(); i++) {
+			ItemStack stack = container.getItem(i);
+			if (stack.is(item)) {
+				total += stack.getCount();
+			}
+		}
+		return total;
+	}
+
 	// ---------------------------------------------------------------- helpers
 
 	private static BlockPos copperChest(GameTestHelper helper, BlockPos relative) {
