@@ -447,7 +447,8 @@ Requires JDK 25 and network access to `maven.fabricmc.net`,
 Mappings are **Mojang official** — Yarn was discontinued after snapshot
 25w46a and does not exist for 26.x. Version pins live in
 `gradle.properties`. The server game tests cover the label model, learn,
-the tool, zones and the picker's server side; the client game test opens
+the tool, zones, the picker's server side, and real golems sorting in a
+small room (labels, the zone box, dry run); the client game test opens
 every screen at three GUI sizes, checks that nothing is off-screen or
 clipped, walks through area mode with real clicks and leaves screenshots
 in `build/run/clientGameTest/screenshots`. What still needs a person is
