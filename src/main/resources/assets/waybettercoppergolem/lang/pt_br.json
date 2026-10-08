@@ -107,5 +107,19 @@
   "waybettercoppergolem.hud.zone": "Zona em %s · área %s",
   "waybettercoppergolem.hud.no_zone": "Sem zona — agache e clique com a mão vazia para criar uma",
   "waybettercoppergolem.hud.area_mode_1": "Modo de área: agache e clique no primeiro canto",
-  "waybettercoppergolem.hud.area_mode_2": "Modo de área: agache e clique no canto oposto (ar cancela)"
+  "waybettercoppergolem.hud.area_mode_2": "Modo de área: agache e clique no canto oposto (ar cancela)",
+  "waybettercoppergolem.chest_button": "Golem",
+  "waybettercoppergolem.chest_button.labels": "Rótulos do golem para este baú",
+  "waybettercoppergolem.chest_button.zone": "Zona de organização deste baú de cobre",
+  "waybettercoppergolem.editor.title": "Rótulos do baú em %s",
+  "waybettercoppergolem.editor.current": "Atual: %s",
+  "waybettercoppergolem.editor.current_auto": "Atual: %s (auto, pela moldura)",
+  "waybettercoppergolem.editor.none": "Sem rótulos — comportamento padrão",
+  "waybettercoppergolem.editor.mode_replace": "Modo: Substituir",
+  "waybettercoppergolem.editor.mode_add": "Modo: Adicionar",
+  "waybettercoppergolem.editor.mode.tooltip": "Substituir: a escolha vira o único rótulo do baú. Adicionar: a escolha se junta aos rótulos existentes.",
+  "waybettercoppergolem.editor.remove_one.tooltip": "Remover este rótulo do baú",
+  "waybettercoppergolem.editor.remove_labels.tooltip": "Remove todos os rótulos deste baú: ele volta às molduras ou ao comportamento padrão.",
+  "waybettercoppergolem.editor.suggested": "Sugestões pelo conteúdo:",
+  "waybettercoppergolem.editor.suggestion": "%s · cobre %s de %s pilhas"
 }

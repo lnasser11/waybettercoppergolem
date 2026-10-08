@@ -8,7 +8,9 @@ import io.github.lnasser11.waybettercoppergolem.label.ChestLabels;
 import io.github.lnasser11.waybettercoppergolem.label.LabelResolver;
 import io.github.lnasser11.waybettercoppergolem.net.AreaModePayload;
 import io.github.lnasser11.waybettercoppergolem.net.ConfigPayload;
+import io.github.lnasser11.waybettercoppergolem.net.EditorPayloads;
 import io.github.lnasser11.waybettercoppergolem.net.SetClipboardPayload;
+import io.github.lnasser11.waybettercoppergolem.tool.ChestEditor;
 import io.github.lnasser11.waybettercoppergolem.tool.Clipboard;
 import io.github.lnasser11.waybettercoppergolem.tool.LabelTool;
 import io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning;
@@ -39,13 +41,11 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.behavior.TransportItemsBetweenContainers;
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.flag.FeatureFlags;
-import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -118,6 +118,13 @@ public class WayBetterCopperGolem implements ModInitializer {
 		PayloadTypeRegistry.serverboundPlay().register(SetClipboardPayload.TYPE, SetClipboardPayload.STREAM_CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(SetClipboardPayload.TYPE,
 				(payload, context) -> LabelTool.applyPickerChoice(context.player(), payload.labels()));
+		PayloadTypeRegistry.clientboundPlay().register(EditorPayloads.EditorContext.TYPE, EditorPayloads.EditorContext.STREAM_CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(EditorPayloads.OpenEditor.TYPE, EditorPayloads.OpenEditor.STREAM_CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(EditorPayloads.SetChestLabels.TYPE, EditorPayloads.SetChestLabels.STREAM_CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(EditorPayloads.OpenEditor.TYPE,
+				(payload, context) -> ChestEditor.open(context.player(), payload.pos()));
+		ServerPlayNetworking.registerGlobalReceiver(EditorPayloads.SetChestLabels.TYPE,
+				(payload, context) -> ChestEditor.apply(context.player(), payload.pos(), payload.labels()));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			if (ServerPlayNetworking.canSend(handler, ConfigPayload.TYPE)) {
 				sender.sendPacket(new ConfigPayload(WbcgConfig.get().toolItemId()));
@@ -175,15 +182,7 @@ public class WayBetterCopperGolem implements ModInitializer {
 			return InteractionResult.PASS;
 		}
 		if (player instanceof ServerPlayer serverPlayer && level instanceof ServerLevel serverLevel) {
-			Zones.ZoneRef zone = Zones.zoneForCopperChest(serverLevel, pos);
-			serverPlayer.openMenu(new SimpleMenuProvider(
-					(containerId, inventory, p) -> new ZoneSettingsMenu(
-							containerId,
-							ContainerLevelAccess.create(serverLevel, pos),
-							zone.anchor(),
-							ZoneSettingsMenu.dataFor(zone)),
-					Component.translatable("waybettercoppergolem.settings.title")));
-			Zones.showOutline(serverPlayer, serverLevel, zone.area());
+			ChestEditor.openZoneScreen(serverPlayer, serverLevel, pos);
 		}
 		return InteractionResult.SUCCESS;
 	}

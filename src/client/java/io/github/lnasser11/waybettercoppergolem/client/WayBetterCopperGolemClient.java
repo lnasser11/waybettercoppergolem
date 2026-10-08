@@ -4,6 +4,7 @@ import io.github.lnasser11.waybettercoppergolem.WayBetterCopperGolem;
 import io.github.lnasser11.waybettercoppergolem.config.WbcgConfig;
 import io.github.lnasser11.waybettercoppergolem.net.AreaModePayload;
 import io.github.lnasser11.waybettercoppergolem.net.ConfigPayload;
+import io.github.lnasser11.waybettercoppergolem.net.EditorPayloads;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -38,7 +39,10 @@ public class WayBetterCopperGolemClient implements ClientModInitializer {
 			WbcgConfig.resetRemote();
 			areaModeStep = 0;
 		});
+		ClientPlayNetworking.registerGlobalReceiver(EditorPayloads.EditorContext.TYPE,
+				(payload, context) -> LabelPickerScreen.openOrUpdate(context.client(), payload));
 		UseItemCallback.EVENT.register(WayBetterCopperGolemClient::openPickerOnAirClick);
+		ChestScreenButton.register();
 		ToolHud.register();
 	}
 
@@ -59,7 +63,7 @@ public class WayBetterCopperGolemClient implements ClientModInitializer {
 		if (areaModeStep > 0) {
 			return InteractionResult.PASS; // the air click cancels area mode on the server instead
 		}
-		minecraft.setScreenAndShow(new LabelPickerScreen());
+		minecraft.setScreenAndShow(LabelPickerScreen.forClipboard());
 		return InteractionResult.PASS;
 	}
 }

@@ -81,6 +81,26 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
     in a *different* zone → `Applied zone settings …`; open its screen →
     toggles match, its area is unchanged.
 
+## 2b. The Golem button and the chest editor
+
+1. Open the iron chest normally → a **Golem** button sits to the right of
+   the inventory. Open a barrel or an ender chest → no button.
+2. Press it → the editor opens: `Labels of the chest at x y z`,
+   `Current: Iron Ingot`, a chip `✕ Iron Ingot`, `Mode: Replace`, the
+   categories on the left, and `Suggested from what's inside:` on the
+   right with coverage counts (fill the chest with mixed ingots first to
+   see several).
+3. Click a suggestion → the actionbar confirms, the screen **stays open**
+   and the header now shows the new label. Hold the feather afterwards →
+   the HUD shows the same label on the clipboard.
+4. Switch to **Mode: Add**, click **Catch-all** → the chest now has two
+   labels (two chips). Click the `✕ Catch-all` chip → back to one.
+5. Click **Remove labels** → `No labels — vanilla behavior`, chest cleared.
+6. Open a copper chest and press **Golem** → the zone screen opens
+   instead.
+7. Walk more than 10 blocks away with the editor open and click a
+   category → nothing changes (the server ignores out-of-reach edits).
+
 ## 3. Frames: auto labels, never clicked
 
 1. Place a chest with an item frame on its front face holding an **iron

@@ -107,5 +107,19 @@
   "waybettercoppergolem.hud.zone": "Zone at %s · area %s",
   "waybettercoppergolem.hud.no_zone": "No zone — sneak-right-click with an empty hand to create one",
   "waybettercoppergolem.hud.area_mode_1": "Area mode: sneak-right-click the first corner",
-  "waybettercoppergolem.hud.area_mode_2": "Area mode: sneak-right-click the opposite corner (air cancels)"
+  "waybettercoppergolem.hud.area_mode_2": "Area mode: sneak-right-click the opposite corner (air cancels)",
+  "waybettercoppergolem.chest_button": "Golem",
+  "waybettercoppergolem.chest_button.labels": "Golem labels for this chest",
+  "waybettercoppergolem.chest_button.zone": "Sorting zone of this copper chest",
+  "waybettercoppergolem.editor.title": "Labels of the chest at %s",
+  "waybettercoppergolem.editor.current": "Current: %s",
+  "waybettercoppergolem.editor.current_auto": "Current: %s (auto, from the frame)",
+  "waybettercoppergolem.editor.none": "No labels — vanilla behavior",
+  "waybettercoppergolem.editor.mode_replace": "Mode: Replace",
+  "waybettercoppergolem.editor.mode_add": "Mode: Add",
+  "waybettercoppergolem.editor.mode.tooltip": "Replace: a choice becomes the chest's only label. Add: a choice joins the existing labels.",
+  "waybettercoppergolem.editor.remove_one.tooltip": "Remove this label from the chest",
+  "waybettercoppergolem.editor.remove_labels.tooltip": "Removes all of this chest's labels: it goes back to its frames, or to vanilla behavior.",
+  "waybettercoppergolem.editor.suggested": "Suggested from what's inside:",
+  "waybettercoppergolem.editor.suggestion": "%s · covers %s of %s stacks"
 }

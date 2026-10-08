@@ -23,9 +23,9 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
  * you see is what got saved.
  */
 public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSettingsMenu> {
-	private static final int WIDGET_WIDTH = 220;
-	private static final int WIDGET_HEIGHT = 20;
-	private static final int GAP = 4;
+	private static final int WIDGET_WIDTH = Ui.PANEL_WIDTH;
+	private static final int WIDGET_HEIGHT = Ui.BUTTON_HEIGHT;
+	private static final int GAP = Ui.GAP;
 	private static final int ROWS = 7;
 	private static final int HEADER_HEIGHT = 36;
 
@@ -130,14 +130,14 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 		int x = this.width / 2;
 		int top = top();
-		graphics.centeredText(this.font, this.title, x, top - 16, 0xFFFFFFFF);
+		graphics.centeredText(this.font, this.title, x, top - 16, Ui.TEXT);
 		graphics.centeredText(this.font,
 				Component.translatable("waybettercoppergolem.settings.anchor",
 						this.shownAnchor.getX(), this.shownAnchor.getY(), this.shownAnchor.getZ()),
-				x, top + 4, 0xFFAAAAAA);
+				x, top + 4, Ui.TEXT_MUTED);
 		graphics.centeredText(this.font,
 				Component.translatable("waybettercoppergolem.settings.area", Zones.describeArea(this.shownArea)),
-				x, top + 18, 0xFFAAAAAA);
+				x, top + 18, Ui.TEXT_MUTED);
 	}
 
 	@Override

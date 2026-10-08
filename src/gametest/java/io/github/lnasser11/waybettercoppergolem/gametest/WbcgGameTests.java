@@ -5,9 +5,12 @@ import io.github.lnasser11.waybettercoppergolem.label.ChestLabel;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabelSet;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabels;
 import io.github.lnasser11.waybettercoppergolem.label.LabelResolver;
+import io.github.lnasser11.waybettercoppergolem.label.LabelSuggestions;
+import io.github.lnasser11.waybettercoppergolem.net.EditorPayloads.Suggestion;
 import io.github.lnasser11.waybettercoppergolem.learn.LearnSession;
 import io.github.lnasser11.waybettercoppergolem.learn.RoomLearner;
 import io.github.lnasser11.waybettercoppergolem.sorting.ZoneAwareGolem;
+import io.github.lnasser11.waybettercoppergolem.tool.ChestEditor;
 import io.github.lnasser11.waybettercoppergolem.tool.Clipboard;
 import io.github.lnasser11.waybettercoppergolem.tool.LabelTool;
 import io.github.lnasser11.waybettercoppergolem.zone.Zone;
@@ -471,6 +474,67 @@ public final class WbcgGameTests {
 		}
 		BoundingBox huge = new BoundingBox(0, 0, 0, 127, 127, 127);
 		helper.assertTrue(Zones.outlinePoints(huge).size() <= 12 * 33, "long edges are sampled sparsely");
+		helper.succeed();
+	}
+
+	// ---------------------------------------------------------------- per-chest editor
+
+	@GameTest
+	public void suggestionsRankByCoverageThenNarrowness(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		// 3 stacks of iron ingots, 1 copper ingot, 1 dirt: 5 stacks total.
+		BlockPos chest = chest(helper, new BlockPos(2, 1, 2),
+				Items.IRON_INGOT, 64, Items.IRON_INGOT, 64, Items.IRON_INGOT, 10, Items.COPPER_INGOT, 5, Items.DIRT, 1);
+		List<Suggestion> suggestions = LabelSuggestions.forChest(level, chest);
+		helper.assertFalse(suggestions.isEmpty(), "has suggestions");
+		helper.assertTrue(suggestions.stream().allMatch(s -> s.totalStacks() == 5), "total is the stack count");
+		Suggestion ingots = suggestions.stream()
+				.filter(s -> s.label().tagId().equals(Optional.of(C_INGOTS))).findFirst().orElseThrow();
+		helper.assertValueEqual(ingots.coveredStacks(), 4, "ingots covers iron + copper stacks");
+		helper.assertValueEqual(ingots.label().itemId(), Optional.of(id(Items.IRON_INGOT)), "sample is the most common");
+		Suggestion exact = suggestions.stream()
+				.filter(s -> s.label().equals(ChestLabel.exact(id(Items.IRON_INGOT)))).findFirst().orElseThrow();
+		helper.assertValueEqual(exact.coveredStacks(), 3, "exact iron covers its stacks");
+		helper.assertTrue(suggestions.indexOf(ingots) < suggestions.indexOf(exact), "more coverage ranks first");
+		// A tag covering the same 4 stacks but broader than c:ingots must not outrank it.
+		for (Suggestion s : suggestions) {
+			if (s.coveredStacks() == 4 && s.label().tagId().isPresent()) {
+				helper.assertTrue(suggestions.indexOf(ingots) <= suggestions.indexOf(s), "narrowest first among equals");
+			}
+		}
+		helper.assertTrue(LabelSuggestions.forChest(level, chest(helper, new BlockPos(5, 1, 2))).isEmpty(),
+				"empty chest: no suggestions");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void editorAppliesLabelsAndCopiesToClipboard(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		BlockPos chest = chest(helper, new BlockPos(2, 1, 2), Items.IRON_INGOT, 10);
+		ServerPlayer player = mockPlayer(helper);
+		player.setPos(Vec3.atCenterOf(chest.above()));
+		Clipboard.set(player, Clipboard.EMPTY);
+
+		List<ChestLabel> labels = List.of(ChestLabel.tag(id(Items.IRON_INGOT), C_INGOTS), ChestLabel.catchAll());
+		ChestEditor.apply(player, chest, labels);
+		ChestLabelSet set = ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest));
+		helper.assertTrue(set.explicit(), "explicit");
+		helper.assertValueEqual(set.labels(), labels, "labels applied");
+		helper.assertValueEqual(Clipboard.of(player).labels(), Optional.of(labels), "copied to the clipboard");
+
+		ChestEditor.apply(player, chest, List.of(ChestLabel.exact(Identifier.fromNamespaceAndPath("nomod", "x"))));
+		helper.assertValueEqual(ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest)).labels(), labels,
+				"invalid label rejected");
+
+		player.setPos(Vec3.atCenterOf(chest).add(40, 0, 0));
+		ChestEditor.apply(player, chest, List.of());
+		helper.assertValueEqual(ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest)).labels(), labels,
+				"out of reach: ignored");
+
+		player.setPos(Vec3.atCenterOf(chest.above()));
+		ChestEditor.apply(player, chest, List.of());
+		helper.assertTrue(ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest)).isEmpty(), "cleared");
+		helper.assertTrue(Clipboard.of(player).isClearMarker(), "clipboard holds the clear marker");
 		helper.succeed();
 	}
 

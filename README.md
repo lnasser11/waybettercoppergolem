@@ -41,10 +41,12 @@ Removing the mod is always safe — see [Safety guarantees](#safety-guarantees).
 3. **Press "Learn this zone's chests…".** The mod reads every chest in
    the box and proposes a label for each from what it already holds. Read
    the preview in chat, click **[Apply]**.
-4. **Fix the exceptions with the feather.** Hold it to see every chest's
-   label on the HUD as you look around. Sneak-left-click a chest to copy
-   its label, sneak-right-click another to paste it. Sneak-right-click
-   the air to pick any label from a list instead.
+4. **Fix the exceptions.** Open any chest and press the **Golem** button
+   beside its inventory to edit that chest's labels, with suggestions
+   from what's inside. Or hold the feather: it shows every chest's label
+   on the HUD as you look around, sneak-left-click copies a label,
+   sneak-right-click pastes it, and sneak-right-click on the air picks
+   any label from a list.
 5. **Summon or build golems.** Fill the copper chest and watch.
 
 Everything below is the long version.
@@ -105,6 +107,26 @@ in one go (or **[Cancel]**; proposals expire after two minutes). Running
 learn again later only touches chests that are still unlabeled, so it is
 safe to repeat as the room grows. Learn needs operator permission unless
 `learn_requires_op` is turned off in the config.
+
+### The Golem button: edit one chest from its inventory
+
+Open any chest, trapped chest or copper chest as usual and a **Golem**
+button sits beside the inventory. On a regular chest it opens the
+**editor** for that chest:
+
+- the header shows the chest's current labels as chips; click a chip to
+  remove that one label. **Mode: Replace / Add** decides whether a new
+  choice replaces the labels or joins them;
+- the right column starts with **suggestions from what's inside**, each
+  with its coverage (*Ingots · covers 4 of 5 stacks*). Type to search any
+  item instead; pick one to see its stops;
+- the left column has the preset categories, Catch-all, Off-limits and
+  Remove labels.
+
+Every choice applies to the chest immediately and the screen stays open,
+so you can keep adjusting. The chosen labels also land on your clipboard,
+ready to paste onto the next chests with the feather. On a copper chest
+the button opens the zone screen instead.
 
 ### The feather: copy and paste labels
 
@@ -180,9 +202,9 @@ room's zone; one carrying items still delivers to the room it took them
 from. Outside every zone, golems behave as in vanilla with default
 settings.
 
-**Sneak-right-click any copper chest with an empty hand** to open its
-zone, creating a default 65 × 17 × 65 zone around that chest if it is in
-none. The screen shows the anchor and the area size, and the area's
+**Sneak-right-click any copper chest with an empty hand**, or press the
+**Golem** button in its inventory, to open its zone, creating a default
+65 × 17 × 65 zone around that chest if it is in none. The screen shows the anchor and the area size, and the area's
 outline is drawn with particles for a moment.
 
 | Setting | Default | |

@@ -279,12 +279,17 @@ audited for unused keys; the mod description updated.
 
 ## Phase 2 — screens
 
-- A golem button in every chest inventory screen (mixin on the generic
-  container screen, position announced by a small S2C payload when the
-  chest opens) → label editor on regular chests, zone settings on copper
-  chests. This replaces the sneak-right-click-empty-hand entry.
-- Per-chest editor = the picker in "chest mode", with **suggestions from
-  contents** at the top ("Ores & Minerals covers 25 of 27 stacks").
+- **Done (step 8):** a Golem button beside every generic chest screen
+  (Fabric `ScreenEvents.AFTER_INIT`; the client remembers the chest block
+  it just right-clicked, so no extra packet) → the editor on regular
+  chests, the zone screen on copper chests. The sneak-right-click entry
+  for copper chests stays as a shortcut.
+- **Done (step 8):** the per-chest editor = the picker in chest mode:
+  current labels as removable chips, Replace/Add toggle, suggestions
+  from contents with stack coverage, item icons in the lists; choices
+  apply to the chest at once (and to the clipboard) and the screen
+  refreshes from the server's answer. Payloads: `open_editor` (C2S),
+  `editor_context` (S2C), `set_chest_labels` (C2S).
 - Category tuning UI inside the editor (grid of members, click to
   exclude, add held item).
 - Zone overview from the copper chest: every chest in range, problems
@@ -292,9 +297,8 @@ audited for unused keys; the mod description updated.
   to highlight, bulk apply/clear.
 - "Simulate" in the zone screen: where each stack in the copper chest
   would go right now, no golem needed.
-- Cheap usability wins folded in here rather than waiting for phase 3:
-  item icons in the picker's search results and stop list, and one
-  consistent set of widths and spacings across the zone screen and the
+- **Done (step 8):** item icons in the picker's lists and one shared set
+  of widths and spacings (`client/Ui`) across the zone screen and the
   picker.
 
 ## Phase 3 — design revamp of the menus
