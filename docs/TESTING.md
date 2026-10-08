@@ -143,6 +143,24 @@ your monitor allows, and check:
    clipboard) look dimmed and do nothing when clicked.
 6. The HUD panel above the hotbar uses the same dark surface and border.
 
+## 2e. Defaults, hints and the guide
+
+1. On a fresh player: hang a frame on a chest → a gold `[WBCG]` chat line
+   explains auto labels, ending in a clickable `[Read the guide]`. Hang
+   another frame → no second hint. First feather gesture → the tool hint,
+   once.
+2. Click `[Read the guide]` (or `/wbcg guide`) → a written book
+   "Copper Golem Sorting" lands in your inventory with 7 pages; the tool
+   item's name appears in the text. With a full inventory it drops at
+   your feet.
+3. Hover each toggle in the zone screen → a tooltip explains it.
+4. As an operator, set tidy ON in one zone and press **Save as world
+   default** → chat confirms. Place a copper chest far away in no zone,
+   open its settings → tidy is already ON. Press **Apply to all zones**
+   → chat says how many zones changed; other zones' toggles now match,
+   their areas unchanged. As a non-op both buttons answer with the
+   permission message.
+
 ## 3. Frames: auto labels, never clicked
 
 1. Place a chest with an item frame on its front face holding an **iron

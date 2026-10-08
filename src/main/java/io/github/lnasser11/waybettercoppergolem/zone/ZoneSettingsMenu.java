@@ -56,6 +56,10 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	public static final int BUTTON_OVERVIEW = 7;
 	/** Send the simulation (what golems would do with the copper chests now). */
 	public static final int BUTTON_SIMULATE = 8;
+	/** Make this zone's settings the default for new zones in this world (operators). */
+	public static final int BUTTON_SAVE_DEFAULTS = 9;
+	/** Give every zone in this dimension these settings (operators). */
+	public static final int BUTTON_APPLY_ALL = 10;
 
 	private final ContainerLevelAccess access;
 	private final ContainerData data;
@@ -157,6 +161,26 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 				}
 				case BUTTON_SIMULATE -> {
 					ZoneSimulation.send(serverPlayer, serverLevel, ref);
+					return true;
+				}
+				case BUTTON_SAVE_DEFAULTS -> {
+					if (!net.minecraft.commands.Commands.LEVEL_GAMEMASTERS.check(serverPlayer.permissions())) {
+						serverPlayer.sendSystemMessage(Component.translatable("waybettercoppergolem.defaults.not_allowed"));
+						return true;
+					}
+					Zones.setDefaults(serverLevel, current);
+					serverPlayer.sendSystemMessage(Component.translatable("waybettercoppergolem.defaults.saved",
+							Zones.describe(current)));
+					return true;
+				}
+				case BUTTON_APPLY_ALL -> {
+					if (!net.minecraft.commands.Commands.LEVEL_GAMEMASTERS.check(serverPlayer.permissions())) {
+						serverPlayer.sendSystemMessage(Component.translatable("waybettercoppergolem.defaults.not_allowed"));
+						return true;
+					}
+					int changed = Zones.applyToAll(serverLevel, current);
+					serverPlayer.sendSystemMessage(Component.translatable("waybettercoppergolem.defaults.applied",
+							changed, Zones.describe(current)));
 					return true;
 				}
 				default -> {

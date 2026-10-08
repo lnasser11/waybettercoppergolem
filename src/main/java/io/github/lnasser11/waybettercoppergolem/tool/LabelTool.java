@@ -172,6 +172,7 @@ public final class LabelTool {
 			return InteractionResult.PASS;
 		}
 		if (player instanceof ServerPlayer serverPlayer && level instanceof ServerLevel serverLevel) {
+			Onboarding.hintTool(serverPlayer);
 			if (chest) {
 				copyLabels(serverPlayer, serverLevel, pos, state);
 			} else {
@@ -199,6 +200,7 @@ public final class LabelTool {
 			return InteractionResult.PASS; // falls through to onUseItem (the picker)
 		}
 		if (player instanceof ServerPlayer serverPlayer && level instanceof ServerLevel serverLevel) {
+			Onboarding.hintTool(serverPlayer);
 			if (chest) {
 				pasteLabels(serverPlayer, serverLevel, pos, state);
 			} else {
@@ -217,6 +219,7 @@ public final class LabelTool {
 		if (!holdingTool(player, level, hand) || !(player instanceof ServerPlayer serverPlayer)) {
 			return InteractionResult.PASS;
 		}
+		Onboarding.hintTool(serverPlayer);
 		if (!cancelAreaMode(serverPlayer)) {
 			serverPlayer.sendOverlayMessage(describeClipboard(Clipboard.of(serverPlayer)));
 		}

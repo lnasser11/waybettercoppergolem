@@ -12,6 +12,8 @@ import io.github.lnasser11.waybettercoppergolem.learn.LearnSession;
 import io.github.lnasser11.waybettercoppergolem.learn.RoomLearner;
 import io.github.lnasser11.waybettercoppergolem.sorting.ZoneAwareGolem;
 import io.github.lnasser11.waybettercoppergolem.tool.ChestEditor;
+import io.github.lnasser11.waybettercoppergolem.tool.GuideBook;
+import io.github.lnasser11.waybettercoppergolem.tool.Onboarding;
 import io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning;
 import io.github.lnasser11.waybettercoppergolem.tuning.TuningNet;
 import io.github.lnasser11.waybettercoppergolem.tool.Clipboard;
@@ -635,6 +637,59 @@ public final class WbcgGameTests {
 		helper.assertValueEqual(iron.to(), Optional.of(ironChest), "iron goes to the iron chest");
 		helper.assertValueEqual(iron.toLabels(), List.of(ChestLabel.exact(id(Items.IRON_INGOT))), "destination labels");
 		Zones.remove(level, source);
+		helper.succeed();
+	}
+
+	// ---------------------------------------------------------------- phase 4: defaults, onboarding, guide
+
+	@GameTest
+	public void worldDefaultsSeedNewZonesAndApplyToAll(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		Zones.setDefaults(level, ZoneSettings.DEFAULT);
+		BlockPos first = copperChest(helper, new BlockPos(1, 1, 1));
+		Zones.put(level, first, new Zone(structureBox(helper), ZoneSettings.DEFAULT));
+
+		ZoneSettings tidy = ZoneSettings.DEFAULT.withTidyInside(true);
+		Zones.setDefaults(level, tidy);
+		helper.assertValueEqual(Zones.defaults(level), tidy, "defaults stored");
+		Zones.remove(level, first);
+		Zones.ZoneRef created = Zones.zoneForCopperChest(level, first);
+		helper.assertTrue(created.settings().tidyInside(), "new zone starts from the world defaults");
+
+		BoundingBox box = created.area();
+		int changed = Zones.applyToAll(level, ZoneSettings.DEFAULT.withDryRun(true));
+		helper.assertTrue(changed >= 1, "at least this zone changed");
+		Zone after = Zones.all(level).get(first);
+		helper.assertTrue(after.settings().dryRun() && !after.settings().tidyInside(), "settings replaced");
+		helper.assertValueEqual(after.area(), box, "area untouched");
+
+		Zones.setDefaults(level, ZoneSettings.DEFAULT);
+		helper.assertValueEqual(Zones.defaults(level), ZoneSettings.DEFAULT, "defaults reset");
+		Zones.remove(level, first);
+		helper.succeed();
+	}
+
+	@GameTest
+	public void onboardingHintsShowOnce(GameTestHelper helper) {
+		ServerPlayer player = mockPlayer(helper);
+		helper.assertFalse(Onboarding.hasSeen(player, false), "frame hint not seen yet");
+		Onboarding.hintFrame(player);
+		helper.assertTrue(Onboarding.hasSeen(player, false), "frame hint recorded");
+		Onboarding.hintFrame(player); // no exception, no second record change
+		helper.assertFalse(Onboarding.hasSeen(player, true), "tool hint independent");
+		Onboarding.hintTool(player);
+		helper.assertTrue(Onboarding.hasSeen(player, true) && Onboarding.hasSeen(player, false), "both recorded");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void guideBookHasAllPages(GameTestHelper helper) {
+		ServerPlayer player = mockPlayer(helper);
+		ItemStack book = GuideBook.create(player);
+		helper.assertTrue(book.is(Items.WRITTEN_BOOK), "a written book");
+		var content = book.get(net.minecraft.core.component.DataComponents.WRITTEN_BOOK_CONTENT);
+		helper.assertTrue(content != null && content.pages().size() == GuideBook.PAGES, "all pages present");
 		helper.succeed();
 	}
 

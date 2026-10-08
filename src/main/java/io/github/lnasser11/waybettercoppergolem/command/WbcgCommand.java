@@ -40,6 +40,7 @@ import java.util.List;
  * /wbcg learn apply | cancel               write / drop the pending proposal
  * /wbcg highlight &lt;pos&gt;                   sparkle a chest so you can find it
  * /wbcg zone                               which zone you stand in, with its outline
+ * /wbcg guide                              a written book with the basics
  * </pre>
  *
  * Names resolve in the {@code wbcg} namespace by default; any tag works
@@ -63,6 +64,10 @@ public final class WbcgCommand {
 								.then(Commands.literal("overwrite")
 										.executes(ctx -> learn(ctx, IntegerArgumentType.getInteger(ctx, "radius"), true)))))
 				.then(Commands.literal("zone").executes(WbcgCommand::zoneInfo))
+				.then(Commands.literal("guide").executes(ctx -> {
+					io.github.lnasser11.waybettercoppergolem.tool.GuideBook.give(ctx.getSource().getPlayerOrException());
+					return 1;
+				}))
 				.then(Commands.literal("highlight")
 						.then(Commands.argument("pos", BlockPosArgument.blockPos())
 								.executes(WbcgCommand::highlight)))

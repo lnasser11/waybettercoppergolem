@@ -33,6 +33,7 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 	private int behaviorLabelY;
 	private int areaLabelY;
 	private int toolsLabelY;
+	private int defaultsLabelY;
 
 	public ZoneSettingsScreen(ZoneSettingsMenu menu, Inventory inventory, Component title) {
 		super(title);
@@ -51,7 +52,7 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		this.shownAnchor = this.menu.anchorPos();
 		this.shownArea = this.menu.area();
 
-		int contentHeight = 3 * Ui.SECTION_LABEL + 7 * Ui.ROW + 2 * Ui.GAP + Ui.ROW;
+		int contentHeight = 4 * Ui.SECTION_LABEL + 8 * Ui.ROW + 3 * Ui.GAP + Ui.ROW;
 		this.panel = Panel.centered(this.width, this.height, Ui.PANEL_WIDTH, contentHeight);
 		int x = this.panel.contentX();
 		int width = Ui.PANEL_WIDTH;
@@ -64,17 +65,20 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.reorganize())
 				.create(x, y, width, Ui.BUTTON_HEIGHT,
 						Component.translatable("waybettercoppergolem.settings.reorganize"),
-						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_REORGANIZE)));
+						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_REORGANIZE)))
+				.setTooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.reorganize.tooltip")));
 		y += Ui.ROW;
 		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.tidyInside())
 				.create(x, y, width, Ui.BUTTON_HEIGHT,
 						Component.translatable("waybettercoppergolem.settings.tidy"),
-						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_TIDY)));
+						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_TIDY)))
+				.setTooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.tidy.tooltip")));
 		y += Ui.ROW;
 		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.dryRun())
 				.create(x, y, width, Ui.BUTTON_HEIGHT,
 						Component.translatable("waybettercoppergolem.settings.dry_run"),
-						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_DRY_RUN)));
+						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_DRY_RUN)))
+				.setTooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.dry_run.tooltip")));
 		y += Ui.ROW + Ui.GAP;
 
 		// ---- area
@@ -129,6 +133,21 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 						})
 				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.learn.tooltip")))
 				.bounds(x, y, width, Ui.BUTTON_HEIGHT).build());
+		y += Ui.ROW + Ui.GAP;
+
+		// ---- defaults (operators)
+		this.defaultsLabelY = y;
+		y += Ui.SECTION_LABEL;
+		this.addRenderableWidget(Button.builder(
+						Component.translatable("waybettercoppergolem.settings.save_defaults"),
+						button -> click(ZoneSettingsMenu.BUTTON_SAVE_DEFAULTS))
+				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.save_defaults.tooltip")))
+				.bounds(x, y, half, Ui.BUTTON_HEIGHT).build());
+		this.addRenderableWidget(Button.builder(
+						Component.translatable("waybettercoppergolem.settings.apply_all"),
+						button -> click(ZoneSettingsMenu.BUTTON_APPLY_ALL))
+				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.apply_all.tooltip")))
+				.bounds(x + half + Ui.GAP, y, half, Ui.BUTTON_HEIGHT).build());
 		y += Ui.ROW;
 
 		this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
@@ -164,6 +183,7 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.settings.section.behavior"), x, this.behaviorLabelY);
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.settings.section.area"), x, this.areaLabelY);
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.settings.section.tools"), x, this.toolsLabelY);
+		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.settings.section.defaults"), x, this.defaultsLabelY);
 	}
 
 	@Override

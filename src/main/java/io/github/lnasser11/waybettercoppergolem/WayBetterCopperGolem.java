@@ -15,6 +15,7 @@ import io.github.lnasser11.waybettercoppergolem.net.ZonePayloads;
 import io.github.lnasser11.waybettercoppergolem.tool.ChestEditor;
 import io.github.lnasser11.waybettercoppergolem.tool.Clipboard;
 import io.github.lnasser11.waybettercoppergolem.tool.LabelTool;
+import io.github.lnasser11.waybettercoppergolem.tool.Onboarding;
 import io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning;
 import io.github.lnasser11.waybettercoppergolem.tuning.TuningNet;
 import io.github.lnasser11.waybettercoppergolem.zone.Zone;
@@ -111,6 +112,14 @@ public class WayBetterCopperGolem implements ModInitializer {
 	public static final AttachmentType<ZoneSettings> ZONE_SETTINGS =
 			AttachmentRegistry.createPersistent(id("zone_settings"), ZoneSettings.CODEC);
 
+	/** Settings new zones start from in this world (overworld attachment; absent = built-in defaults). */
+	public static final AttachmentType<ZoneSettings> ZONE_DEFAULTS =
+			AttachmentRegistry.createPersistent(id("zone_defaults"), ZoneSettings.CODEC);
+
+	/** Which one-time hints a player has already seen. */
+	public static final AttachmentType<Onboarding.State> ONBOARDING = AttachmentRegistry.create(
+			id("onboarding"), builder -> builder.persistent(Onboarding.State.CODEC).copyOnDeath());
+
 	public static final MenuType<ZoneSettingsMenu> ZONE_SETTINGS_MENU =
 			Registry.register(BuiltInRegistries.MENU, id("zone_settings"),
 					new MenuType<>(ZoneSettingsMenu::new, FeatureFlags.VANILLA_SET));
@@ -191,6 +200,12 @@ public class WayBetterCopperGolem implements ModInitializer {
 			if (player instanceof ServerPlayer serverPlayer && level instanceof ServerLevel serverLevel) {
 				BlockPos chestPos = hitResult.getBlockPos();
 				BlockState chestState = level.getBlockState(chestPos);
+				if (ChestLabels.isLabelableChest(chestState)
+						&& (player.getMainHandItem().is(net.minecraft.world.item.Items.ITEM_FRAME)
+								|| player.getMainHandItem().is(net.minecraft.world.item.Items.GLOW_ITEM_FRAME))) {
+					// Placing a frame on a chest: the one-time hint about auto labels.
+					Onboarding.hintFrame(serverPlayer);
+				}
 				if (ChestLabels.isLabelableChest(chestState)) {
 					ChestLabelSet labels = ChestLabels.effectiveLabelSet(serverLevel, chestPos, chestState);
 					if (!labels.isEmpty()) {

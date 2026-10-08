@@ -1,7 +1,7 @@
 # Usability revamp — implementation plan
 
-**Status:** phases 1–3 are complete (steps 1–10 below, plus 4b, plus
-the design pass). Phase 4 is the roadmap. The user-facing description of what shipped is the
+**Status:** all four phases are complete. What remains is the in-game
+pass over `docs/TESTING.md` and whatever that turns up. The user-facing description of what shipped is the
 README; this document keeps the reasoning and the remaining work.
 
 Goal: configuring a storage room should take minutes, not an evening, and
@@ -347,13 +347,21 @@ something to look at, red for something stuck, green for on/added.
 Not verified visually in this environment (no client); the in-game
 checklist has a visual pass for it.
 
-## Phase 4 — polish
+## Phase 4 — polish (done)
 
-- World-default zone settings with per-zone overrides; sliders and
-  tooltips where numbers remain.
-- Onboarding: one chat hint the first time a player places a frame on a
-  chest or picks up the tool item; `/wbcg guide` hands out a written
-  book.
-- Optional: sign text as a label hint for the learn pass.
-- Optional: per-golem zone binding, if wandering golems turn out to be a
-  problem in practice (decided against for now).
+- **World defaults:** an overworld attachment holds the settings new
+  zones start from; the zone screen's Defaults section (operators) has
+  "Save as world default" and "Apply to all zones" (areas untouched).
+  Per-zone inherit/override flags were not added: with three booleans
+  left, "defaults for new zones" plus "apply to all" covers the need
+  without a second state to explain.
+- **Tooltips** on the three behavior toggles; no numeric settings remain
+  in the screens, so no sliders.
+- **Onboarding:** one-time chat hints (per player, persistent) on the
+  first frame placed on a chest and the first tool gesture, each linking
+  to `/wbcg guide`, which hands out a 7-page written book built from the
+  lang file.
+
+Deferred, on purpose: sign text as a learn hint (fragile, language
+dependent) and per-golem zone binding (decided against; revisit only if
+wandering golems turn out to be a problem in practice).

@@ -53,6 +53,13 @@ Everything below is the long version.
 
 ---
 
+## Getting help in-game
+
+The first time you hang a frame on a chest, and the first time you use
+the feather, a one-line hint appears in chat with a link to **the guide**:
+a written book with the basics, also available any time with
+`/wbcg guide`. Every button on the mod's screens has a tooltip.
+
 ## Labels and zones, the two ideas
 
 A **label** says what a chest is for. It is one of:
@@ -235,7 +242,10 @@ Buttons on the same screen:
 - `/wbcg zone` tells you which zone you are standing in and draws it.
 
 The feather copies and pastes zone **settings** between zones; the area
-stays with the place. Normal right-click still opens the copper chest as
+stays with the place. Operators also get a **Defaults** section on the
+zone screen: **Save as world default** makes the current three settings
+the starting point for every new zone, and **Apply to all zones** gives
+every zone in the dimension these settings at once, areas untouched. Normal right-click still opens the copper chest as
 storage. All copper chest variants behave identically (exposed, weathered,
 oxidized, waxed), and zones survive oxidation and waxing. Breaking the
 anchor chest dissolves the zone.
@@ -339,6 +349,7 @@ names. The raw id is in tooltips and in `/wbcg category` output.
 /wbcg learn [radius] [overwrite]        propose labels for the chests around you (op by default)
 /wbcg learn apply | cancel              write or drop the pending proposal
 /wbcg zone                              which zone you stand in, with its outline drawn
+/wbcg guide                             a written book with the basics
 /wbcg highlight <x> <y> <z>             make a chest sparkle so you can find it
 /wbcg categories                        list presets with sizes and tweak counts
 /wbcg category list <name>              a category's added/removed items

@@ -121,10 +121,41 @@ public final class Zones {
 	 */
 	public static ZoneRef zoneForCopperChest(ServerLevel level, BlockPos copperChest) {
 		return zoneAt(level, copperChest).orElseGet(() -> {
-			Zone zone = Zone.defaultAround(copperChest);
+			Zone zone = new Zone(Zone.defaultArea(copperChest), defaults(level));
 			put(level, copperChest, zone);
 			return new ZoneRef(copperChest, zone);
 		});
+	}
+
+	/** The settings new zones start from in this world (stored on the overworld). */
+	public static ZoneSettings defaults(ServerLevel level) {
+		ZoneSettings stored = level.getServer().overworld().getAttached(WayBetterCopperGolem.ZONE_DEFAULTS);
+		return stored == null ? ZoneSettings.DEFAULT : stored;
+	}
+
+	public static void setDefaults(ServerLevel level, ZoneSettings settings) {
+		ServerLevel overworld = level.getServer().overworld();
+		if (settings.equals(ZoneSettings.DEFAULT)) {
+			overworld.removeAttached(WayBetterCopperGolem.ZONE_DEFAULTS);
+		} else {
+			overworld.setAttached(WayBetterCopperGolem.ZONE_DEFAULTS, settings);
+		}
+	}
+
+	/** Gives every zone of this dimension the same settings (areas untouched). Returns how many changed. */
+	public static int applyToAll(ServerLevel level, ZoneSettings settings) {
+		Map<BlockPos, Zone> updated = new HashMap<>();
+		int changed = 0;
+		for (Map.Entry<BlockPos, Zone> entry : all(level).entrySet()) {
+			if (!entry.getValue().settings().equals(settings)) {
+				changed++;
+			}
+			updated.put(entry.getKey(), entry.getValue().withSettings(settings));
+		}
+		if (changed > 0) {
+			level.setAttached(WayBetterCopperGolem.ZONES, Map.copyOf(updated));
+		}
+		return changed;
 	}
 
 	/** Settings in force at {@code pos}, or defaults outside every zone. */
