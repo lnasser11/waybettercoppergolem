@@ -23,6 +23,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import org.jspecify.annotations.Nullable;
 
@@ -57,7 +58,7 @@ public final class SortingEngine {
 	}
 
 	public static Optional<TransportItemTarget> findDepositTarget(
-			ServerLevel level, PathfinderMob golem, ItemStack held,
+			ServerLevel level, Vec3 from, ItemStack held,
 			Predicate<BlockState> destinationBlockType,
 			Set<GlobalPos> visited, Set<GlobalPos> unreachable,
 			AABB searchArea) {
@@ -87,7 +88,7 @@ public final class SortingEngine {
 				// Between equally-labeled chests, prefer the one already holding
 				// this item, so twin chests consolidate instead of scattering.
 				boolean containsItem = containsSameItem(candidate.container(), held);
-				double distSq = candidate.pos().distToCenterSqr(golem.position());
+				double distSq = candidate.pos().distToCenterSqr(from);
 				boolean better = rank < bestRank
 						|| (rank == bestRank && containsItem && !bestContainsItem)
 						|| (rank == bestRank && containsItem == bestContainsItem && distSq < bestDistSq);
@@ -205,7 +206,7 @@ public final class SortingEngine {
 	 * unlabeled chests are never touched.
 	 */
 	public static Optional<TransportItemTarget> findMisplacedSource(
-			ServerLevel level, PathfinderMob golem,
+			ServerLevel level, Vec3 from,
 			Predicate<BlockState> destinationBlockType,
 			Set<GlobalPos> visited, Set<GlobalPos> unreachable,
 			AABB searchArea) {
@@ -231,7 +232,7 @@ public final class SortingEngine {
 				ItemStack misplaced = firstMisplacedStack(level, candidate);
 				if (!misplaced.isEmpty()) {
 					candidates.add(new MisplacedCandidate(candidate, misplaced,
-							candidate.pos().distToCenterSqr(golem.position())));
+							candidate.pos().distToCenterSqr(from)));
 				}
 			}
 		}
@@ -247,7 +248,7 @@ public final class SortingEngine {
 						ChestBlock.getConnectedBlockPos(candidate.target().pos(), state)));
 			}
 			ItemStack preview = candidate.stack().copyWithCount(Math.min(candidate.stack().getCount(), 16));
-			if (findDepositTarget(level, golem, preview, destinationBlockType,
+			if (findDepositTarget(level, from, preview, destinationBlockType,
 					excludingSource, unreachable, searchArea).isPresent()) {
 				return Optional.of(candidate.target());
 			}

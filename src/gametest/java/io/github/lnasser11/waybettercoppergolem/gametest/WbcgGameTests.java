@@ -7,6 +7,7 @@ import io.github.lnasser11.waybettercoppergolem.label.ChestLabels;
 import io.github.lnasser11.waybettercoppergolem.label.LabelResolver;
 import io.github.lnasser11.waybettercoppergolem.label.LabelSuggestions;
 import io.github.lnasser11.waybettercoppergolem.net.EditorPayloads.Suggestion;
+import io.github.lnasser11.waybettercoppergolem.net.ZonePayloads;
 import io.github.lnasser11.waybettercoppergolem.learn.LearnSession;
 import io.github.lnasser11.waybettercoppergolem.learn.RoomLearner;
 import io.github.lnasser11.waybettercoppergolem.sorting.ZoneAwareGolem;
@@ -16,7 +17,9 @@ import io.github.lnasser11.waybettercoppergolem.tuning.TuningNet;
 import io.github.lnasser11.waybettercoppergolem.tool.Clipboard;
 import io.github.lnasser11.waybettercoppergolem.tool.LabelTool;
 import io.github.lnasser11.waybettercoppergolem.zone.Zone;
+import io.github.lnasser11.waybettercoppergolem.zone.ZoneOverview;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings;
+import io.github.lnasser11.waybettercoppergolem.zone.ZoneSimulation;
 import io.github.lnasser11.waybettercoppergolem.zone.Zones;
 
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
@@ -569,6 +572,69 @@ public final class WbcgGameTests {
 
 		TuningNet.applyTweak(level, redstone, Optional.empty(), false);
 		helper.assertTrue(CategoryTuning.overridesFor(level, redstone).isEmpty(), "reset dropped the tweaks");
+		helper.succeed();
+	}
+
+	// ---------------------------------------------------------------- overview + simulation
+
+	@GameTest
+	public void overviewListsProblemsFirst(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		BlockPos anchor = copperChest(helper, new BlockPos(0, 1, 0));
+		Zones.put(level, anchor, new Zone(structureBox(helper), ZoneSettings.DEFAULT));
+		BlockPos fine = chest(helper, new BlockPos(1, 1, 3), Items.IRON_INGOT, 10);
+		ChestLabels.setExplicit(level, fine, level.getBlockState(fine), List.of(ChestLabel.exact(id(Items.IRON_INGOT))));
+		BlockPos misplaced = chest(helper, new BlockPos(3, 1, 3), Items.IRON_INGOT, 10, Items.DIRT, 1);
+		ChestLabels.setExplicit(level, misplaced, level.getBlockState(misplaced), List.of(ChestLabel.exact(id(Items.IRON_INGOT))));
+		BlockPos unlabeled = chest(helper, new BlockPos(5, 1, 3), Items.CAKE, 1);
+		BlockPos empty = chest(helper, new BlockPos(7, 1, 3));
+		ChestLabels.setExplicit(level, empty, level.getBlockState(empty), List.of(ChestLabel.catchAll()));
+
+		ZonePayloads.Overview overview = ZoneOverview.build(level, new Zones.ZoneRef(anchor, Zones.all(level).get(anchor)));
+		helper.assertValueEqual(overview.copperChests(), 1, "copper chests counted");
+		helper.assertValueEqual(overview.entries().size(), 4, "four regular chests");
+		helper.assertValueEqual(overview.entries().get(0).pos(), unlabeled, "unlabeled first");
+		helper.assertTrue(overview.entries().get(0).problems().contains("unlabeled"), "flagged unlabeled");
+		helper.assertValueEqual(overview.entries().get(1).pos(), misplaced, "misplaced second");
+		helper.assertTrue(overview.entries().get(1).problems().contains("misplaced"), "flagged misplaced");
+		ZonePayloads.Entry fineEntry = overview.entries().stream().filter(e -> e.pos().equals(fine)).findFirst().orElseThrow();
+		ZonePayloads.Entry misplacedEntry = overview.entries().get(1);
+		helper.assertTrue(fineEntry.problems().contains("duplicate") && misplacedEntry.problems().contains("duplicate"),
+				"two chests with the same label set are flagged duplicate");
+		ZonePayloads.Entry emptyEntry = overview.entries().stream().filter(e -> e.pos().equals(empty)).findFirst().orElseThrow();
+		helper.assertValueEqual(emptyEntry.problems(), List.of("empty"), "catch-all empty chest: only 'empty'");
+		helper.assertValueEqual(fineEntry.stacks(), 1, "stack count");
+		Zones.remove(level, anchor);
+		helper.succeed();
+	}
+
+	@GameTest
+	public void simulationPredictsDestinationsAndMergesMoves(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		BlockPos source = copperChest(helper, new BlockPos(0, 1, 0));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT));
+		ChestBlockEntity copper = helper.getBlockEntity(new BlockPos(0, 1, 0), ChestBlockEntity.class);
+		copper.setItem(0, new ItemStack(Items.IRON_INGOT, 64));
+		copper.setItem(1, new ItemStack(Items.IRON_INGOT, 10));
+		copper.setItem(2, new ItemStack(Items.CAKE, 1));
+		BlockPos ironChest = chest(helper, new BlockPos(4, 1, 4));
+		ChestLabels.setExplicit(level, ironChest, level.getBlockState(ironChest), List.of(ChestLabel.exact(id(Items.IRON_INGOT))));
+		BlockPos offLimits = chest(helper, new BlockPos(6, 1, 6));
+		ChestLabels.setExplicit(level, offLimits, level.getBlockState(offLimits), List.of(ChestLabel.exact(id(Items.COBWEB))));
+
+		ZonePayloads.Simulation simulation = ZoneSimulation.build(level, new Zones.ZoneRef(source, Zones.all(level).get(source)));
+		helper.assertValueEqual(simulation.sourceChests(), 1, "one copper chest");
+		helper.assertValueEqual(simulation.moves().size(), 2, "iron merged into one move, cake another");
+		ZonePayloads.Move cake = simulation.moves().get(0);
+		helper.assertValueEqual(cake.item(), id(Items.CAKE), "nowhere-to-go moves come first");
+		helper.assertTrue(cake.to().isEmpty(), "cake has no destination (off-limits chest refused)");
+		ZonePayloads.Move iron = simulation.moves().get(1);
+		helper.assertValueEqual(iron.count(), 74, "counts merged");
+		helper.assertValueEqual(iron.to(), Optional.of(ironChest), "iron goes to the iron chest");
+		helper.assertValueEqual(iron.toLabels(), List.of(ChestLabel.exact(id(Items.IRON_INGOT))), "destination labels");
+		Zones.remove(level, source);
 		helper.succeed();
 	}
 

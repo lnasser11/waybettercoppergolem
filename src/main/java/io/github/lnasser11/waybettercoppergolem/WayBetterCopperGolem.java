@@ -11,6 +11,7 @@ import io.github.lnasser11.waybettercoppergolem.net.ConfigPayload;
 import io.github.lnasser11.waybettercoppergolem.net.EditorPayloads;
 import io.github.lnasser11.waybettercoppergolem.net.SetClipboardPayload;
 import io.github.lnasser11.waybettercoppergolem.net.TuningPayloads;
+import io.github.lnasser11.waybettercoppergolem.net.ZonePayloads;
 import io.github.lnasser11.waybettercoppergolem.tool.ChestEditor;
 import io.github.lnasser11.waybettercoppergolem.tool.Clipboard;
 import io.github.lnasser11.waybettercoppergolem.tool.LabelTool;
@@ -18,7 +19,9 @@ import io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning;
 import io.github.lnasser11.waybettercoppergolem.tuning.TuningNet;
 import io.github.lnasser11.waybettercoppergolem.zone.Zone;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings;
+import io.github.lnasser11.waybettercoppergolem.zone.ZoneOverview;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettingsMenu;
+import io.github.lnasser11.waybettercoppergolem.zone.ZoneSimulation;
 import io.github.lnasser11.waybettercoppergolem.zone.Zones;
 
 import net.fabricmc.api.ModInitializer;
@@ -134,6 +137,20 @@ public class WayBetterCopperGolem implements ModInitializer {
 				(payload, context) -> TuningNet.open(context.player(), payload.tagId()));
 		ServerPlayNetworking.registerGlobalReceiver(TuningPayloads.TuneCategory.TYPE,
 				(payload, context) -> TuningNet.change(context.player(), payload.tagId(), payload.itemId(), payload.include()));
+		PayloadTypeRegistry.clientboundPlay().register(ZonePayloads.Overview.TYPE, ZonePayloads.Overview.STREAM_CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(ZonePayloads.Simulation.TYPE, ZonePayloads.Simulation.STREAM_CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(ZonePayloads.OpenOverview.TYPE, ZonePayloads.OpenOverview.STREAM_CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(ZonePayloads.RunSimulation.TYPE, ZonePayloads.RunSimulation.STREAM_CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(ZonePayloads.OpenOverview.TYPE, (payload, context) -> {
+			if (context.player().level() instanceof ServerLevel level) {
+				Zones.zoneAt(level, payload.anchor()).ifPresent(zone -> ZoneOverview.send(context.player(), level, zone));
+			}
+		});
+		ServerPlayNetworking.registerGlobalReceiver(ZonePayloads.RunSimulation.TYPE, (payload, context) -> {
+			if (context.player().level() instanceof ServerLevel level) {
+				Zones.zoneAt(level, payload.anchor()).ifPresent(zone -> ZoneSimulation.send(context.player(), level, zone));
+			}
+		});
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			if (ServerPlayNetworking.canSend(handler, ConfigPayload.TYPE)) {
 				sender.sendPacket(new ConfigPayload(WbcgConfig.get().toolItemId()));

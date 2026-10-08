@@ -6,6 +6,7 @@ import io.github.lnasser11.waybettercoppergolem.net.AreaModePayload;
 import io.github.lnasser11.waybettercoppergolem.net.ConfigPayload;
 import io.github.lnasser11.waybettercoppergolem.net.EditorPayloads;
 import io.github.lnasser11.waybettercoppergolem.net.TuningPayloads;
+import io.github.lnasser11.waybettercoppergolem.net.ZonePayloads;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -44,6 +45,10 @@ public class WayBetterCopperGolemClient implements ClientModInitializer {
 				(payload, context) -> LabelPickerScreen.openOrUpdate(context.client(), payload));
 		ClientPlayNetworking.registerGlobalReceiver(TuningPayloads.TuningContext.TYPE,
 				(payload, context) -> CategoryTuningScreen.openOrUpdate(context.client(), payload));
+		ClientPlayNetworking.registerGlobalReceiver(ZonePayloads.Overview.TYPE,
+				(payload, context) -> ZoneOverviewScreen.openOrUpdate(context.client(), payload));
+		ClientPlayNetworking.registerGlobalReceiver(ZonePayloads.Simulation.TYPE,
+				(payload, context) -> SimulationScreen.openOrUpdate(context.client(), payload));
 		UseItemCallback.EVENT.register(WayBetterCopperGolemClient::openPickerOnAirClick);
 		ChestScreenButton.register();
 		ToolHud.register();

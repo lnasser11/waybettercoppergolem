@@ -222,6 +222,16 @@ Buttons on the same screen:
 - **Reset area** goes back to the default box; **Show area outline**
   draws it again; **Learn this zone's chests…** runs the learn pass over
   the area.
+- **Overview…** lists every chest in the zone, problems first: unlabeled
+  chests, chests holding stacks that match none of their labels, chests
+  sharing a label set. Each row can be found (sparkles), edited, or given
+  the clipboard's labels, and one button pastes the clipboard onto every
+  unlabeled chest. Inside your own zone the editor reaches any chest, not
+  just the ones near you.
+- **Simulate…** shows where each stack in the zone's copper chests would
+  go right now, one row per item and destination, with the ones that have
+  nowhere to go first. No golem needed, nothing is moved. It ignores
+  whether a golem could physically reach the chests.
 - `/wbcg zone` tells you which zone you are standing in and draws it.
 
 The feather copies and pastes zone **settings** between zones; the area
@@ -270,8 +280,9 @@ one server tick. Nothing is created or lost.
 
 ### Dry run
 
-Turn on **Dry run** for a zone and its golems log every intended move
-without touching a single chest:
+**Simulate…** in the zone screen answers "where would this go?" at once.
+For a longer watch, turn on **Dry run** for a zone and its golems log
+every intended move without touching a single chest:
 
 ```
 [DRY-RUN] would move 12x minecraft:iron_ingot from minecraft:copper_chest@0,-59,0 to minecraft:chest@8,-59,0

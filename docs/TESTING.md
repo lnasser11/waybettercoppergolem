@@ -101,6 +101,25 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
 7. Walk more than 10 blocks away with the editor open and click a
    category → nothing changes (the server ignores out-of-reach edits).
 
+## 2c. Overview and simulate
+
+1. In the zone screen press **Overview…** → a list of every chest in the
+   zone: unlabeled ones first (yellow), then chests with `· misplaced
+   stacks`, then `· same labels as another chest`, then the rest; a
+   summary line counts them. **Find** makes a chest sparkle, **Edit**
+   opens its editor, **Paste** (enabled when the clipboard has labels)
+   gives it the clipboard's labels and the list refreshes.
+2. Put Iron Ingot on the clipboard and press **Paste clipboard onto all
+   unlabeled (N)** → every unlabeled chest in the zone is labeled, even
+   those far from you (you are inside the zone).
+3. Fill the copper chest with iron ingots, planks and a cake, with chests
+   labeled for iron and planks and no catch-all. Press **Simulate…** →
+   the cake row comes first in red (`nowhere to go`), then
+   `64× Iron Ingot → Iron Ingot [x y z]` and the planks row; identical
+   stacks are merged into one row. Click a row → the destination
+   sparkles. Add a catch-all chest, **Refresh** → the cake now has a
+   destination.
+
 ## 3. Frames: auto labels, never clicked
 
 1. Place a chest with an item frame on its front face holding an **iron

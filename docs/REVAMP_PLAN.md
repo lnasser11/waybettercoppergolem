@@ -1,7 +1,7 @@
 # Usability revamp — implementation plan
 
-**Status:** phase 1 is complete (steps 1–7 below, plus 4b). Phases 2–4
-are the roadmap. The user-facing description of what shipped is the
+**Status:** phases 1 and 2 are complete (steps 1–10 below, plus 4b).
+Phases 3–4 are the roadmap. The user-facing description of what shipped is the
 README; this document keeps the reasoning and the remaining work.
 
 Goal: configuring a storage room should take minutes, not an evening, and
@@ -295,11 +295,15 @@ audited for unused keys; the mod description updated.
   reached from "Tune categories…" in the picker/editor or the "…" beside
   any tag in a stop list. Payloads: `open_tuning` (C2S),
   `tuning_context` (S2C), `tune_category` (C2S, operators only).
-- Zone overview from the copper chest: every chest in range, problems
-  first (unlabeled, duplicate labels, items with no destination), click
-  to highlight, bulk apply/clear.
-- "Simulate" in the zone screen: where each stack in the copper chest
-  would go right now, no golem needed.
+- **Done (step 10):** zone overview (every chest in the box, problems
+  first: unlabeled, misplaced stacks, duplicate label sets; find / edit /
+  paste per row, paste-clipboard-onto-all-unlabeled; the editor's reach
+  covers the whole zone you stand in). Payloads: `open_overview` (C2S),
+  `zone_overview` (S2C).
+- **Done (step 10):** simulate (per item and destination, merged, nowhere
+  first; click to sparkle the destination). The sorting engine's entry
+  points now take a position rather than a golem so the simulation can
+  share them. Payloads: `run_simulation` (C2S), `zone_simulation` (S2C).
 - **Done (step 8):** item icons in the picker's lists and one shared set
   of widths and spacings (`client/Ui`) across the zone screen and the
   picker.

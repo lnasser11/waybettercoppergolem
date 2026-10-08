@@ -52,6 +52,10 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	public static final int BUTTON_RESET_AREA = 5;
 	/** Draw the area outline. */
 	public static final int BUTTON_SHOW_AREA = 6;
+	/** Send the zone overview (every chest, problems first). */
+	public static final int BUTTON_OVERVIEW = 7;
+	/** Send the simulation (what golems would do with the copper chests now). */
+	public static final int BUTTON_SIMULATE = 8;
 
 	private final ContainerLevelAccess access;
 	private final ContainerData data;
@@ -145,6 +149,14 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 				}
 				case BUTTON_SHOW_AREA -> {
 					Zones.showOutline(serverPlayer, serverLevel, zone.area());
+					return true;
+				}
+				case BUTTON_OVERVIEW -> {
+					ZoneOverview.send(serverPlayer, serverLevel, ref);
+					return true;
+				}
+				case BUTTON_SIMULATE -> {
+					ZoneSimulation.send(serverPlayer, serverLevel, ref);
 					return true;
 				}
 				default -> {

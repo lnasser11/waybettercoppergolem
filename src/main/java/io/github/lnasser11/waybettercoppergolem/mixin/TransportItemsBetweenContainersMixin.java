@@ -103,7 +103,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 			return;
 		}
 		cir.setReturnValue(SortingEngine.findDepositTarget(
-				level, body, body.getMainHandItem(), this.destinationBlockType,
+				level, body.position(), body.getMainHandItem(), this.destinationBlockType,
 				wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
 				wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
 				wbcg$searchArea(body, level)));
@@ -135,7 +135,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 			return;
 		}
 		Optional<TransportItemTarget> source = SortingEngine.findMisplacedSource(
-				level, body, this.destinationBlockType,
+				level, body.position(), this.destinationBlockType,
 				wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
 				wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
 				wbcg$searchArea(body, level));
@@ -241,7 +241,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 					: wbcg$peekFirstStack(container);
 			if (!would.isEmpty()) {
 				Optional<TransportItemTarget> destination = SortingEngine.findDepositTarget(
-						level, body, would, this.destinationBlockType,
+						level, body.position(), would, this.destinationBlockType,
 						wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
 						wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
 						wbcg$searchArea(body, level));

@@ -99,7 +99,14 @@ public final class ChestEditor {
 		sendContext(player, level, pos, state);
 	}
 
+	/** Within ten blocks, or anywhere inside the zone the player is standing in (the overview works a whole room). */
 	private static boolean inReach(ServerPlayer player, ServerLevel level, BlockPos pos) {
-		return level.isLoaded(pos) && player.distanceToSqr(Vec3.atCenterOf(pos)) <= MAX_DISTANCE_SQ;
+		if (!level.isLoaded(pos)) {
+			return false;
+		}
+		if (player.distanceToSqr(Vec3.atCenterOf(pos)) <= MAX_DISTANCE_SQ) {
+			return true;
+		}
+		return Zones.zoneAt(level, player.blockPosition()).map(zone -> zone.zone().contains(pos)).orElse(false);
 	}
 }

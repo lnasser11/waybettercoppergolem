@@ -26,7 +26,7 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 	private static final int WIDGET_WIDTH = Ui.PANEL_WIDTH;
 	private static final int WIDGET_HEIGHT = Ui.BUTTON_HEIGHT;
 	private static final int GAP = Ui.GAP;
-	private static final int ROWS = 7;
+	private static final int ROWS = 8;
 	private static final int HEADER_HEIGHT = 36;
 
 	private final ZoneSettingsMenu menu;
@@ -94,6 +94,22 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 							this.onClose();
 						})
 				.bounds(x, y, WIDGET_WIDTH, WIDGET_HEIGHT).build());
+		y += WIDGET_HEIGHT + GAP;
+		this.addRenderableWidget(Button.builder(
+						Component.translatable("waybettercoppergolem.settings.overview"), button -> {
+							// The overview arrives as its own screen.
+							click(ZoneSettingsMenu.BUTTON_OVERVIEW);
+							this.onClose();
+						})
+				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.overview.tooltip")))
+				.bounds(x, y, half, WIDGET_HEIGHT).build());
+		this.addRenderableWidget(Button.builder(
+						Component.translatable("waybettercoppergolem.settings.simulate"), button -> {
+							click(ZoneSettingsMenu.BUTTON_SIMULATE);
+							this.onClose();
+						})
+				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.simulate.tooltip")))
+				.bounds(x + half + GAP, y, half, WIDGET_HEIGHT).build());
 		y += WIDGET_HEIGHT + GAP;
 		this.addRenderableWidget(Button.builder(
 						Component.translatable("waybettercoppergolem.settings.learn"), button -> {
