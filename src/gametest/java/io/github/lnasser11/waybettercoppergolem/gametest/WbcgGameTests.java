@@ -779,6 +779,73 @@ public final class WbcgGameTests {
 		});
 	}
 
+	/**
+	 * A 24×24 storage room (its own structure, floor and walls included)
+	 * with three copper chests of mixed loot, a wall of labeled chests two
+	 * high on the far side, and three golems working at once. Everything
+	 * must end up in the right chest and nothing in a wrong one.
+	 */
+	@GameTest(structure = "waybettercoppergolem_tests:big_room", maxTicks = 6000)
+	public void threeGolemsSortABigRoom(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		BoundingBox box = BoundingBox.fromCorners(helper.absolutePos(BlockPos.ZERO), helper.absolutePos(new BlockPos(23, 5, 23)));
+		for (Map.Entry<BlockPos, Zone> entry : Zones.all(level).entrySet()) {
+			if (entry.getValue().area().intersects(box)) {
+				Zones.remove(level, entry.getKey());
+			}
+		}
+		BlockPos sourceA = copperChest(helper, new BlockPos(3, 1, 3));
+		BlockPos sourceB = copperChest(helper, new BlockPos(3, 1, 20));
+		BlockPos sourceC = copperChest(helper, new BlockPos(12, 1, 12));
+		fill(helper, sourceA, Items.IRON_INGOT, 32, Items.COBBLESTONE, 32, Items.OAK_PLANKS, 32);
+		fill(helper, sourceB, Items.GOLD_INGOT, 32, Items.WHEAT, 32, Items.COBBLESTONE, 32);
+		fill(helper, sourceC, Items.IRON_INGOT, 32, Items.GOLD_INGOT, 32, Items.WHEAT, 32);
+
+		// The chest wall at x=21: a second row on top tests the raised-chest line of sight.
+		BlockPos iron = chest(helper, new BlockPos(21, 1, 4));
+		BlockPos gold = chest(helper, new BlockPos(21, 2, 4));
+		BlockPos cobble = chest(helper, new BlockPos(21, 1, 10));
+		BlockPos planks = chest(helper, new BlockPos(21, 2, 10));
+		BlockPos wheat = chest(helper, new BlockPos(21, 1, 16));
+		label(level, iron, ChestLabel.exact(id(Items.IRON_INGOT)));
+		label(level, gold, ChestLabel.exact(id(Items.GOLD_INGOT)));
+		label(level, cobble, ChestLabel.exact(id(Items.COBBLESTONE)));
+		label(level, planks, ChestLabel.tag(id(Items.OAK_PLANKS), Identifier.withDefaultNamespace("planks")));
+		label(level, wheat, ChestLabel.exact(id(Items.WHEAT)));
+		Zones.put(level, sourceA, new Zone(box, ZoneSettings.DEFAULT));
+
+		List<CopperGolem> golems = List.of(
+				spawnGolem(helper, new BlockPos(8, 1, 8)),
+				spawnGolem(helper, new BlockPos(8, 1, 16)),
+				spawnGolem(helper, new BlockPos(16, 1, 12)));
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, sourceA);
+			golems.forEach(CopperGolem::discard);
+		});
+		Map<BlockPos, Item> expected = Map.of(iron, Items.IRON_INGOT, gold, Items.GOLD_INGOT,
+				cobble, Items.COBBLESTONE, planks, Items.OAK_PLANKS, wheat, Items.WHEAT);
+		helper.failIfEver(() -> {
+			for (Map.Entry<BlockPos, Item> entry : expected.entrySet()) {
+				for (Item wrong : expected.values()) {
+					if (wrong != entry.getValue()) {
+						helper.assertValueEqual(count(level, entry.getKey(), wrong), 0,
+								wrong + " in the " + entry.getValue() + " chest");
+					}
+				}
+			}
+		});
+		long start = level.getGameTime();
+		helper.succeedWhen(() -> {
+			helper.assertValueEqual(count(level, iron, Items.IRON_INGOT), 64, "iron delivered");
+			helper.assertValueEqual(count(level, gold, Items.GOLD_INGOT), 64, "gold delivered");
+			helper.assertValueEqual(count(level, cobble, Items.COBBLESTONE), 64, "cobblestone delivered");
+			helper.assertValueEqual(count(level, planks, Items.OAK_PLANKS), 32, "planks delivered");
+			helper.assertValueEqual(count(level, wheat, Items.WHEAT), 64, "wheat delivered");
+			WayBetterCopperGolem.LOGGER.info("[gametest] three golems sorted 288 items across the big room in {} ticks",
+					level.getGameTime() - start);
+		});
+	}
+
 	/** A stone floor at y=0 and glass walls around the structure, so the golem stays in the room. */
 	private static void buildRoom(GameTestHelper helper) {
 		for (int x = 0; x < 8; x++) {
