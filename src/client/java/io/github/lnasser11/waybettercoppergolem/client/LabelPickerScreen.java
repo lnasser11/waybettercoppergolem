@@ -54,13 +54,17 @@ import java.util.Set;
  * with how many stacks it covers. The screen stays open and refreshes
  * after every change.
  *
- * <p>Three columns on a 480-wide GUI (categories · any item · special),
- * two on narrower ones with the special column under the categories.
+ * <p>Three columns on a 480-wide GUI (categories · any item · special).
+ * On narrower GUIs (the default 854×480 window is 427×240) the categories
+ * become a strip of icon chips under the search box and the special
+ * column moves to the left, so everything still fits in 240 px.
  * Sized to fit a 480 × 270 GUI; the result list grows on taller screens.
  * Closes with Escape (or the inventory key) like an inventory.
  */
 public class LabelPickerScreen extends Screen {
 	private static final int MIN_RESULT_ROWS = 4;
+	private static final int MIN_RESULT_ROWS_NARROW = 3;
+	private static final int CHIPS_PER_ROW = 6;
 	private static final int MAX_RESULT_ROWS = 12;
 	private static final int MAX_CHIPS = 2;
 
@@ -125,38 +129,67 @@ public class LabelPickerScreen extends Screen {
 		}
 		this.dynamic.clear();
 		boolean wide = Ui.wide(this.width);
+		List<TagKey<Item>> presets = LabelResolver.presetCategories();
+		int chipRows = (presets.size() + CHIPS_PER_ROW - 1) / CHIPS_PER_ROW;
 
-		int categoriesHeight = Ui.SECTION_LABEL + 6 * Ui.ROW;
+		int categoriesHeight = wide ? Ui.SECTION_LABEL + ((presets.size() + 1) / 2) * Ui.ROW : 0;
 		int specialHeight = chestMode()
 				? Ui.SECTION_LABEL + (2 + MAX_CHIPS) * Ui.ROW + Ui.GAP + Ui.SECTION_LABEL + 2 * Ui.ROW
 				: Ui.SECTION_LABEL + 4 * Ui.ROW;
-		int searchFixed = Ui.SECTION_LABEL + Ui.ROW + Ui.SECTION_LABEL;
-		int firstColumn = wide ? categoriesHeight : categoriesHeight + Ui.GAP + specialHeight;
-		this.resultRows = Ui.rowsThatFit(this.height, searchFixed, MIN_RESULT_ROWS, MAX_RESULT_ROWS);
+		int chipsHeight = wide ? 0 : Ui.SECTION_LABEL + chipRows * Ui.ROW;
+		int searchFixed = Ui.SECTION_LABEL + Ui.ROW + chipsHeight + Ui.SECTION_LABEL;
+		this.resultRows = Ui.rowsThatFit(this.height, searchFixed,
+				wide ? MIN_RESULT_ROWS : MIN_RESULT_ROWS_NARROW, MAX_RESULT_ROWS);
 		int searchHeight = searchFixed + this.resultRows * Ui.ROW;
-		int contentHeight = Math.max(firstColumn, Math.max(searchHeight, wide ? specialHeight : 0));
+		int contentHeight = Math.max(categoriesHeight, Math.max(searchHeight, specialHeight));
 		this.panel = Panel.centered(this.width, this.height, wide ? Ui.WIDE_PANEL_WIDTH : Ui.PANEL_WIDTH, contentHeight);
 		int top = this.panel.contentTop();
-		this.categoriesX = this.panel.contentX();
-		this.searchX = this.categoriesX + Ui.COLUMN_WIDTH + Ui.GAP;
-		this.specialX = wide ? this.searchX + Ui.COLUMN_WIDTH + Ui.GAP : this.categoriesX;
-		int specialTop = wide ? top : top + categoriesHeight + Ui.GAP;
+		if (wide) {
+			this.categoriesX = this.panel.contentX();
+			this.searchX = this.categoriesX + Ui.COLUMN_WIDTH + Ui.GAP;
+			this.specialX = this.searchX + Ui.COLUMN_WIDTH + Ui.GAP;
+		} else {
+			this.specialX = this.panel.contentX();
+			this.searchX = this.specialX + Ui.COLUMN_WIDTH + Ui.GAP;
+			this.categoriesX = this.searchX;
+		}
+		int specialTop = top;
 
-		// ---- categories
+		// ---- categories: a grid of named buttons in their own column, or icon chips under the search box
 		int half = (Ui.COLUMN_WIDTH - Ui.GAP) / 2;
-		List<TagKey<Item>> presets = LabelResolver.presetCategories();
-		this.categoriesLabelY = top;
-		int y = top + Ui.SECTION_LABEL;
-		for (int i = 0; i < presets.size(); i++) {
-			TagKey<Item> preset = presets.get(i);
-			int x = this.categoriesX + (i % 2) * (half + Ui.GAP);
-			Identifier tagId = preset.location();
-			this.addRenderableWidget(Button.builder(LabelResolver.tagName(tagId),
-							button -> choose(ChestLabel.tag(sampleFor(tagId), tagId)))
-					.tooltip(Tooltip.create(stopTooltip(preset)))
-					.bounds(x, y, half, Ui.BUTTON_HEIGHT).build());
-			if (i % 2 == 1) {
-				y += Ui.ROW;
+		int y;
+		if (wide) {
+			this.categoriesLabelY = top;
+			y = top + Ui.SECTION_LABEL;
+			for (int i = 0; i < presets.size(); i++) {
+				TagKey<Item> preset = presets.get(i);
+				int x = this.categoriesX + (i % 2) * (half + Ui.GAP);
+				Identifier tagId = preset.location();
+				this.addRenderableWidget(Button.builder(LabelResolver.tagName(tagId),
+								button -> choose(ChestLabel.tag(sampleFor(tagId), tagId)))
+						.tooltip(Tooltip.create(stopTooltip(preset)))
+						.bounds(x, y, half, Ui.BUTTON_HEIGHT).build());
+				if (i % 2 == 1) {
+					y += Ui.ROW;
+				}
+			}
+		} else {
+			this.categoriesLabelY = top + Ui.SECTION_LABEL + Ui.ROW;
+			y = this.categoriesLabelY + Ui.SECTION_LABEL;
+			int chipWidth = (Ui.COLUMN_WIDTH - (CHIPS_PER_ROW - 1) * Ui.GAP) / CHIPS_PER_ROW;
+			for (int i = 0; i < presets.size(); i++) {
+				TagKey<Item> preset = presets.get(i);
+				Identifier tagId = preset.location();
+				int x = this.searchX + (i % CHIPS_PER_ROW) * (chipWidth + Ui.GAP);
+				MutableComponent tooltip = LabelResolver.tagName(tagId).copy().append("\n").append(stopTooltip(preset));
+				this.addRenderableWidget(new ListRow(x, y, chipWidth, LabelResolver.tagName(tagId),
+						() -> choose(ChestLabel.tag(sampleFor(tagId), tagId)))
+						.icon(new ItemStack(BuiltInRegistries.ITEM.getOptional(sampleFor(tagId)).orElse(Items.CHEST)))
+						.iconOnly()
+						.tooltip(tooltip));
+				if (i % CHIPS_PER_ROW == CHIPS_PER_ROW - 1) {
+					y += Ui.ROW;
+				}
 			}
 		}
 
@@ -233,7 +266,7 @@ public class LabelPickerScreen extends Screen {
 			rebuildResults();
 		});
 		this.addRenderableWidget(search);
-		this.resultsLabelY = top + Ui.SECTION_LABEL + Ui.ROW;
+		this.resultsLabelY = top + Ui.SECTION_LABEL + Ui.ROW + chipsHeight;
 		this.resultsTop = this.resultsLabelY + Ui.SECTION_LABEL;
 		rebuildResults();
 	}

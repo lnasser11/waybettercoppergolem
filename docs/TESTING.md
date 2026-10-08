@@ -133,9 +133,12 @@ scale your monitor allows, and check:
    drawn over the panel at full brightness, never dimmed under it.
 1b. The zone screen is two columns: Behavior and Defaults on the left,
    Area and Tools on the right. The picker is three columns (Categories,
-   search, Special/This chest) at 480 px and wider, and two columns on
-   narrower screens with Special under Categories; its result list grows
-   with the window height (4 rows at 270 px). The picker closes with Esc.
+   search, Special/This chest) at 480 px and wider. On narrower GUIs (the
+   default 854 × 480 window is 427 × 240) This chest/Special take the left
+   column and the categories become a strip of twelve icon chips under the
+   search box, each with the category name in its tooltip. The result list
+   grows with the window height (4 rows at 270 px, 3 at 240 px). The
+   picker closes with Esc. No button anywhere clips its text.
 2. Section labels (`Behavior`, `Area`, `Tools`, `Categories`, `Special`,
    `Any item`, …) are small, muted and sit just above their controls.
 3. List rows (search results, stops, suggestions, category members,

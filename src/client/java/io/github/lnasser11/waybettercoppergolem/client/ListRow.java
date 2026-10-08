@@ -29,6 +29,7 @@ public class ListRow extends AbstractButton {
 	private int secondaryColor = Ui.TEXT_MUTED;
 	private int primaryColor = Ui.TEXT;
 	private int accent;
+	private boolean iconOnly;
 
 	public ListRow(int x, int y, int width, Component primary, Runnable action) {
 		super(x, y, width, Ui.BUTTON_HEIGHT, primary);
@@ -62,6 +63,12 @@ public class ListRow extends AbstractButton {
 		return this;
 	}
 
+	/** Draw only the icon; the message stays for the tooltip and narration (a compact chip). */
+	public ListRow iconOnly() {
+		this.iconOnly = true;
+		return this;
+	}
+
 	public ListRow enabled(boolean enabled) {
 		this.active = enabled;
 		return this;
@@ -84,8 +91,11 @@ public class ListRow extends AbstractButton {
 		}
 		int textX = x + 6;
 		if (this.icon != null) {
-			graphics.item(this.icon, x + 2, y + 2);
+			graphics.item(this.icon, this.iconOnly ? x + (this.getWidth() - 16) / 2 : x + 2, y + 2);
 			textX = x + Ui.ICON_SLOT + 2;
+		}
+		if (this.iconOnly) {
+			return;
 		}
 		Font font = Minecraft.getInstance().font;
 		int textY = y + (this.getHeight() - 8) / 2;
