@@ -40,11 +40,17 @@ public class CategoryListScreen extends Screen {
 		for (int i = 0; i < presets.size(); i++) {
 			TagKey<Item> preset = presets.get(i);
 			int rowX = x + (i % columns) * (columnWidth + Ui.GAP);
-			this.addRenderableWidget(new ListRow(rowX, y, columnWidth, LabelResolver.tagName(preset.location()),
+			Component count = Ui.count(LabelResolver.tagSize(preset), "items");
+			ListRow row = new ListRow(rowX, y, columnWidth, LabelResolver.tagName(preset.location()),
 					() -> ClientPlayNetworking.send(new TuningPayloads.OpenTuning(preset.location())))
-					.icon(sampleStack(preset))
-					.secondary(Ui.count(LabelResolver.tagSize(preset), "items"), Ui.TEXT_MUTED)
-					.tooltip(Component.literal(preset.location().toString())));
+					.icon(sampleStack(preset));
+			if (columns == 2) {
+				row.secondary(count, Ui.TEXT_MUTED).tooltip(Component.literal(preset.location().toString()));
+			} else {
+				// Narrow columns: the name gets the room, the count moves into the tooltip.
+				row.tooltip(Component.literal(preset.location().toString()).append("\n").append(count));
+			}
+			this.addRenderableWidget(row);
 			if (i % columns == columns - 1) {
 				y += Ui.ROW;
 			}
