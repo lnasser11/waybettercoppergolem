@@ -309,6 +309,15 @@ persists with the world, and never modifies the base tag. Whole
 categories can be replaced wholesale with a regular datapack (they're
 plain `data/wbcg/tags/item/*.json` files).
 
+**Tuning in-game:** in the picker or the chest editor, press **Tune
+categories…** and pick a preset, or press the **…** beside any tag in an
+item's stop list. The tuning screen lists what the category contains
+(click an item to exclude it; excluded items are listed last and click
+to restore), lets you search any item to add it or add the item in your
+hand, and has a **Reset tweaks** button. Everyone can look; changing
+needs operator permission. The `/wbcg category` commands do the same
+from chat.
+
 Labels show friendly names everywhere: `c:ingots/iron` reads *Ingots ›
 Iron*, `minecraft:wooden_slabs` reads *Wooden Slabs*, presets use their
 names. The raw id is in tooltips and in `/wbcg category` output.

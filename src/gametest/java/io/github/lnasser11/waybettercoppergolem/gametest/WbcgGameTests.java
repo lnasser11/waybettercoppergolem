@@ -11,6 +11,8 @@ import io.github.lnasser11.waybettercoppergolem.learn.LearnSession;
 import io.github.lnasser11.waybettercoppergolem.learn.RoomLearner;
 import io.github.lnasser11.waybettercoppergolem.sorting.ZoneAwareGolem;
 import io.github.lnasser11.waybettercoppergolem.tool.ChestEditor;
+import io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning;
+import io.github.lnasser11.waybettercoppergolem.tuning.TuningNet;
 import io.github.lnasser11.waybettercoppergolem.tool.Clipboard;
 import io.github.lnasser11.waybettercoppergolem.tool.LabelTool;
 import io.github.lnasser11.waybettercoppergolem.zone.Zone;
@@ -535,6 +537,38 @@ public final class WbcgGameTests {
 		ChestEditor.apply(player, chest, List.of());
 		helper.assertTrue(ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest)).isEmpty(), "cleared");
 		helper.assertTrue(Clipboard.of(player).isClearMarker(), "clipboard holds the clear marker");
+		helper.succeed();
+	}
+
+	// ---------------------------------------------------------------- tuning screen (server side)
+
+	@GameTest
+	public void tuningChangesNeedOpAndRoundTrip(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		Identifier redstone = Identifier.fromNamespaceAndPath("wbcg", "redstone");
+		CategoryTuning.reset(level, redstone);
+		ServerPlayer player = mockPlayer(helper);
+
+		helper.assertFalse(TuningNet.canEdit(player), "mock player is not an operator");
+		TuningNet.change(player, redstone, Optional.of(id(Items.GLOWSTONE)), true);
+		helper.assertFalse(CategoryTuning.matches(level, redstone, new ItemStack(Items.GLOWSTONE)),
+				"non-op change rejected");
+
+		// The mock player cannot be made an operator in the test server, so the
+		// tweak itself (what change() runs after the permission check) is
+		// exercised directly.
+		helper.assertTrue(TuningNet.applyTweak(level, redstone, Optional.of(id(Items.GLOWSTONE)), true) != null, "added confirmation");
+		helper.assertTrue(CategoryTuning.matches(level, redstone, new ItemStack(Items.GLOWSTONE)), "added");
+		TuningNet.applyTweak(level, redstone, Optional.of(id(Items.PISTON)), false);
+		helper.assertFalse(CategoryTuning.matches(level, redstone, new ItemStack(Items.PISTON)), "base item excluded");
+		CategoryTuning.TagOverride override = CategoryTuning.overridesFor(level, redstone);
+		helper.assertValueEqual(override.added(), java.util.Set.of(id(Items.GLOWSTONE)), "added set");
+		helper.assertValueEqual(override.removed(), java.util.Set.of(id(Items.PISTON)), "removed set");
+		helper.assertTrue(TuningNet.applyTweak(level, redstone, Optional.of(Identifier.fromNamespaceAndPath("nomod", "x")), true) == null,
+				"unknown item: no-op");
+
+		TuningNet.applyTweak(level, redstone, Optional.empty(), false);
+		helper.assertTrue(CategoryTuning.overridesFor(level, redstone).isEmpty(), "reset dropped the tweaks");
 		helper.succeed();
 	}
 

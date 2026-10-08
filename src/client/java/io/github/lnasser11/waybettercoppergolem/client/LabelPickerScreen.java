@@ -6,6 +6,7 @@ import io.github.lnasser11.waybettercoppergolem.net.EditorPayloads;
 import io.github.lnasser11.waybettercoppergolem.net.EditorPayloads.EditorContext;
 import io.github.lnasser11.waybettercoppergolem.net.EditorPayloads.Suggestion;
 import io.github.lnasser11.waybettercoppergolem.net.SetClipboardPayload;
+import io.github.lnasser11.waybettercoppergolem.net.TuningPayloads;
 import io.github.lnasser11.waybettercoppergolem.tool.Clipboard;
 import io.github.lnasser11.waybettercoppergolem.tool.LabelTool;
 
@@ -177,6 +178,12 @@ public class LabelPickerScreen extends Screen {
 					.bounds(leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
 			y += Ui.ROW;
 		}
+		y += Ui.GAP;
+		this.addRenderableWidget(Button.builder(Component.translatable("waybettercoppergolem.picker.tune_categories"),
+						button -> this.minecraft.setScreenAndShow(new CategoryListScreen()))
+				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.picker.tune_categories.tooltip")))
+				.bounds(leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
+		y += Ui.ROW;
 		int leftBottom = y;
 
 		// ---- right: search + results
@@ -262,7 +269,7 @@ public class LabelPickerScreen extends Screen {
 				addIconRow(y, new ItemStack(item),
 						Component.translatable("waybettercoppergolem.picker.stop", LabelResolver.tagName(tagId),
 								LabelResolver.tagSize(tag)),
-						stopTooltip(tag), () -> choose(ChestLabel.tag(itemId, tagId)));
+						stopTooltip(tag), () -> choose(ChestLabel.tag(itemId, tagId)), tagId);
 				y += Ui.ROW;
 			}
 			return;
@@ -276,7 +283,7 @@ public class LabelPickerScreen extends Screen {
 				Component text = Component.translatable("waybettercoppergolem.editor.suggestion",
 						LabelResolver.shortName(label), suggestion.coveredStacks(), suggestion.totalStacks());
 				Component tooltip = label.tagId().map(id -> stopTooltip(LabelResolver.itemTag(id))).orElse(null);
-				addIconRow(y, iconFor(label), text, tooltip, () -> choose(label));
+				addIconRow(y, iconFor(label), text, tooltip, () -> choose(label), label.tagId().orElse(null));
 				y += Ui.ROW;
 			}
 			return;
@@ -291,12 +298,25 @@ public class LabelPickerScreen extends Screen {
 	}
 
 	private void addIconRow(int y, ItemStack icon, Component text, @Nullable Component tooltip, Runnable action) {
+		addIconRow(y, icon, text, tooltip, action, null);
+	}
+
+	/** A row with an icon slot on the left and, for tag labels, a "…" button on the right that opens tuning. */
+	private void addIconRow(int y, ItemStack icon, Component text, @Nullable Component tooltip, Runnable action,
+			@Nullable Identifier tuneTag) {
+		int width = Ui.COLUMN_WIDTH - Ui.ICON_SLOT - (tuneTag != null ? Ui.ICON_SLOT + Ui.GAP : 0);
 		Button.Builder builder = Button.builder(text, button -> action.run())
-				.bounds(this.rightX + Ui.ICON_SLOT, y, Ui.COLUMN_WIDTH - Ui.ICON_SLOT, Ui.BUTTON_HEIGHT);
+				.bounds(this.rightX + Ui.ICON_SLOT, y, width, Ui.BUTTON_HEIGHT);
 		if (tooltip != null) {
 			builder.tooltip(Tooltip.create(tooltip));
 		}
 		add(builder.build());
+		if (tuneTag != null) {
+			add(Button.builder(Component.literal("…"),
+							button -> ClientPlayNetworking.send(new TuningPayloads.OpenTuning(tuneTag)))
+					.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.picker.tune_row.tooltip")))
+					.bounds(this.rightX + Ui.COLUMN_WIDTH - Ui.ICON_SLOT, y, Ui.ICON_SLOT, Ui.BUTTON_HEIGHT).build());
+		}
 		this.icons.add(new IconAt(icon, this.rightX + 2, y + 2));
 	}
 

@@ -10,10 +10,12 @@ import io.github.lnasser11.waybettercoppergolem.net.AreaModePayload;
 import io.github.lnasser11.waybettercoppergolem.net.ConfigPayload;
 import io.github.lnasser11.waybettercoppergolem.net.EditorPayloads;
 import io.github.lnasser11.waybettercoppergolem.net.SetClipboardPayload;
+import io.github.lnasser11.waybettercoppergolem.net.TuningPayloads;
 import io.github.lnasser11.waybettercoppergolem.tool.ChestEditor;
 import io.github.lnasser11.waybettercoppergolem.tool.Clipboard;
 import io.github.lnasser11.waybettercoppergolem.tool.LabelTool;
 import io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning;
+import io.github.lnasser11.waybettercoppergolem.tuning.TuningNet;
 import io.github.lnasser11.waybettercoppergolem.zone.Zone;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettingsMenu;
@@ -125,6 +127,13 @@ public class WayBetterCopperGolem implements ModInitializer {
 				(payload, context) -> ChestEditor.open(context.player(), payload.pos()));
 		ServerPlayNetworking.registerGlobalReceiver(EditorPayloads.SetChestLabels.TYPE,
 				(payload, context) -> ChestEditor.apply(context.player(), payload.pos(), payload.labels()));
+		PayloadTypeRegistry.clientboundPlay().register(TuningPayloads.TuningContext.TYPE, TuningPayloads.TuningContext.STREAM_CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(TuningPayloads.OpenTuning.TYPE, TuningPayloads.OpenTuning.STREAM_CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(TuningPayloads.TuneCategory.TYPE, TuningPayloads.TuneCategory.STREAM_CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(TuningPayloads.OpenTuning.TYPE,
+				(payload, context) -> TuningNet.open(context.player(), payload.tagId()));
+		ServerPlayNetworking.registerGlobalReceiver(TuningPayloads.TuneCategory.TYPE,
+				(payload, context) -> TuningNet.change(context.player(), payload.tagId(), payload.itemId(), payload.include()));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			if (ServerPlayNetworking.canSend(handler, ConfigPayload.TYPE)) {
 				sender.sendPacket(new ConfigPayload(WbcgConfig.get().toolItemId()));

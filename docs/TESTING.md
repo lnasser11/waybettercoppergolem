@@ -242,10 +242,20 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
    minecraft:piston` answers membership questions without a golem.
 2. Label a chest **Redstone** (picker → Redstone → paste). Feed redstone
    items into the copper chest → they land there.
-3. `/wbcg category add redstone minecraft:glowstone` → feed glowstone → it
-   now sorts into the Redstone chest. `/wbcg category list redstone`
-   shows the tweak; it survives a restart.
-4. `/wbcg category remove redstone minecraft:glowstone` → back to normal.
+3. Open the picker → **Tune categories…** → **Redstone** → the tuning
+   screen: `Contents of Redstone`, a paged list of its items with icons,
+   a search box. Type `glow`, click **+ Glowstone** → the actionbar says
+   `Added Glowstone to Redstone`, the list now shows `+ Glowstone`. Feed
+   glowstone → it sorts into the Redstone chest. `/wbcg category list
+   redstone` shows the tweak; it survives a restart.
+4. Click **Piston** in the list → `Removed Piston from Redstone`; it moves
+   to the end as `excluded: Piston`; click it again → restored.
+5. Hold a redstone torch, press **Add held item** → no change (already a
+   member); hold a bell, press it → added. **Reset tweaks** → all gone.
+6. Open the picker, search `iron`, click Iron Ingot, press the **…** next
+   to `Ingots` → the tuning screen for `c:ingots` opens.
+7. As a non-op, the tuning screen opens but every item button and the
+   add/reset buttons are disabled, with a red hint.
 
 ## 15. Safety checks
 

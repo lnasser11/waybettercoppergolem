@@ -290,8 +290,11 @@ audited for unused keys; the mod description updated.
   apply to the chest at once (and to the clipboard) and the screen
   refreshes from the server's answer. Payloads: `open_editor` (C2S),
   `editor_context` (S2C), `set_chest_labels` (C2S).
-- Category tuning UI inside the editor (grid of members, click to
-  exclude, add held item).
+- **Done (step 9):** category tuning screen (members paged with icons,
+  click to exclude / restore, search to add, add held item, reset),
+  reached from "Tune categories…" in the picker/editor or the "…" beside
+  any tag in a stop list. Payloads: `open_tuning` (C2S),
+  `tuning_context` (S2C), `tune_category` (C2S, operators only).
 - Zone overview from the copper chest: every chest in range, problems
   first (unlabeled, duplicate labels, items with no destination), click
   to highlight, bulk apply/clear.
