@@ -22,6 +22,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Inventory;
@@ -278,12 +279,15 @@ public class LabelPickerScreen extends Screen {
 				}
 				ChestLabel label = suggestion.label();
 				boolean full = suggestion.coveredStacks() == suggestion.totalStacks();
+				MutableComponent tooltip = Component.translatable("waybettercoppergolem.editor.coverage.tooltip",
+						suggestion.coveredStacks(), suggestion.totalStacks());
+				label.tagId().ifPresent(id -> tooltip.append("\n").append(stopTooltip(LabelResolver.itemTag(id))));
 				add(row(y, LabelResolver.shortName(label), () -> choose(label), label.tagId().orElse(null))
 						.icon(iconFor(label))
 						.secondary(Component.translatable("waybettercoppergolem.editor.coverage",
 								suggestion.coveredStacks(), suggestion.totalStacks()), full ? Ui.OK : Ui.TEXT_MUTED)
 						.accent(full ? Ui.OK : 0)
-						.tooltip(label.tagId().map(id -> stopTooltip(LabelResolver.itemTag(id))).orElse(null)));
+						.tooltip(tooltip));
 				y += Ui.ROW;
 			}
 			return;
