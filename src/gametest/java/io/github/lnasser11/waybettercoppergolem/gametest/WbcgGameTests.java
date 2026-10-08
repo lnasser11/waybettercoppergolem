@@ -21,6 +21,7 @@ import io.github.lnasser11.waybettercoppergolem.tool.LabelTool;
 import io.github.lnasser11.waybettercoppergolem.zone.Zone;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneOverview;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings;
+import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettingsMenu;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSimulation;
 import io.github.lnasser11.waybettercoppergolem.zone.Zones;
 
@@ -895,6 +896,82 @@ public final class WbcgGameTests {
 			}
 		}
 		return total;
+	}
+
+	// ---------------------------------------------------------------- vertical reach
+
+	/** The zone screen's stepper changes the zone's reach through the menu, clamped to the allowed range. */
+	@GameTest
+	public void reachStepperChangesTheZone(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		BlockPos anchor = copperChest(helper, new BlockPos(1, 1, 1));
+		Zones.put(level, anchor, new Zone(structureBox(helper), ZoneSettings.DEFAULT));
+		ServerPlayer player = mockPlayer(helper);
+		Zones.ZoneRef ref = Zones.zoneForCopperChest(level, anchor);
+		ZoneSettingsMenu menu = new ZoneSettingsMenu(1, net.minecraft.world.inventory.ContainerLevelAccess.create(level, anchor),
+				anchor, ZoneSettingsMenu.dataFor(ref));
+
+		menu.clickMenuButton(player, ZoneSettingsMenu.BUTTON_REACH_UP);
+		helper.assertValueEqual(Zones.settingsAt(level, anchor).verticalReach(), ZoneSettings.DEFAULT_VERTICAL_REACH + 1, "one up");
+		helper.assertValueEqual(menu.settings().verticalReach(), ZoneSettings.DEFAULT_VERTICAL_REACH + 1, "menu data follows");
+		for (int i = 0; i < ZoneSettings.MAX_VERTICAL_REACH + 5; i++) {
+			menu.clickMenuButton(player, ZoneSettingsMenu.BUTTON_REACH_UP);
+		}
+		helper.assertValueEqual(Zones.settingsAt(level, anchor).verticalReach(), ZoneSettings.MAX_VERTICAL_REACH, "clamped at the top");
+		for (int i = 0; i < ZoneSettings.MAX_VERTICAL_REACH + 5; i++) {
+			menu.clickMenuButton(player, ZoneSettingsMenu.BUTTON_REACH_DOWN);
+		}
+		helper.assertValueEqual(Zones.settingsAt(level, anchor).verticalReach(), ZoneSettings.MIN_VERTICAL_REACH, "clamped at the bottom");
+		Zones.remove(level, anchor);
+		helper.succeed();
+	}
+
+	/** A golem on the floor delivers into a chest four blocks up when the zone's reach allows it. */
+	@GameTest(maxTicks = GOLEM_TIMEOUT)
+	public void golemReachesAHighChestWithinReach(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 3));
+		fill(helper, source, Items.IRON_INGOT, 16);
+		for (int y = 1; y <= 4; y++) {
+			helper.setBlock(new BlockPos(6, y, 3), Blocks.STONE);
+		}
+		BlockPos high = chest(helper, new BlockPos(6, 5, 3));
+		label(level, high, ChestLabel.exact(id(Items.IRON_INGOT)));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT.withVerticalReach(8)));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		helper.succeedWhen(() -> helper.assertValueEqual(count(level, high, Items.IRON_INGOT), 16, "delivered four blocks up"));
+	}
+
+	/** With the reach set to one block, the same high chest is out of reach and stays empty. */
+	@GameTest(maxTicks = 1200)
+	public void golemCannotReachAHighChestBeyondReach(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 3));
+		fill(helper, source, Items.IRON_INGOT, 16);
+		for (int y = 1; y <= 4; y++) {
+			helper.setBlock(new BlockPos(6, y, 3), Blocks.STONE);
+		}
+		BlockPos high = chest(helper, new BlockPos(6, 5, 3));
+		label(level, high, ChestLabel.exact(id(Items.IRON_INGOT)));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT.withVerticalReach(1)));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		helper.runAfterDelay(800, () -> {
+			helper.assertValueEqual(count(level, high, Items.IRON_INGOT), 0, "nothing delivered beyond reach");
+			helper.succeed();
+		});
 	}
 
 	// ---------------------------------------------------------------- the golem button

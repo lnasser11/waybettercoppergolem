@@ -8,13 +8,15 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
  * chests belong) lives next to these in {@link Zone}; the settings are the
  * part the label tool copies from one zone to another.
  *
- * <p>{@code verticalReach} is how high a golem can reach into a chest wall
- * (1–6). It defaults to the maximum and is no longer exposed in the zone
- * screen; the field stays so older worlds keep their value.
+ * <p>{@code verticalReach} is how many blocks above or below itself a golem
+ * can reach into a chest (1–{@value #MAX_VERTICAL_REACH}); the zone screen
+ * has a stepper for it. Golems still need a clear view of the chest's face.
  */
 public record ZoneSettings(int verticalReach, boolean reorganize, boolean tidyInside, boolean dryRun) {
-	public static final int MAX_VERTICAL_REACH = 6;
-	public static final ZoneSettings DEFAULT = new ZoneSettings(MAX_VERTICAL_REACH, true, false, false);
+	public static final int MIN_VERTICAL_REACH = 1;
+	public static final int MAX_VERTICAL_REACH = 16;
+	public static final int DEFAULT_VERTICAL_REACH = 6;
+	public static final ZoneSettings DEFAULT = new ZoneSettings(DEFAULT_VERTICAL_REACH, true, false, false);
 
 	public static final Codec<ZoneSettings> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			Codec.INT.optionalFieldOf("vertical_reach", DEFAULT.verticalReach()).forGetter(ZoneSettings::verticalReach),
@@ -24,7 +26,11 @@ public record ZoneSettings(int verticalReach, boolean reorganize, boolean tidyIn
 	).apply(instance, ZoneSettings::new));
 
 	public ZoneSettings {
-		verticalReach = Math.clamp(verticalReach, 1, MAX_VERTICAL_REACH);
+		verticalReach = Math.clamp(verticalReach, MIN_VERTICAL_REACH, MAX_VERTICAL_REACH);
+	}
+
+	public ZoneSettings withVerticalReach(int value) {
+		return new ZoneSettings(value, reorganize, tidyInside, dryRun);
 	}
 
 	public ZoneSettings withReorganize(boolean value) {

@@ -286,8 +286,12 @@ scale your monitor allows, and check:
    gold ingot.
 2. Feed gold ingots into the copper chest.
 3. **Expect:** the golem deposits into the top chest while standing on
-   the floor — no climbing, no scaffolding. Reach is fixed at 6 blocks; a
-   chest 7 above the floor is out of reach.
+   the floor — no climbing, no scaffolding. Reach is 6 blocks by default;
+   a chest 7 above the floor is out of reach.
+4. In the zone screen, press **+** next to *Reach* until it reads 10, and
+   add chests up to 9 above the floor. The golem now serves those too.
+   Press **−** back to 1 and watch it give up on anything above its head.
+   The HUD's zone line shows "reach N" and follows the stepper.
 
 ## 11. Reorganize existing chests
 
