@@ -9,7 +9,9 @@ label model, the learn inference, the tool's copy/paste, zones and the
 picker's server side, and three of them let a **real copper golem** work
 in a walled 8 × 8 room: items land in the chests whose labels match and
 never in the other, a chest outside the zone box is ignored for a plain
-chest inside it, and dry run moves nothing. A second automated test
+chest inside it, and dry run moves nothing. A fourth sends three golems
+through a 24 × 24 room with three copper chests of mixed loot and a
+two-high wall of labeled chests on the far side. A second automated test
 drives a **real client**
 (`./gradlew runClientGameTest`; on a headless machine wrap it in
 `xvfb-run -s "-screen 0 1920x1080x24"`): it builds a small chest room,
