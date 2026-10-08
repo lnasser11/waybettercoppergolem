@@ -4,6 +4,7 @@ import io.github.lnasser11.waybettercoppergolem.WayBetterCopperGolem;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabel;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabelSet;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabels;
+import io.github.lnasser11.waybettercoppergolem.label.LabelResolver;
 import io.github.lnasser11.waybettercoppergolem.learn.LearnSession;
 import io.github.lnasser11.waybettercoppergolem.learn.RoomLearner;
 import io.github.lnasser11.waybettercoppergolem.sorting.ZoneAwareGolem;
@@ -377,6 +378,51 @@ public final class WbcgGameTests {
 
 		Zones.remove(level, anchor);
 		golem.discard();
+		helper.succeed();
+	}
+
+	// ---------------------------------------------------------------- picker + names
+
+	@GameTest
+	public void tagNamesAreFriendly(GameTestHelper helper) {
+		helper.assertValueEqual(LabelResolver.tagName(C_INGOTS_IRON).getString(), "Ingots › Iron", "nested c: tag");
+		helper.assertValueEqual(LabelResolver.tagName(Identifier.withDefaultNamespace("wooden_slabs")).getString(),
+				"Wooden Slabs", "vanilla tag");
+		helper.assertValueEqual(LabelResolver.tagName(Identifier.fromNamespaceAndPath("wbcg", "redstone")).getString(),
+				"Redstone", "preset uses the lang entry");
+		helper.assertTrue(LabelResolver.orderedTags(Items.IRON_INGOT).stream()
+				.allMatch(tag -> LabelResolver.tagSize(tag) > 1), "no single-member stops");
+		helper.assertValueEqual(LabelResolver.presetCategories().size(), 12, "twelve presets");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void pickerChoiceIsValidatedAndStored(GameTestHelper helper) {
+		ServerPlayer player = mockPlayer(helper);
+		Clipboard.set(player, Clipboard.EMPTY);
+
+		LabelTool.applyPickerChoice(player, Optional.of(List.of(ChestLabel.tag(id(Items.IRON_INGOT), C_INGOTS))));
+		helper.assertValueEqual(Clipboard.of(player).labels(),
+				Optional.of(List.of(ChestLabel.tag(id(Items.IRON_INGOT), C_INGOTS))), "valid tag label stored");
+
+		LabelTool.applyPickerChoice(player, Optional.of(List.of(
+				ChestLabel.tag(id(Items.IRON_INGOT), Identifier.fromNamespaceAndPath("c", "no_such_tag")))));
+		helper.assertValueEqual(Clipboard.of(player).labels().map(l -> l.getFirst().tagId()),
+				Optional.of(Optional.of(C_INGOTS)), "unknown tag rejected, clipboard unchanged");
+
+		LabelTool.applyPickerChoice(player, Optional.of(List.of(
+				ChestLabel.exact(Identifier.fromNamespaceAndPath("nomod", "nothing")))));
+		helper.assertValueEqual(Clipboard.of(player).labels().map(l -> l.getFirst().tagId()),
+				Optional.of(Optional.of(C_INGOTS)), "unknown item rejected");
+
+		LabelTool.applyPickerChoice(player, Optional.of(List.of()));
+		helper.assertTrue(Clipboard.of(player).isClearMarker(), "remove-labels marker stored");
+
+		LabelTool.applyPickerChoice(player, Optional.of(List.of(ChestLabel.catchAll())));
+		helper.assertValueEqual(Clipboard.of(player).labels(), Optional.of(List.of(ChestLabel.catchAll())), "catch-all stored");
+
+		LabelTool.applyPickerChoice(player, Optional.empty());
+		helper.assertTrue(Clipboard.of(player).labels().isEmpty(), "clipboard emptied");
 		helper.succeed();
 	}
 

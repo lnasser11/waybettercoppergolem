@@ -194,15 +194,32 @@ public final class LabelTool {
 		return InteractionResult.SUCCESS;
 	}
 
-	/** Sneak-right-click with nothing useful in front: cancel area mode, or show what the tool carries. */
+	/**
+	 * Sneak-right-click with nothing useful in front: cancel area mode, or
+	 * show what the tool carries. The client side passes so the picker
+	 * (registered client-side) gets its turn when the click hits the air.
+	 */
 	private static InteractionResult onUseItem(Player player, Level level, InteractionHand hand) {
-		if (!holdingTool(player, level, hand)) {
+		if (!holdingTool(player, level, hand) || !(player instanceof ServerPlayer serverPlayer)) {
 			return InteractionResult.PASS;
 		}
-		if (player instanceof ServerPlayer serverPlayer && !cancelAreaMode(serverPlayer)) {
+		if (!cancelAreaMode(serverPlayer)) {
 			serverPlayer.sendOverlayMessage(describeClipboard(Clipboard.of(serverPlayer)));
 		}
 		return InteractionResult.SUCCESS;
+	}
+
+	/** The picker's choice arrives here; validated, then stored and confirmed. */
+	public static void applyPickerChoice(ServerPlayer player, Optional<List<ChestLabel>> labels) {
+		if (labels.isPresent()) {
+			List<ChestLabel> list = labels.get();
+			if (list.size() > 8 || !list.stream().allMatch(LabelResolver::isValid)) {
+				return;
+			}
+		}
+		Clipboard updated = Clipboard.of(player).withLabels(labels);
+		Clipboard.set(player, updated);
+		player.sendOverlayMessage(describeClipboard(updated));
 	}
 
 	// ---------------------------------------------------------------- labels

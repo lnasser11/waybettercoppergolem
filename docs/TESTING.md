@@ -25,9 +25,9 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
    **iron ingot** in it. Right-click the chest: the actionbar should show
    `Golem labels: Iron Ingot (auto)` and the chest opens normally.
 2. Put copper ingots and gold ingots into the chest, close and reopen →
-   `Golem labels: #c:ingots (auto)` (the smart-frame rule: narrowest tag
-   of the framed item that covers everything inside). Take them out
-   again → back to `Iron Ingot (auto)`.
+   `Golem labels: Ingots (auto)` (the smart-frame rule: narrowest tag of
+   the framed item that covers everything inside). Take them out again →
+   back to `Iron Ingot (auto)`.
 3. Sneak-click the frame to rotate the item, swap the item for a diamond:
    pure vanilla behavior, no mod message. Right-click the chest →
    `Diamond (auto)`.
@@ -59,14 +59,33 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
    Sneak-right-click a copper chest in a *different* zone → `Applied zone
    settings …`; open its GUI → toggles match, its area is unchanged.
 
+## 1d. The picker
+
+1. Holding the feather, **sneak-right-click the air** → the picker opens:
+   twelve category buttons, Catch-all / Off-limits / Remove labels /
+   Empty clipboard, and a search box listing the items you carry.
+2. Click **Food** → the screen closes and the actionbar says
+   `Clipboard: Food`. Sneak-right-click a chest → `Labeled chest: Food`.
+3. Open the picker, type `iron`, click **Iron Ingot** → its stops appear:
+   `Iron Ingot (exact item only)`, `Ingots › Iron · N items`,
+   `Ingots · N items`, … (hover shows the raw tag id). Click
+   `Ingots › Iron` → clipboard set; paste onto a chest and feed iron and
+   copper ingots → iron goes there, copper does not.
+4. Open the picker, click **Remove labels**, paste onto that chest → its
+   labels are gone (`Cleared labels …`); right-click shows no label line.
+5. **Off-limits** → paste → the chest summary says off-limits; golems
+   never deposit there.
+6. Sneak-right-click a *block* that is not a chest (not the air) → no
+   picker, just the clipboard line in the actionbar.
+
 ## 1c. Learn pass
 
 1. Build a small room: a chest of only diamonds, a chest of iron + copper
    + gold ingots, a chest of ingots plus one stack of dirt, a chest of
    dirt + a bow + a cake, and an empty chest. Stand in the middle.
 2. `/wbcg learn 8` → chat shows a header like `Learn: 3 chests get a
-   label, 2 skipped`, one line per chest (`Diamond`, `#c:ingots`,
-   `#c:ingots misplaced: Dirt`), and `Skipped: … empty … mixed contents`.
+   label, 2 skipped`, one line per chest (`Diamond`, `Ingots`,
+   `Ingots misplaced: Dirt`), and `Skipped: … empty … mixed contents`.
 3. Click a chest's `[x y z]` → white sparkles rise over that chest.
 4. Click **[Apply]** → `Labeled 3 chests.` Right-click each → summary
    **without** `(auto)`. The dirt is still in its chest; with a golem and

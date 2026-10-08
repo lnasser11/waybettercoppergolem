@@ -197,9 +197,12 @@ Layout (vanilla widgets, no textures):
   names and member counts; pick one.
 - Current clipboard shown at the top.
 
-Selection sends one `wbcg:set_clipboard` payload carrying a
-`ChestLabel`; the server validates that the item/tag exists and stores
-it in the player's clipboard. The synced attachment updates the HUD.
+Selection sends one `wbcg:set_clipboard` payload carrying the label
+list (empty list = the "remove labels" marker, absent = empty the
+clipboard); the server validates that the item/tag exists and stores it
+in the player's clipboard. The synced attachment updates the HUD. The
+picker opens client-side from an air click (hit result MISS); clicks on
+other blocks keep showing the clipboard in the actionbar.
 
 Friendly tag names: `wbcg:` → lang entry; `c:ingots/iron` →
 "Ingots › Iron"; `minecraft:wooden_slabs` → "Wooden Slabs"; raw id in the

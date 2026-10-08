@@ -84,5 +84,21 @@
   "waybettercoppergolem.area.cancelled": "Area mode cancelled.",
   "waybettercoppergolem.area.expired": "Area mode timed out. Press \"Set area\" again.",
   "waybettercoppergolem.learn.scope.radius": "radius %s",
-  "waybettercoppergolem.learn.scope.zone": "zone area %s"
+  "waybettercoppergolem.learn.scope.zone": "zone area %s",
+  "waybettercoppergolem.picker.title": "Pick a label for the clipboard",
+  "waybettercoppergolem.picker.catch_all": "Catch-all",
+  "waybettercoppergolem.picker.catch_all.tooltip": "Items matching no other label anywhere go to this chest.",
+  "waybettercoppergolem.picker.off_limits": "Off-limits",
+  "waybettercoppergolem.picker.off_limits.tooltip": "Golems never deposit into, claim, or reorganize this chest.",
+  "waybettercoppergolem.picker.remove_labels": "Remove labels",
+  "waybettercoppergolem.picker.remove_labels.tooltip": "Pasting this removes a chest's labels: it goes back to its frames, or to vanilla behavior.",
+  "waybettercoppergolem.picker.empty_clipboard": "Empty clipboard",
+  "waybettercoppergolem.picker.search": "Item search",
+  "waybettercoppergolem.picker.search_hint": "Search any item…",
+  "waybettercoppergolem.picker.from_inventory": "Items you carry:",
+  "waybettercoppergolem.picker.no_results": "No items match.",
+  "waybettercoppergolem.picker.back": "← Back",
+  "waybettercoppergolem.picker.exact": "%s (exact item only)",
+  "waybettercoppergolem.picker.stop": "%s · %s items",
+  "waybettercoppergolem.picker.tag_tooltip": "Tag %s · %s items"
 }

@@ -59,6 +59,7 @@ public final class LabelResolver {
 	public static List<TagKey<Item>> orderedTags(Item item) {
 		return TAG_CACHE.computeIfAbsent(item, it -> it.builtInRegistryHolder().tags()
 				.filter(LabelResolver::isCycleStop)
+				.filter(tag -> tagSize(tag) > 1) // a one-item tag says nothing the exact item doesn't
 				.sorted(NARROW_TO_BROAD)
 				.toList());
 	}
@@ -69,6 +70,26 @@ public final class LabelResolver {
 			.thenComparing((TagKey<Item> tag) -> tag.location().getPath().split("/").length,
 					Comparator.reverseOrder())
 			.thenComparing(tag -> tag.location().toString());
+
+	/** The mod's preset categories, sorted by id (needs bound tags: server, or client after login). */
+	public static List<TagKey<Item>> presetCategories() {
+		return BuiltInRegistries.ITEM.getTags()
+				.map(named -> named.key())
+				.filter(LabelResolver::isPresetCategory)
+				.sorted(Comparator.comparing(tag -> tag.location().getPath()))
+				.toList();
+	}
+
+	/** Whether a label (from a client, say) names things that exist. */
+	public static boolean isValid(ChestLabel label) {
+		if (label.itemId().isPresent() && !BuiltInRegistries.ITEM.containsKey(label.itemId().get())) {
+			return false;
+		}
+		if (label.tagId().isPresent()) {
+			return label.itemId().isPresent() && BuiltInRegistries.ITEM.get(itemTag(label.tagId().get())).isPresent();
+		}
+		return true;
+	}
 
 	/** Whether this is one of the mod's {@code wbcg:} preset categories. */
 	public static boolean isPresetCategory(TagKey<Item> tag) {
@@ -125,12 +146,32 @@ public final class LabelResolver {
 		return Math.max(1, tagSize(itemTag(label.tagId().get())));
 	}
 
-	/** Friendly name for a category tag: lang entry for wbcg, "#id" otherwise. */
+	/**
+	 * Friendly name for a tag: the lang entry for presets, otherwise the
+	 * path humanized ({@code c:ingots/iron} → "Ingots › Iron",
+	 * {@code minecraft:wooden_slabs} → "Wooden Slabs"). The raw id belongs
+	 * in a tooltip, not here.
+	 */
 	public static Component tagName(Identifier tagId) {
 		if (tagId.getNamespace().equals(CATEGORY_NAMESPACE)) {
 			return Component.translatable("waybettercoppergolem.category." + tagId.getPath());
 		}
-		return Component.literal("#" + tagId);
+		StringBuilder name = new StringBuilder();
+		for (String segment : tagId.getPath().split("/")) {
+			if (!name.isEmpty()) {
+				name.append(" › ");
+			}
+			for (String word : segment.split("_")) {
+				if (word.isEmpty()) {
+					continue;
+				}
+				if (name.length() > 0 && name.charAt(name.length() - 1) != ' ') {
+					name.append(' ');
+				}
+				name.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+			}
+		}
+		return Component.literal(name.toString());
 	}
 
 	/** Actionbar text describing a label, e.g. "Label: #c:ingots/iron". */

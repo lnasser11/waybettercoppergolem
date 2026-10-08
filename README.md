@@ -43,8 +43,8 @@ holds (the "smart frame" rule):
 - An iron ingot frame on an empty chest, or on a chest holding only iron
   ingots, means **Iron Ingot (exact item only)**.
 - The same frame on a chest holding iron, copper and gold ingots means
-  **#c:ingots**: the narrowest `c:`/vanilla tag of the framed item that
-  covers everything in the chest. Preset categories are never chosen
+  **Ingots** (the `c:ingots` tag): the narrowest `c:`/vanilla tag of the
+  framed item that covers everything in the chest. Preset categories are never chosen
   automatically; pick those on purpose (see below).
 - **Empty frame** = the catch-all chest. Items matching no label anywhere
   go here.
@@ -73,7 +73,7 @@ you stand. Every chest in range gets a proposed label:
 
 - one kind of item inside → that **exact item**;
 - several kinds → the **narrowest tag or category covering all of them**
-  (iron, copper and gold ingots → `#c:ingots`);
+  (iron, copper and gold ingots → Ingots);
 - everything but one kind fits → that label, and the odd kind is reported
   as **misplaced** (the golems' reorganize pass moves it later);
 - nothing fits → **skipped** as mixed. Empty chests and chests you labeled
@@ -105,9 +105,27 @@ label stays until you paste something else. The two clipboard slots
 (labels, zone settings) are independent and survive death and relogging.
 Nothing is stored on the feather itself; it stays an ordinary feather.
 
-Sneak-right-click the air (or any other block) to see what the clipboard
-holds. Labeling a wall of chests is: copy once, then sneak-right-click
-along the wall.
+Sneak-right-click the air to open the picker (next section) and see what
+the clipboard holds. Labeling a wall of chests is: copy once (or pick
+once), then sneak-right-click along the wall.
+
+### The picker: choose any label without a sample item
+
+**Sneak-right-click the air** while holding the label tool to open the
+picker. Whatever you choose goes onto the clipboard, ready to paste onto
+chests:
+
+- the twelve **preset categories** as buttons;
+- **Catch-all**, **Off-limits**, **Remove labels** (pasting it unlabels a
+  chest) and **Empty clipboard**;
+- an **item search**, pre-filled with what you carry. Pick an item and
+  its stops appear: the exact item, then its tags narrow to broad
+  (`Ingots › Iron · 1 items`, `Ingots · 12 items`), with the raw tag id
+  in the tooltip.
+
+Labels are shown by friendly names everywhere: a `c:ingots/iron` label
+reads **Ingots › Iron**, `minecraft:wooden_slabs` reads **Wooden Slabs**,
+presets use their names.
 
 ### How golems decide where things go
 
@@ -116,7 +134,7 @@ destination by **narrowest matching label first**:
 
 1. a chest labeled with the exact item;
 2. a chest labeled with a matching tag, smaller tags first
-   (`#c:ingots/iron` beats `#c:ingots` beats `Category: Ores & Minerals`);
+   (Ingots › Iron beats Ingots beats the Ores & Minerals category);
 3. the catch-all chest;
 4. an unlabeled chest, under the vanilla rule (empty, or already contains
    that item).

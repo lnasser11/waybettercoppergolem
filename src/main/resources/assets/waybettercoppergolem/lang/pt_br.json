@@ -84,5 +84,21 @@
   "waybettercoppergolem.area.cancelled": "Modo de área cancelado.",
   "waybettercoppergolem.area.expired": "O modo de área expirou. Pressione \"Definir área\" de novo.",
   "waybettercoppergolem.learn.scope.radius": "raio %s",
-  "waybettercoppergolem.learn.scope.zone": "área da zona %s"
+  "waybettercoppergolem.learn.scope.zone": "área da zona %s",
+  "waybettercoppergolem.picker.title": "Escolha um rótulo para a área de transferência",
+  "waybettercoppergolem.picker.catch_all": "Geral",
+  "waybettercoppergolem.picker.catch_all.tooltip": "Itens que não combinam com nenhum outro rótulo vão para este baú.",
+  "waybettercoppergolem.picker.off_limits": "Proibido",
+  "waybettercoppergolem.picker.off_limits.tooltip": "Os golens nunca depositam, reivindicam ou reorganizam este baú.",
+  "waybettercoppergolem.picker.remove_labels": "Remover rótulos",
+  "waybettercoppergolem.picker.remove_labels.tooltip": "Colar isto remove os rótulos de um baú: ele volta às molduras ou ao comportamento padrão.",
+  "waybettercoppergolem.picker.empty_clipboard": "Esvaziar área de transferência",
+  "waybettercoppergolem.picker.search": "Busca de itens",
+  "waybettercoppergolem.picker.search_hint": "Buscar qualquer item…",
+  "waybettercoppergolem.picker.from_inventory": "Itens que você carrega:",
+  "waybettercoppergolem.picker.no_results": "Nenhum item encontrado.",
+  "waybettercoppergolem.picker.back": "← Voltar",
+  "waybettercoppergolem.picker.exact": "%s (só este item)",
+  "waybettercoppergolem.picker.stop": "%s · %s itens",
+  "waybettercoppergolem.picker.tag_tooltip": "Tag %s · %s itens"
 }
