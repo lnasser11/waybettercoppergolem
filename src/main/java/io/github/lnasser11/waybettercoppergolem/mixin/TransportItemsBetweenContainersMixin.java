@@ -50,6 +50,10 @@ public abstract class TransportItemsBetweenContainersMixin {
 
 	@Shadow
 	@Final
+	private int horizontalSearchDistance;
+
+	@Shadow
+	@Final
 	private int verticalSearchDistance;
 
 	@Shadow
@@ -74,8 +78,23 @@ public abstract class TransportItemsBetweenContainersMixin {
 	private static final int WBCG$REORGANIZE_IDLE_COOLDOWN = 1200;
 
 	/**
+	 * A golem working for a zone only sees chests inside the zone's box:
+	 * the vanilla search volume (used for the copper-chest pickup) is cut
+	 * down to the zone. Outside every zone the vanilla volume stands.
+	 */
+	@Inject(method = "getTargetSearchArea", at = @At("RETURN"), cancellable = true)
+	private void wbcg$clipSearchAreaToZone(PathfinderMob body, CallbackInfoReturnable<net.minecraft.world.phys.AABB> cir) {
+		if (body instanceof CopperGolem && body.level() instanceof ServerLevel level) {
+			((ZoneAwareGolem) body).wbcg$zone(level).ifPresent(zone ->
+					cir.setReturnValue(cir.getReturnValue().intersect(
+							io.github.lnasser11.waybettercoppergolem.zone.Zones.toAABB(zone.area()))));
+		}
+	}
+
+	/**
 	 * While a golem is holding an item, destination selection is ours:
-	 * ranked by label specificity instead of nearest-blind.
+	 * ranked by label specificity instead of nearest-blind, within the
+	 * zone's box.
 	 */
 	@Inject(method = "getTransportTarget", at = @At("HEAD"), cancellable = true)
 	private void wbcg$labelAwareDestination(ServerLevel level, PathfinderMob body,
@@ -83,12 +102,16 @@ public abstract class TransportItemsBetweenContainersMixin {
 		if (!(body instanceof CopperGolem) || body.getMainHandItem().isEmpty()) {
 			return;
 		}
-		ZoneSettings settings = ((ZoneAwareGolem) body).wbcg$zoneSettings(level);
 		cir.setReturnValue(SortingEngine.findDepositTarget(
 				level, body, body.getMainHandItem(), this.destinationBlockType,
 				wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
 				wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
-				settings.searchRadius(), this.verticalSearchDistance));
+				wbcg$searchArea(body, level)));
+	}
+
+	@org.spongepowered.asm.mixin.Unique
+	private net.minecraft.world.phys.AABB wbcg$searchArea(PathfinderMob body, ServerLevel level) {
+		return ((ZoneAwareGolem) body).wbcg$searchArea(level, this.horizontalSearchDistance, this.verticalSearchDistance);
 	}
 
 	/**
@@ -115,7 +138,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 				level, body, this.destinationBlockType,
 				wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
 				wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
-				settings.searchRadius(), this.verticalSearchDistance);
+				wbcg$searchArea(body, level));
 		if (source.isPresent()) {
 			this.wbcg$reorganizeActive = true;
 			cir.setReturnValue(source);
@@ -221,7 +244,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 						level, body, would, this.destinationBlockType,
 						wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
 						wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
-						settings.searchRadius(), this.verticalSearchDistance);
+						wbcg$searchArea(body, level));
 				SortingEngine.logWouldMove(body, would, this.target.pos(),
 						destination.map(TransportItemTarget::pos).orElse(null));
 			}

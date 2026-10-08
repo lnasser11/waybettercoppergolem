@@ -152,6 +152,37 @@ Files: new `learn/RoomLearner.java` (scan + inference), new
 (`learn`, `learn apply`, `highlight`), `zone/ZoneSettingsMenu.java` +
 `client/ZoneSettingsScreen.java` (button).
 
+### 4b. Zones are places, not radii
+
+Added after discussing the golem controls. The old "search radius" was a
+box around the golem's *current position*, applied only to destinations
+(the copper-chest pickup kept the vanilla 32/8 volume), and settings lived
+on whichever copper chest the golem last took from. All three felt wrong.
+
+- A **zone** is a box in the world plus settings, anchored at one copper
+  chest and stored in a per-dimension registry (level attachment, synced
+  to clients). Every copper chest inside the box shares the zone; opening
+  the settings on any of them edits the anchor's zone. A copper chest in
+  no zone gets a default-sized zone (65 × 17 × 65) anchored at itself the
+  first time its settings are opened or pasted.
+- Golems working for a zone only see chests inside the box: the vanilla
+  search volume is intersected with the zone for the pickup, and the
+  deposit / reorganize searches use the zone box directly. While carrying,
+  a golem works for the zone of the copper chest it took from; while
+  empty-handed, for the zone it stands in. Outside every zone the vanilla
+  volume and default settings apply.
+- **Area mode**: a "Set area" button in the zone screen; the next two
+  sneak-right-clicks with the tool on any block are the corners (cut to
+  128 per axis, always expanded to include the anchor); sneak-right-click
+  the air cancels. The outline is drawn with particles when the screen
+  opens, after setting or resetting the area, and via `/wbcg zone`.
+- Settings trimmed to reorganize / tidy / dry run. Search radius is gone;
+  vertical reach is fixed at the maximum (field kept for old worlds).
+- The tool copies and pastes zone **settings** (never the area, which is
+  place-specific); paste goes into the zone the clicked chest belongs to.
+- Legacy per-chest settings migrate into a default-sized zone on first
+  lookup. No golem binding (decided against for now).
+
 ### 5. Label picker screen
 
 Opened by sneak-right-clicking the air with the tool. Phase 1 fills the
@@ -184,8 +215,9 @@ Renders only when the tool is in either hand:
 
 - Looking at a chest within reach: its labels, suffixed "(auto)" when
   derived, or "Unlabeled — vanilla behavior".
-- Looking at a copper chest: "Sorting zone · radius 32 · reach 4 ·
-  reorganize on". `ZONE_SETTINGS` becomes a synced attachment for this.
+- Looking at a copper chest: the zone it belongs to (anchor, area size,
+  settings), read from the synced zone registry; the outline is drawn
+  while you keep looking.
 - Second line: "Clipboard: …" or "Clipboard empty — sneak-left-click a
   chest to copy, sneak-right-click the air to pick".
 

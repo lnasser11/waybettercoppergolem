@@ -5,6 +5,7 @@ import io.github.lnasser11.waybettercoppergolem.label.ChestLabel;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabelSet;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabels;
 import io.github.lnasser11.waybettercoppergolem.label.LabelResolver;
+import io.github.lnasser11.waybettercoppergolem.zone.Zone;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings;
 import io.github.lnasser11.waybettercoppergolem.zone.Zones;
 
@@ -17,6 +18,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
@@ -24,13 +26,18 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The label tool: a configurable vanilla item (a feather by default) held
@@ -39,10 +46,14 @@ import java.util.Optional;
  * <table>
  *   <tr><th></th><th>chest / trapped chest</th><th>copper chest</th><th>air / other block</th></tr>
  *   <tr><td>sneak-left-click</td><td>copy labels (unlabeled: clear clipboard)</td>
- *       <td>copy zone settings</td><td>—</td></tr>
+ *       <td>copy the zone's settings</td><td>—</td></tr>
  *   <tr><td>sneak-right-click</td><td>paste labels (replace, explicit)</td>
- *       <td>paste zone settings</td><td>show the clipboard (the picker, once it exists)</td></tr>
+ *       <td>paste settings into the zone</td><td>show the clipboard (the picker, once it exists)</td></tr>
  * </table>
+ *
+ * <p>In <em>area mode</em> (entered from the zone screen) the next two
+ * sneak-right-clicks on any block are the corners of the zone's box
+ * instead, and a sneak-right-click on the air cancels.
  *
  * <p>Every gesture lands on a block or the air, never on an item frame, so
  * vanilla frame handling and click-through mods are untouched. Sneaking
@@ -51,6 +62,16 @@ import java.util.Optional;
  * behavior is lost.
  */
 public final class LabelTool {
+	private static final long AREA_MODE_TTL_MILLIS = 60 * 1000;
+
+	private record AreaSelection(ResourceKey<Level> dimension, BlockPos anchor, @Nullable BlockPos first, long expiresAt) {
+		boolean expired() {
+			return System.currentTimeMillis() > expiresAt;
+		}
+	}
+
+	private static final Map<UUID, AreaSelection> AREA_SELECTIONS = new ConcurrentHashMap<>();
+
 	private LabelTool() {
 	}
 
@@ -64,6 +85,65 @@ public final class LabelTool {
 		return hand == InteractionHand.MAIN_HAND && player.isShiftKeyDown() && !player.isSpectator()
 				&& WbcgConfig.isTool(level, player.getMainHandItem());
 	}
+
+	// ---------------------------------------------------------------- area mode
+
+	/** Starts area mode for the zone anchored at {@code anchor}. */
+	public static void beginAreaSelection(ServerPlayer player, ServerLevel level, BlockPos anchor) {
+		AREA_SELECTIONS.put(player.getUUID(), new AreaSelection(level.dimension(), anchor.immutable(), null,
+				System.currentTimeMillis() + AREA_MODE_TTL_MILLIS));
+		player.sendSystemMessage(Component.translatable("waybettercoppergolem.area.begin",
+				WbcgConfig.toolItem(level).getName(WbcgConfig.toolItem(level).getDefaultInstance())));
+	}
+
+	public static boolean inAreaMode(Player player) {
+		AreaSelection selection = AREA_SELECTIONS.get(player.getUUID());
+		return selection != null && !selection.expired();
+	}
+
+	/** Handles a corner click; returns false when the player is not in area mode. */
+	private static boolean handleAreaClick(ServerPlayer player, ServerLevel level, BlockPos pos) {
+		AreaSelection selection = AREA_SELECTIONS.get(player.getUUID());
+		if (selection == null) {
+			return false;
+		}
+		if (selection.expired() || !selection.dimension().equals(level.dimension())) {
+			AREA_SELECTIONS.remove(player.getUUID());
+			player.sendSystemMessage(Component.translatable("waybettercoppergolem.area.expired"));
+			return true;
+		}
+		if (selection.first() == null) {
+			AREA_SELECTIONS.put(player.getUUID(), new AreaSelection(selection.dimension(), selection.anchor(),
+					pos.immutable(), System.currentTimeMillis() + AREA_MODE_TTL_MILLIS));
+			cornerParticles(level, player, pos);
+			player.sendSystemMessage(Component.translatable("waybettercoppergolem.area.first"));
+			return true;
+		}
+		AREA_SELECTIONS.remove(player.getUUID());
+		BoundingBox area = Zone.areaFromCorners(selection.first(), pos);
+		boolean expanded = !area.isInside(selection.anchor());
+		if (expanded) {
+			area = area.encapsulate(selection.anchor());
+		}
+		Zone zone = Zones.all(level).getOrDefault(selection.anchor(), Zone.defaultAround(selection.anchor()));
+		Zones.put(level, selection.anchor(), zone.withArea(area));
+		cornerParticles(level, player, pos);
+		Zones.showOutline(player, level, area);
+		player.sendSystemMessage(Component.translatable(
+				expanded ? "waybettercoppergolem.area.done_expanded" : "waybettercoppergolem.area.done",
+				Zones.describeArea(area)));
+		return true;
+	}
+
+	private static boolean cancelAreaMode(ServerPlayer player) {
+		if (AREA_SELECTIONS.remove(player.getUUID()) == null) {
+			return false;
+		}
+		player.sendSystemMessage(Component.translatable("waybettercoppergolem.area.cancelled"));
+		return true;
+	}
+
+	// ---------------------------------------------------------------- gestures
 
 	/** Sneak-left-click: copy. */
 	private static InteractionResult onAttackBlock(Player player, Level level, InteractionHand hand,
@@ -87,13 +167,17 @@ public final class LabelTool {
 		return InteractionResult.SUCCESS;
 	}
 
-	/** Sneak-right-click on a block: paste. */
+	/** Sneak-right-click on a block: a corner in area mode, otherwise paste. */
 	private static InteractionResult onUseBlock(Player player, Level level, InteractionHand hand,
 			BlockHitResult hit) {
 		if (!holdingTool(player, level, hand)) {
 			return InteractionResult.PASS;
 		}
 		BlockPos pos = hit.getBlockPos();
+		if (player instanceof ServerPlayer serverPlayer && level instanceof ServerLevel serverLevel
+				&& handleAreaClick(serverPlayer, serverLevel, pos)) {
+			return InteractionResult.SUCCESS;
+		}
 		BlockState state = level.getBlockState(pos);
 		boolean chest = ChestLabels.isLabelableChest(state);
 		boolean copperChest = state.is(BlockTags.COPPER_CHESTS);
@@ -110,16 +194,18 @@ public final class LabelTool {
 		return InteractionResult.SUCCESS;
 	}
 
-	/** Sneak-right-click with nothing useful in front: show what the tool carries. */
+	/** Sneak-right-click with nothing useful in front: cancel area mode, or show what the tool carries. */
 	private static InteractionResult onUseItem(Player player, Level level, InteractionHand hand) {
 		if (!holdingTool(player, level, hand)) {
 			return InteractionResult.PASS;
 		}
-		if (player instanceof ServerPlayer serverPlayer) {
+		if (player instanceof ServerPlayer serverPlayer && !cancelAreaMode(serverPlayer)) {
 			serverPlayer.sendOverlayMessage(describeClipboard(Clipboard.of(serverPlayer)));
 		}
 		return InteractionResult.SUCCESS;
 	}
+
+	// ---------------------------------------------------------------- labels
 
 	private static void copyLabels(ServerPlayer player, ServerLevel level, BlockPos pos, BlockState state) {
 		ChestLabelSet labels = ChestLabels.effectiveLabelSet(level, pos, state);
@@ -158,32 +244,34 @@ public final class LabelTool {
 		particles(level, pos, ParticleTypes.HAPPY_VILLAGER);
 	}
 
+	// ---------------------------------------------------------------- zones
+
 	private static void copyZone(ServerPlayer player, ServerLevel level, BlockPos pos) {
-		ZoneSettings settings = Zones.at(level, pos);
+		ZoneSettings settings = Zones.settingsAt(level, pos);
 		Clipboard.set(player, Clipboard.of(player).withZone(settings));
 		player.sendOverlayMessage(Component.translatable("waybettercoppergolem.tool.copied_zone",
 				Zones.describe(settings)));
 		particles(level, pos, ParticleTypes.WAX_ON);
 	}
 
+	/** Pastes settings into the zone this copper chest belongs to (creating one if needed); the area is untouched. */
 	private static void pasteZone(ServerPlayer player, ServerLevel level, BlockPos pos) {
 		Clipboard clipboard = Clipboard.of(player);
 		if (clipboard.zone().isEmpty()) {
 			player.sendOverlayMessage(Component.translatable("waybettercoppergolem.tool.nothing_to_paste_zone"));
 			return;
 		}
-		BlockEntity blockEntity = level.getBlockEntity(pos);
-		if (blockEntity == null) {
-			return;
-		}
 		ZoneSettings settings = clipboard.zone().get();
-		Zones.store(blockEntity, settings);
+		Zones.ZoneRef ref = Zones.zoneForCopperChest(level, pos);
+		Zones.put(level, ref.anchor(), ref.zone().withSettings(settings));
 		player.sendOverlayMessage(Component.translatable("waybettercoppergolem.tool.pasted_zone",
 				Zones.describe(settings)));
 		particles(level, pos, ParticleTypes.HAPPY_VILLAGER);
 	}
 
-	/** "Clipboard: Iron Ingot · zone: radius 32 …", or the empty hint. */
+	// ---------------------------------------------------------------- feedback
+
+	/** "Clipboard: Iron Ingot · zone: reorganize on …", or the empty hint. */
 	public static Component describeClipboard(Clipboard clipboard) {
 		if (clipboard.isEmpty()) {
 			return Component.translatable("waybettercoppergolem.tool.clipboard_empty");
@@ -206,5 +294,11 @@ public final class LabelTool {
 	private static void particles(ServerLevel level, BlockPos pos, ParticleOptions type) {
 		Vec3 center = Vec3.atCenterOf(pos);
 		level.sendParticles(type, center.x, center.y, center.z, 12, 0.4, 0.4, 0.4, 0.0);
+	}
+
+	private static void cornerParticles(ServerLevel level, ServerPlayer player, BlockPos pos) {
+		Vec3 center = Vec3.atCenterOf(pos);
+		level.sendParticles(player, ParticleTypes.END_ROD, true, true,
+				center.x, center.y + 0.5, center.z, 20, 0.3, 0.5, 0.3, 0.0);
 	}
 }

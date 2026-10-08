@@ -21,7 +21,7 @@ import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.phys.AABB;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
 import org.jspecify.annotations.Nullable;
 
@@ -67,7 +67,7 @@ public final class RoomLearner {
 	public record Skipped(BlockPos pos, SkipReason reason) {
 	}
 
-	public record Report(BlockPos center, int radius, List<Proposal> proposals, List<Skipped> skipped,
+	public record Report(BoundingBox area, List<Proposal> proposals, List<Skipped> skipped,
 			boolean truncated) {
 		public boolean isEmpty() {
 			return proposals.isEmpty() && skipped.isEmpty();
@@ -77,16 +77,24 @@ public final class RoomLearner {
 	private RoomLearner() {
 	}
 
+	/** Scans a cube of {@code radius} around {@code center}. */
 	public static Report scan(ServerLevel level, BlockPos center, int radius, boolean overwrite) {
+		return scan(level, new BoundingBox(center).inflatedBy(radius), overwrite);
+	}
+
+	/** Scans every chest inside {@code box} (inclusive). */
+	public static Report scan(ServerLevel level, BoundingBox box, boolean overwrite) {
 		List<Proposal> proposals = new ArrayList<>();
 		List<Skipped> skipped = new ArrayList<>();
 		boolean truncated = false;
 		int seen = 0;
-		AABB area = new AABB(center).inflate(radius, radius, radius);
+		BlockPos center = box.getCenter();
 		Set<BlockPos> handled = new HashSet<>();
 
 		List<BlockPos> chests = new ArrayList<>();
-		for (ChunkPos chunkPos : ChunkPos.rangeClosed(ChunkPos.containing(center), Math.floorDiv(radius, 16) + 1).toList()) {
+		ChunkPos minChunk = ChunkPos.containing(new BlockPos(box.minX(), box.minY(), box.minZ()));
+		ChunkPos maxChunk = ChunkPos.containing(new BlockPos(box.maxX(), box.maxY(), box.maxZ()));
+		for (ChunkPos chunkPos : ChunkPos.rangeClosed(minChunk, maxChunk).toList()) {
 			LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
 			if (chunk == null) {
 				continue;
@@ -97,7 +105,7 @@ public final class RoomLearner {
 					continue;
 				}
 				BlockPos pos = blockEntity.getBlockPos();
-				if (area.contains(pos.getX(), pos.getY(), pos.getZ())) {
+				if (box.isInside(pos)) {
 					chests.add(pos);
 				}
 			}
@@ -131,7 +139,7 @@ public final class RoomLearner {
 			}
 			proposals.add(new Proposal(canonical, inferred.get().label(), current, inferred.get().misplaced()));
 		}
-		return new Report(center, radius, List.copyOf(proposals), List.copyOf(skipped), truncated);
+		return new Report(box, List.copyOf(proposals), List.copyOf(skipped), truncated);
 	}
 
 	/** One inferred label: {@code breadth} is 0 for exact, else the tag's member count. */

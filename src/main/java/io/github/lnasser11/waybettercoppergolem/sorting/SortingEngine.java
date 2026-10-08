@@ -60,15 +60,13 @@ public final class SortingEngine {
 			ServerLevel level, PathfinderMob golem, ItemStack held,
 			Predicate<BlockState> destinationBlockType,
 			Set<GlobalPos> visited, Set<GlobalPos> unreachable,
-			int horizontalRadius, int verticalRadius) {
-		AABB searchArea = new AABB(golem.blockPosition()).inflate(horizontalRadius, verticalRadius, horizontalRadius);
+			AABB searchArea) {
 		TransportItemTarget best = null;
 		long bestRank = Long.MAX_VALUE;
 		boolean bestContainsItem = false;
 		double bestDistSq = Double.MAX_VALUE;
 
-		for (ChunkPos chunkPos : ChunkPos.rangeClosed(
-				ChunkPos.containing(golem.blockPosition()), Math.floorDiv(horizontalRadius, 16) + 1).toList()) {
+		for (ChunkPos chunkPos : chunksCovering(searchArea)) {
 			LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
 			if (chunk == null) {
 				continue;
@@ -106,6 +104,13 @@ public final class SortingEngine {
 					held.getItem(), best.pos(), bestRank);
 		}
 		return Optional.ofNullable(best);
+	}
+
+	/** Every chunk the search box touches (the box is clamped to zone size upstream). */
+	private static List<ChunkPos> chunksCovering(AABB area) {
+		ChunkPos min = ChunkPos.containing(BlockPos.containing(area.minX, area.minY, area.minZ));
+		ChunkPos max = ChunkPos.containing(BlockPos.containing(area.maxX, area.maxY, area.maxZ));
+		return ChunkPos.rangeClosed(min, max).toList();
 	}
 
 	/** Vanilla validity rules: in area, resolvable container, unvisited, unlocked. */
@@ -203,14 +208,12 @@ public final class SortingEngine {
 			ServerLevel level, PathfinderMob golem,
 			Predicate<BlockState> destinationBlockType,
 			Set<GlobalPos> visited, Set<GlobalPos> unreachable,
-			int horizontalRadius, int verticalRadius) {
-		AABB searchArea = new AABB(golem.blockPosition()).inflate(horizontalRadius, verticalRadius, horizontalRadius);
+			AABB searchArea) {
 		record MisplacedCandidate(TransportItemTarget target, ItemStack stack, double distSq) {
 		}
 		List<MisplacedCandidate> candidates = new java.util.ArrayList<>();
 
-		for (ChunkPos chunkPos : ChunkPos.rangeClosed(
-				ChunkPos.containing(golem.blockPosition()), Math.floorDiv(horizontalRadius, 16) + 1).toList()) {
+		for (ChunkPos chunkPos : chunksCovering(searchArea)) {
 			LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
 			if (chunk == null) {
 				continue;
@@ -245,7 +248,7 @@ public final class SortingEngine {
 			}
 			ItemStack preview = candidate.stack().copyWithCount(Math.min(candidate.stack().getCount(), 16));
 			if (findDepositTarget(level, golem, preview, destinationBlockType,
-					excludingSource, unreachable, horizontalRadius, verticalRadius).isPresent()) {
+					excludingSource, unreachable, searchArea).isPresent()) {
 				return Optional.of(candidate.target());
 			}
 		}

@@ -39,6 +39,7 @@ import java.util.List;
  * /wbcg learn [radius] [overwrite]         propose labels for the chests around you
  * /wbcg learn apply | cancel               write / drop the pending proposal
  * /wbcg highlight &lt;pos&gt;                   sparkle a chest so you can find it
+ * /wbcg zone                               which zone you stand in, with its outline
  * </pre>
  *
  * Names resolve in the {@code wbcg} namespace by default; any tag works
@@ -61,6 +62,7 @@ public final class WbcgCommand {
 								.executes(ctx -> learn(ctx, IntegerArgumentType.getInteger(ctx, "radius"), false))
 								.then(Commands.literal("overwrite")
 										.executes(ctx -> learn(ctx, IntegerArgumentType.getInteger(ctx, "radius"), true)))))
+				.then(Commands.literal("zone").executes(WbcgCommand::zoneInfo))
 				.then(Commands.literal("highlight")
 						.then(Commands.argument("pos", BlockPosArgument.blockPos())
 								.executes(WbcgCommand::highlight)))
@@ -102,6 +104,24 @@ public final class WbcgCommand {
 
 	private static int learnCancel(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		return LearnSession.cancel(ctx.getSource().getPlayerOrException()) ? 1 : 0;
+	}
+
+	/** Which zone the player stands in, with its outline drawn. */
+	private static int zoneInfo(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		ServerLevel level = ctx.getSource().getLevel();
+		var zone = io.github.lnasser11.waybettercoppergolem.zone.Zones.zoneAt(level, player.blockPosition());
+		if (zone.isEmpty()) {
+			ctx.getSource().sendSuccess(() -> Component.translatable("waybettercoppergolem.zone.none"), false);
+			return 0;
+		}
+		BlockPos anchor = zone.get().anchor();
+		ctx.getSource().sendSuccess(() -> Component.translatable("waybettercoppergolem.zone.info",
+				anchor.getX() + " " + anchor.getY() + " " + anchor.getZ(),
+				io.github.lnasser11.waybettercoppergolem.zone.Zones.describeArea(zone.get().area()),
+				io.github.lnasser11.waybettercoppergolem.zone.Zones.describe(zone.get().settings())), false);
+		io.github.lnasser11.waybettercoppergolem.zone.Zones.showOutline(player, level, zone.get().area());
+		return 1;
 	}
 
 	private static int highlight(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {

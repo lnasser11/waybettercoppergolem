@@ -66,10 +66,10 @@ Opening a labeled chest shows its full label set in the actionbar.
 ### Learn: label a whole room from what it already holds
 
 Most storage rooms are already sorted by hand, so the mod can read them
-instead of asking you to describe them. Open any copper chest's settings
+instead of asking you to describe them. Open any copper chest's zone
 (sneak-right-click it with an empty hand) and press **Learn this zone's
-chests…**, or run `/wbcg learn [radius]` where you stand. Every chest in
-range gets a proposed label:
+chests…** to scan the zone's area, or run `/wbcg learn [radius]` where
+you stand. Every chest in range gets a proposed label:
 
 - one kind of item inside → that **exact item**;
 - several kinds → the **narrowest tag or category covering all of them**
@@ -96,8 +96,8 @@ in your main hand and sneak:
 
 | | chest / trapped chest | copper chest |
 |---|---|---|
-| **sneak-left-click** | copy its labels (an unlabeled chest clears the clipboard) | copy its zone settings |
-| **sneak-right-click** | paste the copied labels onto it, replacing what was there | paste the copied zone settings |
+| **sneak-left-click** | copy its labels (an unlabeled chest clears the clipboard) | copy its zone's settings |
+| **sneak-right-click** | paste the copied labels onto it, replacing what was there | paste the settings into its zone (the area is left alone) |
 
 The actionbar confirms each copy and paste and the chest sparkles. Pasted
 labels are **explicit**: frames on that chest become decoration and the
@@ -157,6 +157,7 @@ Tuning is done with the `/wbcg` command:
 /wbcg learn [radius] [overwrite]        propose labels for the chests around you (op by default)
 /wbcg learn apply | cancel              write or drop the pending proposal
 /wbcg highlight <x> <y> <z>             make a chest sparkle so you can find it
+/wbcg zone                              which zone you stand in, with its outline drawn
 ```
 
 Bare names resolve to presets (`redstone` → `wbcg:redstone`); explicit
@@ -175,32 +176,47 @@ label are never considered misplaced. Toggleable per zone.
 ### Tall chest walls
 
 Vanilla golems can only reach chests at their own height. This mod raises
-their **vertical reach** (default 4 blocks, configurable 1–6), and fixes
-the vanilla line-of-sight check that made any chest two or more blocks up
-a chest wall count as "unreachable" — so a golem standing on the floor
-serves a wall of chests four or five high. It still can't grab through
-solid walls.
+their **vertical reach** to 6 blocks and fixes the vanilla line-of-sight
+check that made any chest two or more blocks up a chest wall count as
+"unreachable" — so a golem standing on the floor serves a wall of chests
+five or six high. It still can't grab through solid walls.
 
-### Sorting-zone settings
+### Sorting zones: a room, its settings, its area
 
-Copper chests aren't bound to a golem, so settings configure a **zone**:
-whatever golems work out of that copper chest obey its settings (a golem
-remembers the last copper chest it picked up from).
+A **zone** is a box in the world with the settings golems obey inside it.
+It is anchored at a copper chest; every copper chest inside the box
+belongs to the same zone, so one storage room is one zone however many
+copper chests it has. Golems working for a zone **only take from copper
+chests inside the box and only deposit or reorganize inside it** — a golem
+that wanders into another room starts serving that room's zone, and one
+carrying items still delivers to the room it took them from. Outside
+every zone, golems behave as in vanilla with default settings.
 
-**Sneak-right-click a copper chest with an empty hand** to open the
-settings screen:
+**Sneak-right-click any copper chest with an empty hand** to open its
+zone (creating a default 65 × 17 × 65 zone around that chest if it is in
+none). The outline of the area is drawn with particles for a moment.
 
 | Setting | Default | |
 |---|---|---|
 | Reorganize existing chests | on | background cleanup on/off |
 | Tidy inside chests | off | merge partial stacks + close gaps in chests the golem visits |
 | Dry run | off | log intended moves, touch nothing |
-| Search radius | 32 | horizontal destination search distance (4–48) |
-| Vertical reach | 4 | how high golems can reach into chest walls (1–6) |
+
+Buttons on the same screen:
+
+- **Set area with the tool…** closes the screen; the next two
+  sneak-right-clicks with the label tool on any blocks are the opposite
+  corners of the zone (up to 128 blocks per side; the anchor chest is
+  always included). Sneak-right-click the air to cancel.
+- **Reset area** goes back to the default box; **Show area outline**
+  draws it again; **Learn this zone's chests…** runs the learn pass over
+  the area.
+- `/wbcg zone` tells you which zone you are standing in and draws it.
 
 Normal right-click still opens the copper chest as storage. All copper
 chest variants behave identically (exposed/weathered/oxidized and all
-waxed versions), and settings survive oxidation and waxing.
+waxed versions), and zones survive oxidation and waxing. Breaking the
+anchor chest dissolves the zone.
 
 ### Dry-run mode
 
@@ -274,7 +290,8 @@ and deposit only if it's empty or already contains that item — contents
 are checked on arrival, not during the search. Search volume is 32 blocks
 horizontal / 8 vertical; up to 10 chests are tried per cycle before a 7 s
 cooldown. This mod keeps all of that machinery and replaces only the
-destination choice, the acceptance rule, and the reach.
+destination choice, the acceptance rule, the reach, and — inside a
+zone — the search volume.
 
 ---
 

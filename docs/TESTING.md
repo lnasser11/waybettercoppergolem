@@ -55,9 +55,9 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
 6. Without sneaking, right-clicking a chest with the feather opens it as
    usual; left-clicking mines it as usual.
 7. Copper chests: change a zone's settings in the GUI (step 2), then
-   sneak-left-click it → `Copied zone settings: radius … reach …`.
-   Sneak-right-click another copper chest → `Applied zone settings …`;
-   open its GUI → values match.
+   sneak-left-click it → `Copied zone settings: reorganize … tidy …`.
+   Sneak-right-click a copper chest in a *different* zone → `Applied zone
+   settings …`; open its GUI → toggles match, its area is unchanged.
 
 ## 1c. Learn pass
 
@@ -75,21 +75,38 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
    learn 8 overwrite` proposes them again.
 6. Open a copper chest's settings and press **Learn this zone's
    chests…** → the screen closes and the same kind of preview appears,
-   centered on the copper chest with the zone's search radius.
+   covering the zone's area (`zone area W × H × D` in the header).
 7. As a non-op (default config), `/wbcg learn` is not available and the
    zone-screen button says the pass needs operator permission.
 
-## 2. Settings GUI
+## 2. Zones and the settings GUI
 
-1. Place a copper chest. **Sneak-right-click it with an empty hand** →
-   settings screen opens (reorganize / tidy / dry-run toggles, search
-   radius, vertical reach).
+1. Place a copper chest. **Sneak-right-click it with an empty hand** → the
+   zone screen opens (reorganize / tidy / dry-run toggles, area buttons,
+   learn), showing `Zone anchored at x, y, z` and `Area: 65 × 17 × 65`,
+   and a particle outline of that box appears around you for a moment.
 2. Normal right-click still opens it as storage; sneak-right-click
    *holding a block* still places the block (vanilla).
-3. Toggle **dry-run ON**, close, reopen → the toggle must still be ON
-   (it round-tripped through the server).
-4. This screen is the one part never tested during development — report
-   anything visually broken.
+3. Toggle **dry-run ON**, close, reopen → still ON (round-tripped).
+4. Place a second copper chest 10 blocks away and open its settings → it
+   shows the **same anchor** (the first chest) and the same toggles: one
+   room, one zone.
+5. Press **Set area with the tool…** → the screen closes and chat says to
+   click the first corner. Holding the feather, sneak-right-click a block
+   at one corner of your room (sparkles), then the opposite corner → chat
+   says `Zone area set: W × H × D blocks` and the outline is drawn. Reopen
+   the settings → the new size shows. `/wbcg zone` from inside the box
+   reports it; from outside it says you are in no zone.
+6. Press **Set area…** again and sneak-right-click the air → `Area mode
+   cancelled`. **Reset area** → back to 65 × 17 × 65.
+7. Break the anchor copper chest → `/wbcg zone` no longer finds the zone;
+   the second copper chest gets a fresh default zone when its settings
+   are opened.
+8. **Golems respect the box.** Make the zone small (just this room) and
+   put a copper chest with items plus a labeled chest *outside* the box a
+   few blocks away. A golem inside the zone must only take from the copper
+   chest inside and only deliver to chests inside; items for the outside
+   chest end up in the catch-all or stay put.
 
 ## 3. Dry-run pass (do this before anything touches real chests)
 
@@ -126,8 +143,7 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
 2. Feed gold ingots into the copper chest.
 3. **Expect:** the golem deposits into the top chest while standing on
    the floor — no climbing, no scaffolding.
-4. In the GUI, drop vertical reach to 1 and feed more gold → it should
-   now NOT reach it (goes to catch-all or shrugs). Set it back to 4.
+4. Reach is fixed at 6 blocks; a chest 7 above the floor is out of reach.
 
 ## 7. Reorganize existing chests
 

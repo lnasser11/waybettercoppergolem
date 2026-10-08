@@ -10,6 +10,7 @@ import io.github.lnasser11.waybettercoppergolem.net.ConfigPayload;
 import io.github.lnasser11.waybettercoppergolem.tool.Clipboard;
 import io.github.lnasser11.waybettercoppergolem.tool.LabelTool;
 import io.github.lnasser11.waybettercoppergolem.tuning.CategoryTuning;
+import io.github.lnasser11.waybettercoppergolem.zone.Zone;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettingsMenu;
 import io.github.lnasser11.waybettercoppergolem.zone.Zones;
@@ -87,7 +88,19 @@ public class WayBetterCopperGolem implements ModInitializer {
 			builder -> builder.persistent(Clipboard.CODEC).copyOnDeath()
 					.syncWith(Clipboard.STREAM_CODEC, AttachmentSyncPredicate.targetOnly()));
 
-	/** Sorting-zone settings, stored on a copper chest block entity. */
+	/**
+	 * The dimension's sorting zones, anchor copper chest → zone (area +
+	 * settings). Synced to clients for the HUD. See {@link Zones}.
+	 */
+	public static final AttachmentType<Map<BlockPos, Zone>> ZONES = AttachmentRegistry.create(
+			id("zones"),
+			builder -> builder.persistent(Zones.CODEC)
+					.syncWith(Zones.STREAM_CODEC, AttachmentSyncPredicate.all()));
+
+	/**
+	 * Legacy: settings stored on each copper chest before zones had areas.
+	 * Read once to migrate the chest into a zone, then removed.
+	 */
 	public static final AttachmentType<ZoneSettings> ZONE_SETTINGS =
 			AttachmentRegistry.createPersistent(id("zone_settings"), ZoneSettings.CODEC);
 
@@ -156,13 +169,15 @@ public class WayBetterCopperGolem implements ModInitializer {
 			return InteractionResult.PASS;
 		}
 		if (player instanceof ServerPlayer serverPlayer && level instanceof ServerLevel serverLevel) {
-			ZoneSettings settings = Zones.at(serverLevel, pos);
+			Zones.ZoneRef zone = Zones.zoneForCopperChest(serverLevel, pos);
 			serverPlayer.openMenu(new SimpleMenuProvider(
 					(containerId, inventory, p) -> new ZoneSettingsMenu(
 							containerId,
 							ContainerLevelAccess.create(serverLevel, pos),
-							ZoneSettingsMenu.dataFor(settings)),
+							zone.anchor(),
+							ZoneSettingsMenu.dataFor(zone)),
 					Component.translatable("waybettercoppergolem.settings.title")));
+			Zones.showOutline(serverPlayer, serverLevel, zone.area());
 		}
 		return InteractionResult.SUCCESS;
 	}

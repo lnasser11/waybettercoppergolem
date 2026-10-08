@@ -20,6 +20,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
 import java.util.List;
 import java.util.Map;
@@ -50,19 +51,26 @@ public final class LearnSession {
 		return !WbcgConfig.get().learnRequiresOp() || Commands.LEVEL_GAMEMASTERS.check(player.permissions());
 	}
 
-	/** Scans, stores the proposal for the player, and prints the preview. */
+	/** Scans a cube around the player, stores the proposal, and prints the preview. */
 	public static void preview(ServerPlayer player, ServerLevel level, BlockPos center, int radius, boolean overwrite) {
-		Report report = RoomLearner.scan(level, center, radius, overwrite);
+		preview(player, level, new BoundingBox(center).inflatedBy(radius),
+				Component.translatable("waybettercoppergolem.learn.scope.radius", radius), overwrite);
+	}
+
+	/** Scans {@code area}, stores the proposal for the player, and prints the preview. */
+	public static void preview(ServerPlayer player, ServerLevel level, BoundingBox area, Component scope,
+			boolean overwrite) {
+		Report report = RoomLearner.scan(level, area, overwrite);
 		if (report.isEmpty()) {
 			PENDING.remove(player.getUUID());
-			player.sendSystemMessage(Component.translatable("waybettercoppergolem.learn.none", radius));
+			player.sendSystemMessage(Component.translatable("waybettercoppergolem.learn.none", scope));
 			return;
 		}
 		PENDING.put(player.getUUID(), new Pending(report, level.dimension(), overwrite,
 				System.currentTimeMillis() + TTL_MILLIS));
 
 		player.sendSystemMessage(Component.translatable("waybettercoppergolem.learn.header",
-				report.proposals().size(), report.skipped().size(), radius).withStyle(ChatFormatting.GOLD));
+				report.proposals().size(), report.skipped().size(), scope).withStyle(ChatFormatting.GOLD));
 		int shown = 0;
 		for (Proposal proposal : report.proposals()) {
 			if (shown++ >= PREVIEW_LINES) {
