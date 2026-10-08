@@ -6,8 +6,15 @@ runs an integrated server, so everything works without EnxadaHost.
 
 The automated game tests (`./gradlew build` runs them) already cover the
 label model, the learn inference, the tool's copy/paste, zones and the
-picker's server side. This checklist is for what needs a real client:
-screens, the HUD, click handling, golems moving, and how it all feels.
+picker's server side. A second automated test drives a **real client**
+(`./gradlew runClientGameTest`; on a headless machine wrap it in
+`xvfb-run -s "-screen 0 1920x1080x24"`): it builds a small chest room,
+opens every screen at 480 × 270, 427 × 240 and 960 × 540, fails if any
+widget is off-screen or any button clips its text, and walks through area
+mode with real sneak-right-clicks on plain blocks. Its screenshots land in
+`build/run/clientGameTest/screenshots`. This checklist is for what still
+needs a person: golems moving, how the HUD reads in play, and how it all
+feels.
 
 **Setup:** Fabric Loader 0.19.3 profile for 26.2, with `fabric-api` and
 `waybettercoppergolem-1.0.0.jar` in the mods folder. Keep a **feather** in

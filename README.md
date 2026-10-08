@@ -435,6 +435,8 @@ the search volume.
 ./gradlew runClient    # launch a dev client
 ./gradlew runServer    # launch a dev server
 ./gradlew runGameTest  # server-side game tests only (src/gametest)
+./gradlew runClientGameTest   # drives a real client through the screens (needs a display;
+                              # headless: xvfb-run -s "-screen 0 1920x1080x24" ./gradlew runClientGameTest)
 ```
 
 Requires JDK 25 and network access to `maven.fabricmc.net`,
@@ -444,9 +446,12 @@ Requires JDK 25 and network access to `maven.fabricmc.net`,
 
 Mappings are **Mojang official** — Yarn was discontinued after snapshot
 25w46a and does not exist for 26.x. Version pins live in
-`gradle.properties`. The game tests cover the label model, learn, the
-tool, zones and the picker's server side; what needs a real client is in
-the in-game checklist, [`docs/TESTING.md`](docs/TESTING.md) — run it
+`gradle.properties`. The server game tests cover the label model, learn,
+the tool, zones and the picker's server side; the client game test opens
+every screen at three GUI sizes, checks that nothing is off-screen or
+clipped, walks through area mode with real clicks and leaves screenshots
+in `build/run/clientGameTest/screenshots`. What still needs a person is
+in the in-game checklist, [`docs/TESTING.md`](docs/TESTING.md) — run it
 before deploying to a shared server. The design notes and roadmap are in
 [`docs/REVAMP_PLAN.md`](docs/REVAMP_PLAN.md).
 
