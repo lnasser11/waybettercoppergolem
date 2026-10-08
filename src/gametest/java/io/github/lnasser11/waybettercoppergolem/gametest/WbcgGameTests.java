@@ -33,7 +33,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -423,6 +425,52 @@ public final class WbcgGameTests {
 
 		LabelTool.applyPickerChoice(player, Optional.empty());
 		helper.assertTrue(Clipboard.of(player).labels().isEmpty(), "clipboard emptied");
+		helper.succeed();
+	}
+
+	// ---------------------------------------------------------------- HUD data
+
+	@GameTest
+	public void cachedLabelSetUnionsBothHalvesWithoutDeriving(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		// setBlock skips placement logic, so pair the halves explicitly: facing
+		// north, the LEFT half connects clockwise (east) to the RIGHT half.
+		helper.setBlock(new BlockPos(2, 1, 2), Blocks.CHEST.defaultBlockState()
+				.setValue(ChestBlock.FACING, Direction.NORTH).setValue(ChestBlock.TYPE, ChestType.LEFT));
+		helper.setBlock(new BlockPos(3, 1, 2), Blocks.CHEST.defaultBlockState()
+				.setValue(ChestBlock.FACING, Direction.NORTH).setValue(ChestBlock.TYPE, ChestType.RIGHT));
+		BlockPos left = helper.absolutePos(new BlockPos(2, 1, 2));
+		BlockPos right = helper.absolutePos(new BlockPos(3, 1, 2));
+		helper.assertTrue(ChestLabels.halves(left, level.getBlockState(left)).size() == 2, "double chest formed");
+
+		helper.assertTrue(ChestLabels.cachedLabelSet(level, left, level.getBlockState(left)).isEmpty(),
+				"nothing cached yet");
+		level.getBlockEntity(left).setAttached(WayBetterCopperGolem.CHEST_LABELS,
+				ChestLabelSet.derived(List.of(ChestLabel.exact(id(Items.IRON_INGOT)))));
+		level.getBlockEntity(right).setAttached(WayBetterCopperGolem.CHEST_LABELS,
+				ChestLabelSet.explicit(List.of(ChestLabel.catchAll())));
+
+		ChestLabelSet union = ChestLabels.cachedLabelSet(level, right, level.getBlockState(right));
+		helper.assertValueEqual(union.labels(), List.of(ChestLabel.catchAll(), ChestLabel.exact(id(Items.IRON_INGOT))),
+				"both halves, clicked half first");
+		helper.assertTrue(union.explicit(), "explicit if either half is");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void outlinePointsCoverAllTwelveEdges(GameTestHelper helper) {
+		BoundingBox box = new BoundingBox(0, 0, 0, 3, 1, 2); // spans 4 x 2 x 3
+		List<net.minecraft.world.phys.Vec3> points = Zones.outlinePoints(box);
+		// Edge lengths 4, 2, 3 → 5, 3, 4 samples each; four edges per axis.
+		helper.assertValueEqual(points.size(), 4 * 5 + 4 * 3 + 4 * 4, "sample count");
+		for (net.minecraft.world.phys.Vec3 point : points) {
+			boolean onX = point.x == 0 || point.x == 4;
+			boolean onY = point.y == 0 || point.y == 2;
+			boolean onZ = point.z == 0 || point.z == 3;
+			helper.assertTrue((onX ? 1 : 0) + (onY ? 1 : 0) + (onZ ? 1 : 0) >= 2, "every point lies on an edge: " + point);
+		}
+		BoundingBox huge = new BoundingBox(0, 0, 0, 127, 127, 127);
+		helper.assertTrue(Zones.outlinePoints(huge).size() <= 12 * 33, "long edges are sampled sparsely");
 		helper.succeed();
 	}
 

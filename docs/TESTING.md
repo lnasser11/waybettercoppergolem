@@ -98,6 +98,25 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
 7. As a non-op (default config), `/wbcg learn` is not available and the
    zone-screen button says the pass needs operator permission.
 
+## 1e. The tool HUD
+
+1. Hold the feather. A dark panel above the hotbar shows
+   `Clipboard empty …` (or the clipboard contents). Switch to another
+   item → the panel disappears. Holding the feather in the **off hand**
+   also shows it.
+2. Look at the iron-labeled chest → `Labels: Iron Ingot (auto, from the
+   frame)`. Look at a pasted chest → `Labels: …` without `(auto)`. Look
+   at an unlabeled chest → `Unlabeled chest — vanilla behavior`. Look at
+   the **frame** on a labeled chest → the same label line.
+3. Look at a copper chest in a zone → `Zone at x y z · area W × H × D` and
+   `reorganize on · tidy off · dry run off`, and the zone's outline keeps
+   being drawn while you look. A copper chest in no zone → `No zone — …`.
+4. Press **Set area…** in the zone screen → the panel's last line turns
+   into `Area mode: sneak-right-click the first corner`, then `… the
+   opposite corner` after the first click, then back to the clipboard
+   line. While in area mode, sneak-right-clicking the air cancels and
+   does **not** open the picker.
+
 ## 2. Zones and the settings GUI
 
 1. Place a copper chest. **Sneak-right-click it with an empty hand** → the

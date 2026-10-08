@@ -176,6 +176,15 @@ public final class Zones {
 	 * a few hundred particles.
 	 */
 	public static void showOutline(ServerPlayer player, ServerLevel level, BoundingBox area) {
+		for (net.minecraft.world.phys.Vec3 point : outlinePoints(area)) {
+			level.sendParticles(player, ParticleTypes.END_ROD, true, true,
+					point.x, point.y, point.z, 1, 0, 0, 0, 0.0);
+		}
+	}
+
+	/** Sample points along the box's twelve edges (shared by server and client drawing). */
+	public static List<net.minecraft.world.phys.Vec3> outlinePoints(BoundingBox area) {
+		List<net.minecraft.world.phys.Vec3> points = new ArrayList<>();
 		double x0 = area.minX();
 		double y0 = area.minY();
 		double z0 = area.minZ();
@@ -183,25 +192,25 @@ public final class Zones {
 		double y1 = area.maxY() + 1;
 		double z1 = area.maxZ() + 1;
 		for (double y : new double[] {y0, y1}) {
-			edge(player, level, x0, y, z0, x1, y, z0);
-			edge(player, level, x0, y, z1, x1, y, z1);
-			edge(player, level, x0, y, z0, x0, y, z1);
-			edge(player, level, x1, y, z0, x1, y, z1);
+			edge(points, x0, y, z0, x1, y, z0);
+			edge(points, x0, y, z1, x1, y, z1);
+			edge(points, x0, y, z0, x0, y, z1);
+			edge(points, x1, y, z0, x1, y, z1);
 		}
-		edge(player, level, x0, y0, z0, x0, y1, z0);
-		edge(player, level, x1, y0, z0, x1, y1, z0);
-		edge(player, level, x0, y0, z1, x0, y1, z1);
-		edge(player, level, x1, y0, z1, x1, y1, z1);
+		edge(points, x0, y0, z0, x0, y1, z0);
+		edge(points, x1, y0, z0, x1, y1, z0);
+		edge(points, x0, y0, z1, x0, y1, z1);
+		edge(points, x1, y0, z1, x1, y1, z1);
+		return points;
 	}
 
-	private static void edge(ServerPlayer player, ServerLevel level,
+	private static void edge(List<net.minecraft.world.phys.Vec3> points,
 			double ax, double ay, double az, double bx, double by, double bz) {
 		double length = Math.abs(bx - ax) + Math.abs(by - ay) + Math.abs(bz - az);
 		int steps = (int) Math.max(1, Math.min(length, 32));
 		for (int i = 0; i <= steps; i++) {
 			double t = (double) i / steps;
-			level.sendParticles(player, ParticleTypes.END_ROD, true, true,
-					ax + (bx - ax) * t, ay + (by - ay) * t, az + (bz - az) * t, 1, 0, 0, 0, 0.0);
+			points.add(new net.minecraft.world.phys.Vec3(ax + (bx - ax) * t, ay + (by - ay) * t, az + (bz - az) * t));
 		}
 	}
 

@@ -127,6 +127,21 @@ Labels are shown by friendly names everywhere: a `c:ingots/iron` label
 reads **Ingots › Iron**, `minecraft:wooden_slabs` reads **Wooden Slabs**,
 presets use their names.
 
+### Seeing labels and zones: the tool HUD
+
+While the label tool is in either hand, a small panel above the hotbar
+tells you what you are looking at:
+
+- a chest: its labels (`Labels: Ingots › Iron`), marked **(auto, from the
+  frame)** when they come from a frame, or `Unlabeled chest — vanilla
+  behavior`; looking at a frame shows the chest it hangs on;
+- a copper chest: its zone (`Zone at x y z · area 20 × 6 × 14`) and the
+  zone's settings, while the zone's outline is drawn around you;
+- always: what the clipboard holds, or the area-mode prompt while you are
+  picking corners.
+
+Put the tool away and the panel disappears.
+
 ### How golems decide where things go
 
 When a golem picks up items from a copper chest, it chooses the

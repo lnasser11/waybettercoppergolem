@@ -100,5 +100,12 @@
   "waybettercoppergolem.picker.back": "← Voltar",
   "waybettercoppergolem.picker.exact": "%s (só este item)",
   "waybettercoppergolem.picker.stop": "%s · %s itens",
-  "waybettercoppergolem.picker.tag_tooltip": "Tag %s · %s itens"
+  "waybettercoppergolem.picker.tag_tooltip": "Tag %s · %s itens",
+  "waybettercoppergolem.hud.labels": "Rótulos: %s",
+  "waybettercoppergolem.hud.labels_auto": "Rótulos: %s (auto, pela moldura)",
+  "waybettercoppergolem.hud.unlabeled": "Baú sem rótulo — comportamento padrão",
+  "waybettercoppergolem.hud.zone": "Zona em %s · área %s",
+  "waybettercoppergolem.hud.no_zone": "Sem zona — agache e clique com a mão vazia para criar uma",
+  "waybettercoppergolem.hud.area_mode_1": "Modo de área: agache e clique no primeiro canto",
+  "waybettercoppergolem.hud.area_mode_2": "Modo de área: agache e clique no canto oposto (ar cancela)"
 }

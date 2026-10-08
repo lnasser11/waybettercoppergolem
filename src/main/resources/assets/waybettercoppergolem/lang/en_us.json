@@ -100,5 +100,12 @@
   "waybettercoppergolem.picker.back": "← Back",
   "waybettercoppergolem.picker.exact": "%s (exact item only)",
   "waybettercoppergolem.picker.stop": "%s · %s items",
-  "waybettercoppergolem.picker.tag_tooltip": "Tag %s · %s items"
+  "waybettercoppergolem.picker.tag_tooltip": "Tag %s · %s items",
+  "waybettercoppergolem.hud.labels": "Labels: %s",
+  "waybettercoppergolem.hud.labels_auto": "Labels: %s (auto, from the frame)",
+  "waybettercoppergolem.hud.unlabeled": "Unlabeled chest — vanilla behavior",
+  "waybettercoppergolem.hud.zone": "Zone at %s · area %s",
+  "waybettercoppergolem.hud.no_zone": "No zone — sneak-right-click with an empty hand to create one",
+  "waybettercoppergolem.hud.area_mode_1": "Area mode: sneak-right-click the first corner",
+  "waybettercoppergolem.hud.area_mode_2": "Area mode: sneak-right-click the opposite corner (air cancels)"
 }

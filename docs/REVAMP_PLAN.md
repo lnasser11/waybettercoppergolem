@@ -222,7 +222,9 @@ Renders only when the tool is in either hand:
   settings), read from the synced zone registry; the outline is drawn
   while you keep looking.
 - Second line: "Clipboard: …" or "Clipboard empty — sneak-left-click a
-  chest to copy, sneak-right-click the air to pick".
+  chest to copy, sneak-right-click the air to pick"; in area mode, the
+  corner prompt instead (a `wbcg:area_mode` S2C payload carries the
+  step, and the picker stays closed while it is non-zero).
 
 Files: new `client/ToolHud.java`, `WayBetterCopperGolemClient.java`,
 `WayBetterCopperGolem.java` (zone settings sync).
@@ -241,7 +243,8 @@ Files: new `client/ToolHud.java`, `WayBetterCopperGolemClient.java`,
 | Payload | Direction | Content |
 |---|---|---|
 | `wbcg:config` | S2C on join | tool item id |
-| `wbcg:set_clipboard` | C2S | one `ChestLabel`, or empty = clear |
+| `wbcg:set_clipboard` | C2S | the chosen labels; empty list = remove-labels marker; absent = empty the clipboard |
+| `wbcg:area_mode` | S2C | 0 / 1 / 2: out of area mode, waiting for corner 1, waiting for corner 2 |
 | chest labels, zone settings, clipboard | Fabric attachment sync | automatic |
 
 ### Acceptance tests (solo world)

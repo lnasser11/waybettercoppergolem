@@ -94,6 +94,16 @@ public final class LabelTool {
 				System.currentTimeMillis() + AREA_MODE_TTL_MILLIS));
 		player.sendSystemMessage(Component.translatable("waybettercoppergolem.area.begin",
 				WbcgConfig.toolItem(level).getName(WbcgConfig.toolItem(level).getDefaultInstance())));
+		syncAreaMode(player, 1);
+	}
+
+	/** Tells the client where the player is in area mode (0 = out), for the HUD and the picker. */
+	private static void syncAreaMode(ServerPlayer player, int step) {
+		if (net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.canSend(player,
+				io.github.lnasser11.waybettercoppergolem.net.AreaModePayload.TYPE)) {
+			net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player,
+					new io.github.lnasser11.waybettercoppergolem.net.AreaModePayload(step));
+		}
 	}
 
 	public static boolean inAreaMode(Player player) {
@@ -109,6 +119,7 @@ public final class LabelTool {
 		}
 		if (selection.expired() || !selection.dimension().equals(level.dimension())) {
 			AREA_SELECTIONS.remove(player.getUUID());
+			syncAreaMode(player, 0);
 			player.sendSystemMessage(Component.translatable("waybettercoppergolem.area.expired"));
 			return true;
 		}
@@ -117,9 +128,11 @@ public final class LabelTool {
 					pos.immutable(), System.currentTimeMillis() + AREA_MODE_TTL_MILLIS));
 			cornerParticles(level, player, pos);
 			player.sendSystemMessage(Component.translatable("waybettercoppergolem.area.first"));
+			syncAreaMode(player, 2);
 			return true;
 		}
 		AREA_SELECTIONS.remove(player.getUUID());
+		syncAreaMode(player, 0);
 		BoundingBox area = Zone.areaFromCorners(selection.first(), pos);
 		boolean expanded = !area.isInside(selection.anchor());
 		if (expanded) {
@@ -139,6 +152,7 @@ public final class LabelTool {
 		if (AREA_SELECTIONS.remove(player.getUUID()) == null) {
 			return false;
 		}
+		syncAreaMode(player, 0);
 		player.sendSystemMessage(Component.translatable("waybettercoppergolem.area.cancelled"));
 		return true;
 	}

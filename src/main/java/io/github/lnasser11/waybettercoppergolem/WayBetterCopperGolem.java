@@ -6,6 +6,7 @@ import io.github.lnasser11.waybettercoppergolem.label.ChestLabel;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabelSet;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabels;
 import io.github.lnasser11.waybettercoppergolem.label.LabelResolver;
+import io.github.lnasser11.waybettercoppergolem.net.AreaModePayload;
 import io.github.lnasser11.waybettercoppergolem.net.ConfigPayload;
 import io.github.lnasser11.waybettercoppergolem.net.SetClipboardPayload;
 import io.github.lnasser11.waybettercoppergolem.tool.Clipboard;
@@ -113,6 +114,7 @@ public class WayBetterCopperGolem implements ModInitializer {
 	public void onInitialize() {
 		WbcgConfig.load();
 		PayloadTypeRegistry.clientboundPlay().register(ConfigPayload.TYPE, ConfigPayload.STREAM_CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(AreaModePayload.TYPE, AreaModePayload.STREAM_CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(SetClipboardPayload.TYPE, SetClipboardPayload.STREAM_CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(SetClipboardPayload.TYPE,
 				(payload, context) -> LabelTool.applyPickerChoice(context.player(), payload.labels()));

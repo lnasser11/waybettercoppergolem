@@ -124,6 +124,30 @@ public final class ChestLabels {
 		return new ChestLabelSet(union, first.explicit() || second.explicit());
 	}
 
+	/**
+	 * The cached label set of the (possibly double) chest, read straight
+	 * from the synced attachments without re-deriving anything, so it works
+	 * on the client too (HUD). Union of both halves, explicit if either is.
+	 */
+	public static ChestLabelSet cachedLabelSet(net.minecraft.world.level.Level level, BlockPos chestPos, BlockState state) {
+		List<ChestLabel> union = new ArrayList<>();
+		boolean explicit = false;
+		for (BlockPos half : halves(chestPos, state)) {
+			BlockEntity blockEntity = level.getBlockEntity(half);
+			ChestLabelSet set = blockEntity == null ? null : blockEntity.getAttached(WayBetterCopperGolem.CHEST_LABELS);
+			if (set == null) {
+				continue;
+			}
+			explicit |= set.explicit();
+			for (ChestLabel label : set.labels()) {
+				if (!union.contains(label)) {
+					union.add(label);
+				}
+			}
+		}
+		return new ChestLabelSet(union, explicit);
+	}
+
 	/** Effective labels for the (possibly double) chest at {@code chestPos}. */
 	public static List<ChestLabel> effectiveLabels(ServerLevel level, BlockPos chestPos, BlockState state) {
 		return effectiveLabelSet(level, chestPos, state).labels();
