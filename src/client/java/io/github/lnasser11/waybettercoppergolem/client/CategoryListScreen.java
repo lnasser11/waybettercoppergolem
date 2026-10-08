@@ -40,7 +40,7 @@ public class CategoryListScreen extends Screen {
 			this.addRenderableWidget(new ListRow(rowX, y, Ui.COLUMN_WIDTH, LabelResolver.tagName(preset.location()),
 					() -> ClientPlayNetworking.send(new TuningPayloads.OpenTuning(preset.location())))
 					.icon(sampleStack(preset))
-					.secondary(Component.translatable("waybettercoppergolem.categories.count", LabelResolver.tagSize(preset)), Ui.TEXT_MUTED)
+					.secondary(Ui.count(LabelResolver.tagSize(preset), "items"), Ui.TEXT_MUTED)
 					.tooltip(Component.literal(preset.location().toString())));
 			if (i % 2 == 1) {
 				y += Ui.ROW;

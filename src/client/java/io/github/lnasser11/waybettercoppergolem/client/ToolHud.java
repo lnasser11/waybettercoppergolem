@@ -49,7 +49,8 @@ import java.util.Optional;
 public final class ToolHud implements HudElement {
 	private static final Identifier ID = WayBetterCopperGolem.id("tool_hud");
 	private static final int LINE_HEIGHT = 10;
-	private static final int BOTTOM_MARGIN = 84;
+	/** Below the top edge: clear of the crosshair and of whatever the player looks at. */
+	private static final int TOP_MARGIN = 10;
 	private static final int OUTLINE_EVERY_TICKS = 20;
 
 	private long lastOutlineTick = Long.MIN_VALUE;
@@ -140,8 +141,8 @@ public final class ToolHud implements HudElement {
 			width = Math.max(width, font.width(line));
 		}
 		int centerX = graphics.guiWidth() / 2;
-		int bottom = graphics.guiHeight() - BOTTOM_MARGIN;
-		int top = bottom - lines.size() * LINE_HEIGHT;
+		int top = TOP_MARGIN;
+		int bottom = top + lines.size() * LINE_HEIGHT;
 		int left = centerX - width / 2 - 5;
 		int right = centerX + width / 2 + 5;
 		graphics.fill(left, top - 4, right, bottom + 1, Ui.HUD_BACKGROUND);

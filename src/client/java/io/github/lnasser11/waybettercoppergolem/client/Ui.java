@@ -77,6 +77,12 @@ public final class Ui {
 		return Math.clamp(available / ROW, min, max);
 	}
 
+	/** "%s chests" with the right plural: the lang keys {@code count.<key>.one} / {@code .many}. */
+	public static net.minecraft.network.chat.Component count(int n, String key) {
+		return net.minecraft.network.chat.Component.translatable(
+				"waybettercoppergolem.count." + key + (n == 1 ? ".one" : ".many"), n);
+	}
+
 	/** Whether three columns fit side by side on this screen. */
 	public static boolean wide(int screenWidth) {
 		return screenWidth >= WIDE_PANEL_WIDTH + 2 * PADDING + 4;
