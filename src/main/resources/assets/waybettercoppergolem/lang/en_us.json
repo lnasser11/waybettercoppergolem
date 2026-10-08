@@ -24,6 +24,8 @@
   "waybettercoppergolem.category.mob_drops": "Mob Drops",
   "waybettercoppergolem.category.nether_and_end": "Nether & End",
   "waybettercoppergolem.category.decoration": "Decoration",
+  "waybettercoppergolem.category.brewing": "Brewing",
+  "waybettercoppergolem.category.technical": "Technical",
   "waybettercoppergolem.tuning.added": "Added %s to %s",
   "waybettercoppergolem.tuning.removed": "Removed %s from %s",
   "waybettercoppergolem.command.categories": "%s preset categories:",

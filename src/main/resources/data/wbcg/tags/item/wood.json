@@ -82,15 +82,27 @@
       "required": false
     },
     {
-      "id": "minecraft:chest",
+      "id": "#minecraft:wooden_shelves",
       "required": false
     },
     {
-      "id": "minecraft:barrel",
+      "id": "minecraft:bamboo_mosaic",
       "required": false
     },
     {
-      "id": "minecraft:crafting_table",
+      "id": "minecraft:mangrove_roots",
+      "required": false
+    },
+    {
+      "id": "minecraft:muddy_mangrove_roots",
+      "required": false
+    },
+    {
+      "id": "minecraft:scaffolding",
+      "required": false
+    },
+    {
+      "id": "minecraft:creaking_heart",
       "required": false
     }
   ]

@@ -404,7 +404,7 @@ public final class WbcgGameTests {
 				"Redstone", "preset uses the lang entry");
 		helper.assertTrue(LabelResolver.orderedTags(Items.IRON_INGOT).stream()
 				.allMatch(tag -> LabelResolver.tagSize(tag) > 1), "no single-member stops");
-		helper.assertValueEqual(LabelResolver.presetCategories().size(), 12, "twelve presets");
+		helper.assertValueEqual(LabelResolver.presetCategories().size(), 14, "fourteen presets");
 		helper.succeed();
 	}
 

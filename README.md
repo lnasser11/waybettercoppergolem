@@ -68,7 +68,7 @@ A **label** says what a chest is for. It is one of:
 |---|---|
 | an **exact item** (*Iron Ingot*) | only that item |
 | a **tag** (*Ingots › Iron*, *Ingots*, *Wooden Slabs*) | everything in that item tag; narrower tags win over broader ones |
-| a **preset category** (*Redstone*, *Food*, …) | one of the mod's 12 curated buckets, tunable per world |
+| a **preset category** (*Redstone*, *Food*, …) | one of the mod's 14 curated buckets, tunable per world; they overlap, and a fixed priority order settles it |
 | **catch-all** | anything that matches no other label anywhere |
 | **off-limits** | golems never deposit into, claim or reorganize this chest |
 
@@ -159,7 +159,7 @@ wall.
 Sneak-right-click the air while holding the feather. Whatever you choose
 goes onto the clipboard, ready to paste:
 
-- the twelve **preset categories** as buttons;
+- the fourteen **preset categories** as buttons;
 - **Catch-all**, **Off-limits**, **Remove labels** (pasting it unlabels a
   chest) and **Empty clipboard**;
 - an **item search**, pre-filled with what you carry. Pick an item and
@@ -261,7 +261,8 @@ destination by **narrowest matching label first**, inside its zone:
 
 1. a chest labeled with the exact item;
 2. a chest labeled with a matching tag, smaller tags first
-   (*Ingots › Iron* beats *Ingots* beats the *Ores & Minerals* category);
+   (*Ingots › Iron* beats *Ingots* beats the *Ores* category); between
+   two preset categories, the earlier one in the preset list wins;
 3. the catch-all chest;
 4. an unlabeled chest, under the vanilla rule (empty, or already contains
    that item).
@@ -315,12 +316,18 @@ six high. It still can't grab through solid walls.
 ## Categories and tuning
 
 Tags are precise but patchy for the categories players actually use, so
-the mod ships **12 preset categories** as ordinary datapack item tags
-(`wbcg:` namespace):
+the mod ships **14 preset categories** as ordinary datapack item tags
+(`wbcg:` namespace), and together they cover every item in the game:
 
-> Building Blocks · Wood · Stone & Earth · Redstone · Food · Farming ·
-> Ores & Minerals · Tools & Gear · Combat · Mob Drops · Nether & End ·
-> Decoration
+> Brewing · Combat · Farming · Mob Drops · Nether & End · Food · Redstone ·
+> Ores · Technical · Tools & Gear · Decoration · Wood · Stone & Dirt ·
+> Building
+
+That is also their priority order. Presets overlap on purpose (a wooden
+slab is Wood and also Building), and when an item matches two preset
+chests the one listed first wins, whatever their sizes. Technical holds
+what only creative mode gives you: spawn eggs, command and structure
+blocks, bedrock, the debug stick.
 
 Because no preset will ever match your storage room exactly, every
 category (and any `c:` or curated `minecraft:` tag) can be tuned per

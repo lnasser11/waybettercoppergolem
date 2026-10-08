@@ -64,9 +64,37 @@ public final class LabelResolver {
 				.toList());
 	}
 
-	/** Fewest member items first, deeper tag paths breaking ties, then by id. */
+	/**
+	 * The preset categories from most to least specific. Presets are broad
+	 * and overlap on purpose (a wooden slab is Wood and a Building Block),
+	 * so between two matching presets this order decides, not their size:
+	 * growing a category never reshuffles where things go. Presets rank
+	 * below every plain tag, which keeps a narrow tag like Ingots › Iron
+	 * ahead of any preset.
+	 */
+	public static final List<String> PRESET_PRIORITY = List.of(
+			"brewing", "combat", "farming", "mob_drops", "nether_and_end", "food", "redstone",
+			"ores_and_minerals", "technical", "tools_and_gear", "decoration", "wood", "stone", "building_blocks");
+
+	/** Rank below which only plain tags fall; presets sit at this plus their priority index. */
+	public static final int PRESET_RANK_BASE = 100_000;
+
+	/**
+	 * How specific a tag is as a destination: member count for plain tags,
+	 * a fixed slot by {@link #PRESET_PRIORITY} for presets (an unlisted
+	 * preset, from a datapack, ranks by size after the listed ones).
+	 */
+	public static int rank(TagKey<Item> tag) {
+		if (!isPresetCategory(tag)) {
+			return Math.max(1, tagSize(tag));
+		}
+		int index = PRESET_PRIORITY.indexOf(tag.location().getPath());
+		return PRESET_RANK_BASE + (index >= 0 ? index : PRESET_PRIORITY.size() + Math.max(1, tagSize(tag)));
+	}
+
+	/** Most specific first ({@link #rank}), deeper tag paths breaking ties, then by id. */
 	public static final Comparator<TagKey<Item>> NARROW_TO_BROAD = Comparator
-			.comparingInt(LabelResolver::tagSize)
+			.comparingInt(LabelResolver::rank)
 			.thenComparing((TagKey<Item> tag) -> tag.location().getPath().split("/").length,
 					Comparator.reverseOrder())
 			.thenComparing(tag -> tag.location().toString());
@@ -130,7 +158,8 @@ public final class LabelResolver {
 
 	/**
 	 * Rank of this label as a destination for {@code stack}: lower is more
-	 * specific. Exact item = 0, tag labels = tag member count, catch-all =
+	 * specific. Exact item = 0, tag labels = {@link #rank} (member count for
+	 * plain tags, the preset priority for presets), catch-all =
 	 * {@link #CATCH_ALL_SPECIFICITY}, no match = {@link #NO_MATCH}.
 	 */
 	public static int specificity(ServerLevel level, ChestLabel label, ItemStack stack) {
@@ -143,7 +172,7 @@ public final class LabelResolver {
 		if (label.tagId().isEmpty()) {
 			return 0;
 		}
-		return Math.max(1, tagSize(itemTag(label.tagId().get())));
+		return rank(itemTag(label.tagId().get()));
 	}
 
 	/**

@@ -7,7 +7,8 @@
 	"license": "CC0-1.0",
 	"entrypoints": {
 		"fabric-gametest": [
-			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgGameTests"
+			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgGameTests",
+			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgPresetCoverageTests"
 		],
 		"fabric-client-gametest": [
 			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgClientGameTest"
