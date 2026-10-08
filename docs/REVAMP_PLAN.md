@@ -1,7 +1,7 @@
 # Usability revamp — implementation plan
 
-**Status:** phases 1 and 2 are complete (steps 1–10 below, plus 4b).
-Phases 3–4 are the roadmap. The user-facing description of what shipped is the
+**Status:** phases 1–3 are complete (steps 1–10 below, plus 4b, plus
+the design pass). Phase 4 is the roadmap. The user-facing description of what shipped is the
 README; this document keeps the reasoning and the remaining work.
 
 Goal: configuring a storage room should take minutes, not an evening, and
@@ -308,19 +308,44 @@ audited for unused keys; the mod description updated.
   of widths and spacings (`client/Ui`) across the zone screen and the
   picker.
 
-## Phase 3 — design revamp of the menus
+## Phase 3 — design revamp of the menus (done)
 
-A visual pass over every client screen once they all exist (zone screen,
-picker/editor, tuning grid, overview, the chest-screen button), so the
-style is designed once for the full set:
+**Brief.** The screens open from chests and from the hotbar HUD, so they
+should read as part of the game: a dark translucent panel like vanilla's
+modern list screens, vanilla buttons for actions people already know,
+and flat list rows (icon, name, detail) wherever a screen shows a list.
+Density stays at vanilla's 20px controls. Color is used for state only:
+white for what the player set, blue for what the mod derived, gold for
+something to look at, red for something stuck, green for on/added.
 
-- a short design brief first: how the screens should sit next to vanilla
-  (stone panel vs. lighter), density, type sizes, color for state (auto
-  vs. explicit, on vs. off);
-- shared pieces built once and reused: panel background, header/title
-  treatment, section labels, a list widget with item icons and
-  secondary text, consistent button sizes and tooltips;
-- then each screen restyled on top of those pieces.
+**Shared pieces** (`client/`):
+- `Ui` — layout constants and the color tokens above, in one place.
+- `Panel` — background, border, header (title + muted subtitle, separator),
+  section labels, outline helper; screens lay vanilla widgets out inside
+  its content box.
+- `ListRow` — a flat `AbstractButton`: optional item icon, primary text
+  (ellipsized to fit), optional right-aligned secondary text in its own
+  color, optional 2px accent bar, hover highlight, disabled state.
+
+**Per screen:**
+- Zone settings: three labeled sections (Behavior / Area / Tools);
+  anchor and area in the header subtitle.
+- Picker / editor: sections for Categories, Special and the search; results
+  (carried items, matches, stops, suggestions) are rows with icons; a
+  suggestion that covers every stack is green-accented; chest mode keeps
+  the chips row under the header.
+- Category list: one row per preset with a sample icon and member count.
+- Tuning: members and add-results as rows; added = green accent,
+  excluded = gold accent and muted name; read-only notice in red.
+- Overview: each chest a row colored by state (white explicit, blue auto,
+  gold unlabeled) with the main problem as detail; Find / Edit / Paste
+  stay vanilla buttons.
+- Simulation: rows with the item icon, "→ destination [x y z]" as detail,
+  "nowhere to go" in red with a red accent.
+- HUD: same surface colors and border as the panels.
+
+Not verified visually in this environment (no client); the in-game
+checklist has a visual pass for it.
 
 ## Phase 4 — polish
 

@@ -12,7 +12,6 @@ import io.github.lnasser11.waybettercoppergolem.tool.LabelTool;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -49,31 +48,38 @@ import java.util.Set;
  *
  * <p><b>Chest mode</b> (the golem button in a chest's inventory): choices
  * apply to that chest right away (and land on the clipboard too). The
- * header shows the chest's current labels as removable chips and a
- * Replace/Add toggle; the search column starts out with labels suggested
- * from the chest's contents, each with how many stacks it covers. The
- * screen stays open and refreshes after every change.
+ * header shows the chest's current labels; a row of chips removes single
+ * labels and a Replace/Add toggle decides how a choice combines with
+ * them; the search column starts out with labels suggested from the
+ * chest's contents, each with how many stacks it covers. The screen stays
+ * open and refreshes after every change.
  *
- * <p>Left column: preset categories, catch-all, off-limits, remove
- * labels, empty clipboard. Right column: item search; picking an item
- * lists its stops, exact first and then its tags narrow to broad, with
- * member counts. Everything is computed from the client's own registries
- * and tags; the server only receives the final choice and validates it.
+ * <p>Left column: preset categories and the special labels. Right column:
+ * item search; picking an item lists its stops, exact first and then its
+ * tags narrow to broad, with member counts. Everything is computed from
+ * the client's own registries and tags; the server only receives the
+ * final choice and validates it.
  */
 public class LabelPickerScreen extends Screen {
 	private static final int MAX_RESULTS = 8;
+	/** Back + exact + up to 7 tags when an item is selected. */
+	private static final int RESULT_ROWS = MAX_RESULTS + 1;
 
-	private record IconAt(ItemStack stack, int x, int y) {
-	}
+	/** The editor currently on screen in chest mode, if any (tracked here; see {@link #removed()}). */
+	private static @Nullable LabelPickerScreen openEditor;
 
 	private final List<AbstractWidget> dynamic = new ArrayList<>();
-	private final List<IconAt> icons = new ArrayList<>();
 	private @Nullable EditorContext context;
 	private boolean addMode;
-	private @Nullable EditBox search;
 	private String query = "";
 	private @Nullable Item selected;
+	private Panel panel = new Panel(0, 0, 0, 0);
+	private int leftX;
 	private int rightX;
+	private int categoriesLabelY;
+	private int specialLabelY;
+	private int searchLabelY;
+	private int resultsLabelY;
 	private int resultsTop;
 
 	private LabelPickerScreen(@Nullable EditorContext context) {
@@ -85,9 +91,6 @@ public class LabelPickerScreen extends Screen {
 	public static LabelPickerScreen forClipboard() {
 		return new LabelPickerScreen(null);
 	}
-
-	/** The editor currently on screen in chest mode, if any (tracked here; see {@link #removed()}). */
-	private static @Nullable LabelPickerScreen openEditor;
 
 	/** Opens the editor for the chest, or refreshes it if it is already open for that chest. */
 	public static void openOrUpdate(Minecraft minecraft, EditorContext context) {
@@ -112,14 +115,6 @@ public class LabelPickerScreen extends Screen {
 		return this.context != null;
 	}
 
-	private int headerHeight() {
-		return chestMode() ? 44 + Ui.ROW : 36;
-	}
-
-	private int top() {
-		return Math.max(headerHeight(), this.height / 2 - 118);
-	}
-
 	@Override
 	protected void init() {
 		super.init();
@@ -127,22 +122,30 @@ public class LabelPickerScreen extends Screen {
 			openEditor = this;
 		}
 		this.dynamic.clear();
-		this.icons.clear();
-		int leftX = this.width / 2 - Ui.PANEL_WIDTH / 2;
-		this.rightX = leftX + Ui.COLUMN_WIDTH + Ui.GAP;
-		int top = top();
+
+		int leftHeight = Ui.SECTION_LABEL + 6 * Ui.ROW + Ui.GAP + Ui.SECTION_LABEL + 2 * Ui.ROW
+				+ (chestMode() ? 0 : Ui.ROW) + Ui.GAP + Ui.ROW;
+		int rightHeight = Ui.SECTION_LABEL + Ui.ROW + Ui.SECTION_LABEL + RESULT_ROWS * Ui.ROW;
+		int chipsHeight = chestMode() ? Ui.ROW + Ui.GAP : 0;
+		int contentHeight = chipsHeight + Math.max(leftHeight, rightHeight) + Ui.GAP + Ui.ROW;
+		this.panel = Panel.centered(this.width, this.height, Ui.PANEL_WIDTH, contentHeight);
+		this.leftX = this.panel.contentX();
+		this.rightX = this.leftX + Ui.COLUMN_WIDTH + Ui.GAP;
+		int top = this.panel.contentTop();
 
 		if (chestMode()) {
-			addHeaderChips(leftX, top - Ui.ROW);
+			addHeaderChips(this.leftX, top);
+			top += Ui.ROW + Ui.GAP;
 		}
 
 		// ---- left: categories, then the special labels
 		int half = (Ui.COLUMN_WIDTH - Ui.GAP) / 2;
 		List<TagKey<Item>> presets = LabelResolver.presetCategories();
-		int y = top;
+		this.categoriesLabelY = top;
+		int y = top + Ui.SECTION_LABEL;
 		for (int i = 0; i < presets.size(); i++) {
 			TagKey<Item> preset = presets.get(i);
-			int x = leftX + (i % 2) * (half + Ui.GAP);
+			int x = this.leftX + (i % 2) * (half + Ui.GAP);
 			Identifier tagId = preset.location();
 			this.addRenderableWidget(Button.builder(LabelResolver.tagName(tagId),
 							button -> choose(ChestLabel.tag(sampleFor(tagId), tagId)))
@@ -156,80 +159,79 @@ public class LabelPickerScreen extends Screen {
 			y += Ui.ROW;
 		}
 		y += Ui.GAP;
+		this.specialLabelY = y;
+		y += Ui.SECTION_LABEL;
 		this.addRenderableWidget(Button.builder(Component.translatable("waybettercoppergolem.picker.catch_all"),
 						button -> choose(ChestLabel.catchAll()))
 				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.picker.catch_all.tooltip")))
-				.bounds(leftX, y, half, Ui.BUTTON_HEIGHT).build());
+				.bounds(this.leftX, y, half, Ui.BUTTON_HEIGHT).build());
 		this.addRenderableWidget(Button.builder(Component.translatable("waybettercoppergolem.picker.off_limits"),
 						button -> choose(ChestLabel.exact(BuiltInRegistries.ITEM.getKey(Items.COBWEB))))
 				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.picker.off_limits.tooltip")))
-				.bounds(leftX + half + Ui.GAP, y, half, Ui.BUTTON_HEIGHT).build());
+				.bounds(this.leftX + half + Ui.GAP, y, half, Ui.BUTTON_HEIGHT).build());
 		y += Ui.ROW;
 		this.addRenderableWidget(Button.builder(Component.translatable("waybettercoppergolem.picker.remove_labels"),
 						button -> sendLabels(List.of()))
 				.tooltip(Tooltip.create(Component.translatable(chestMode()
 						? "waybettercoppergolem.editor.remove_labels.tooltip"
 						: "waybettercoppergolem.picker.remove_labels.tooltip")))
-				.bounds(leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
+				.bounds(this.leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
 		y += Ui.ROW;
 		if (!chestMode()) {
 			this.addRenderableWidget(Button.builder(Component.translatable("waybettercoppergolem.picker.empty_clipboard"),
 							button -> send(SetClipboardPayload.empty()))
-					.bounds(leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
+					.bounds(this.leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
 			y += Ui.ROW;
 		}
 		y += Ui.GAP;
 		this.addRenderableWidget(Button.builder(Component.translatable("waybettercoppergolem.picker.tune_categories"),
 						button -> this.minecraft.setScreenAndShow(new CategoryListScreen()))
 				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.picker.tune_categories.tooltip")))
-				.bounds(leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
-		y += Ui.ROW;
-		int leftBottom = y;
+				.bounds(this.leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
 
 		// ---- right: search + results
-		this.search = new EditBox(this.font, this.rightX, top, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT,
+		this.searchLabelY = top;
+		EditBox search = new EditBox(this.font, this.rightX, top + Ui.SECTION_LABEL, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT,
 				Component.translatable("waybettercoppergolem.picker.search"));
-		this.search.setHint(Component.translatable("waybettercoppergolem.picker.search_hint"));
-		this.search.setMaxLength(40);
-		this.search.setValue(this.query);
-		this.search.setResponder(text -> {
+		search.setHint(Component.translatable("waybettercoppergolem.picker.search_hint"));
+		search.setMaxLength(40);
+		search.setValue(this.query);
+		search.setResponder(text -> {
 			this.query = text;
 			this.selected = null;
 			rebuildResults();
 		});
-		this.addRenderableWidget(this.search);
-		this.resultsTop = top + Ui.ROW + 10;
+		this.addRenderableWidget(search);
+		this.resultsLabelY = top + Ui.SECTION_LABEL + Ui.ROW;
+		this.resultsTop = this.resultsLabelY + Ui.SECTION_LABEL;
 		rebuildResults();
 
-		int rightBottom = this.resultsTop + (MAX_RESULTS + 1) * Ui.ROW;
-		int doneY = Math.max(leftBottom, rightBottom) + Ui.GAP;
 		this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
-				.bounds(this.width / 2 - 100, Math.min(doneY, this.height - Ui.BUTTON_HEIGHT - 6), 200, Ui.BUTTON_HEIGHT)
+				.bounds(this.panel.centerX() - 100, this.panel.bottom() - Ui.PADDING - Ui.BUTTON_HEIGHT, 200, Ui.BUTTON_HEIGHT)
 				.build());
 	}
 
-	/** Chest mode header row: the Replace/Add toggle and one removable chip per current label. */
+	/** Chest mode: the Replace/Add toggle and one removable chip per current label. */
 	private void addHeaderChips(int leftX, int y) {
 		EditorContext ctx = this.context;
 		if (ctx == null) {
 			return;
 		}
 		int x = leftX;
-		Button mode = Button.builder(Component.translatable(this.addMode
+		this.addRenderableWidget(Button.builder(Component.translatable(this.addMode
 						? "waybettercoppergolem.editor.mode_add" : "waybettercoppergolem.editor.mode_replace"), button -> {
 					this.addMode = !this.addMode;
 					this.rebuildWidgets();
 				})
 				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.editor.mode.tooltip")))
-				.bounds(x, y, 90, Ui.BUTTON_HEIGHT).build();
-		this.addRenderableWidget(mode);
+				.bounds(x, y, 90, Ui.BUTTON_HEIGHT).build());
 		x += 90 + Ui.GAP;
 		int rightEdge = leftX + Ui.PANEL_WIDTH;
 		for (ChestLabel label : ctx.current().labels()) {
 			Component text = Component.literal("✕ ").append(LabelResolver.shortName(label));
 			int width = Math.min(this.font.width(text) + 12, Ui.COLUMN_WIDTH);
 			if (x + width > rightEdge) {
-				break; // more chips than fit; the current line above still lists them all
+				break; // more chips than fit; the header line still lists them all
 			}
 			List<ChestLabel> remaining = new ArrayList<>(ctx.current().labels());
 			remaining.remove(label);
@@ -246,83 +248,77 @@ public class LabelPickerScreen extends Screen {
 			this.removeWidget(widget);
 		}
 		this.dynamic.clear();
-		this.icons.clear();
 		int y = this.resultsTop;
 		if (this.selected != null) {
 			Item item = this.selected;
 			Identifier itemId = BuiltInRegistries.ITEM.getKey(item);
-			add(Button.builder(Component.translatable("waybettercoppergolem.picker.back"), button -> {
+			add(new ListRow(this.rightX, y, Ui.COLUMN_WIDTH, Component.translatable("waybettercoppergolem.picker.back"), () -> {
 				this.selected = null;
 				rebuildResults();
-			}).bounds(this.rightX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
+			}).primaryColor(Ui.TEXT_MUTED));
 			y += Ui.ROW;
-			addIconRow(y, new ItemStack(item),
-					Component.translatable("waybettercoppergolem.picker.exact", item.getName(item.getDefaultInstance())),
-					null, () -> choose(ChestLabel.exact(itemId)));
+			add(row(y, Component.translatable("waybettercoppergolem.picker.exact_row"), () -> choose(ChestLabel.exact(itemId)), null)
+					.icon(new ItemStack(item))
+					.secondary(Component.translatable("waybettercoppergolem.picker.exact_detail"), Ui.TEXT_MUTED)
+					.primaryColor(Ui.EXPLICIT));
 			y += Ui.ROW;
 			int shown = 0;
 			for (TagKey<Item> tag : LabelResolver.orderedTags(item)) {
-				if (shown++ >= MAX_RESULTS - 1) {
+				if (shown++ >= RESULT_ROWS - 2) {
 					break;
 				}
 				Identifier tagId = tag.location();
-				addIconRow(y, new ItemStack(item),
-						Component.translatable("waybettercoppergolem.picker.stop", LabelResolver.tagName(tagId),
-								LabelResolver.tagSize(tag)),
-						stopTooltip(tag), () -> choose(ChestLabel.tag(itemId, tagId)), tagId);
+				add(row(y, LabelResolver.tagName(tagId), () -> choose(ChestLabel.tag(itemId, tagId)), tagId)
+						.icon(new ItemStack(item))
+						.secondary(Component.translatable("waybettercoppergolem.picker.count", LabelResolver.tagSize(tag)), Ui.TEXT_MUTED)
+						.tooltip(stopTooltip(tag)));
 				y += Ui.ROW;
 			}
 			return;
 		}
 		if (chestMode() && this.query.isBlank()) {
 			for (Suggestion suggestion : this.context.suggestions()) {
-				if (y >= this.resultsTop + MAX_RESULTS * Ui.ROW) {
+				if (y >= this.resultsTop + RESULT_ROWS * Ui.ROW) {
 					break;
 				}
 				ChestLabel label = suggestion.label();
-				Component text = Component.translatable("waybettercoppergolem.editor.suggestion",
-						LabelResolver.shortName(label), suggestion.coveredStacks(), suggestion.totalStacks());
-				Component tooltip = label.tagId().map(id -> stopTooltip(LabelResolver.itemTag(id))).orElse(null);
-				addIconRow(y, iconFor(label), text, tooltip, () -> choose(label), label.tagId().orElse(null));
+				boolean full = suggestion.coveredStacks() == suggestion.totalStacks();
+				add(row(y, LabelResolver.shortName(label), () -> choose(label), label.tagId().orElse(null))
+						.icon(iconFor(label))
+						.secondary(Component.translatable("waybettercoppergolem.editor.coverage",
+								suggestion.coveredStacks(), suggestion.totalStacks()), full ? Ui.OK : Ui.TEXT_MUTED)
+						.accent(full ? Ui.OK : 0)
+						.tooltip(label.tagId().map(id -> stopTooltip(LabelResolver.itemTag(id))).orElse(null)));
 				y += Ui.ROW;
 			}
 			return;
 		}
 		for (Item item : matches()) {
-			addIconRow(y, new ItemStack(item), item.getName(item.getDefaultInstance()), null, () -> {
+			add(row(y, item.getName(item.getDefaultInstance()), () -> {
 				this.selected = item;
 				rebuildResults();
-			});
+			}, null).icon(new ItemStack(item)));
 			y += Ui.ROW;
 		}
 	}
 
-	private void addIconRow(int y, ItemStack icon, Component text, @Nullable Component tooltip, Runnable action) {
-		addIconRow(y, icon, text, tooltip, action, null);
-	}
-
-	/** A row with an icon slot on the left and, for tag labels, a "…" button on the right that opens tuning. */
-	private void addIconRow(int y, ItemStack icon, Component text, @Nullable Component tooltip, Runnable action,
-			@Nullable Identifier tuneTag) {
-		int width = Ui.COLUMN_WIDTH - Ui.ICON_SLOT - (tuneTag != null ? Ui.ICON_SLOT + Ui.GAP : 0);
-		Button.Builder builder = Button.builder(text, button -> action.run())
-				.bounds(this.rightX + Ui.ICON_SLOT, y, width, Ui.BUTTON_HEIGHT);
-		if (tooltip != null) {
-			builder.tooltip(Tooltip.create(tooltip));
-		}
-		add(builder.build());
+	/** A result row, with a "…" tuning button on the right when it stands for a tag. */
+	private ListRow row(int y, Component text, Runnable action, @Nullable Identifier tuneTag) {
+		int width = Ui.COLUMN_WIDTH - (tuneTag != null ? Ui.ICON_SLOT + Ui.GAP : 0);
+		ListRow row = new ListRow(this.rightX, y, width, text, action);
 		if (tuneTag != null) {
 			add(Button.builder(Component.literal("…"),
 							button -> ClientPlayNetworking.send(new TuningPayloads.OpenTuning(tuneTag)))
 					.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.picker.tune_row.tooltip")))
 					.bounds(this.rightX + Ui.COLUMN_WIDTH - Ui.ICON_SLOT, y, Ui.ICON_SLOT, Ui.BUTTON_HEIGHT).build());
 		}
-		this.icons.add(new IconAt(icon, this.rightX + 2, y + 2));
+		return row;
 	}
 
-	private void add(AbstractWidget widget) {
+	private <T extends AbstractWidget> T add(T widget) {
 		this.dynamic.add(widget);
 		this.addRenderableWidget(widget);
+		return widget;
 	}
 
 	/** With an empty query: what the player carries. Otherwise: registry search by name or id. */
@@ -375,7 +371,7 @@ public class LabelPickerScreen extends Screen {
 
 	private static Component stopTooltip(TagKey<Item> tag) {
 		return Component.translatable("waybettercoppergolem.picker.tag_tooltip",
-				tag.location().toString(), LabelResolver.tagSize(tag)).withStyle(ChatFormatting.GRAY);
+				tag.location().toString(), LabelResolver.tagSize(tag));
 	}
 
 	// ---------------------------------------------------------------- sending
@@ -415,31 +411,42 @@ public class LabelPickerScreen extends Screen {
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
-		int top = top();
-		int centerX = this.width / 2;
+		this.panel.draw(graphics);
+		Component title;
+		Component subtitle;
 		if (chestMode()) {
 			BlockPos pos = this.context.pos();
-			graphics.centeredText(this.font, Component.translatable("waybettercoppergolem.editor.title",
-					pos.getX() + " " + pos.getY() + " " + pos.getZ()), centerX, top - headerHeight() + 4, Ui.TEXT);
-			graphics.centeredText(this.font, currentLine(), centerX, top - headerHeight() + 18, Ui.TEXT_MUTED);
+			title = Component.translatable("waybettercoppergolem.editor.title", pos.getX() + " " + pos.getY() + " " + pos.getZ());
+			subtitle = currentLine();
 		} else {
-			graphics.centeredText(this.font, this.title, centerX, top - 28, Ui.TEXT);
-			if (this.minecraft != null && this.minecraft.player != null) {
-				graphics.centeredText(this.font, LabelTool.describeClipboard(Clipboard.of(this.minecraft.player)),
-						centerX, top - 14, Ui.TEXT_MUTED);
-			}
+			title = this.title;
+			subtitle = this.minecraft != null && this.minecraft.player != null
+					? LabelTool.describeClipboard(Clipboard.of(this.minecraft.player)) : null;
 		}
-		if (this.selected == null && this.query.isBlank()) {
-			String key = chestMode() && !this.context.suggestions().isEmpty()
-					? "waybettercoppergolem.editor.suggested" : "waybettercoppergolem.picker.from_inventory";
-			graphics.text(this.font, Component.translatable(key), this.rightX, this.resultsTop - 10, Ui.TEXT_HINT);
-		} else if (this.selected == null && this.dynamic.isEmpty()) {
-			graphics.text(this.font, Component.translatable("waybettercoppergolem.picker.no_results"),
-					this.rightX, this.resultsTop - 10, Ui.TEXT_HINT);
+		this.panel.header(graphics, this.font, title, subtitle);
+		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.picker.section.categories"),
+				this.leftX, this.categoriesLabelY);
+		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.picker.section.special"),
+				this.leftX, this.specialLabelY);
+		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.picker.section.search"),
+				this.rightX, this.searchLabelY);
+		Panel.sectionLabel(graphics, this.font, resultsLabel(), this.rightX, this.resultsLabelY);
+	}
+
+	private Component resultsLabel() {
+		if (this.selected != null) {
+			return Component.translatable("waybettercoppergolem.picker.section.stops",
+					this.selected.getName(this.selected.getDefaultInstance()));
 		}
-		for (IconAt icon : this.icons) {
-			graphics.item(icon.stack(), icon.x(), icon.y());
+		if (chestMode() && this.query.isBlank()) {
+			return Component.translatable(this.context.suggestions().isEmpty()
+					? "waybettercoppergolem.editor.no_suggestions" : "waybettercoppergolem.editor.suggested");
 		}
+		if (this.query.isBlank()) {
+			return Component.translatable("waybettercoppergolem.picker.from_inventory");
+		}
+		return Component.translatable(this.dynamic.isEmpty()
+				? "waybettercoppergolem.picker.no_results" : "waybettercoppergolem.picker.section.matches");
 	}
 
 	private Component currentLine() {

@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -42,19 +43,18 @@ import java.util.Set;
 public class CategoryTuningScreen extends Screen {
 	private static final int ROWS = 8;
 
-	private record IconAt(ItemStack stack, int x, int y) {
-	}
-
 	/** The tuning screen currently open, if any, so the server's refresh can update it in place. */
 	private static @Nullable CategoryTuningScreen open;
 
 	private final List<AbstractWidget> dynamic = new ArrayList<>();
-	private final List<IconAt> icons = new ArrayList<>();
 	private TuningContext context;
 	private int page;
 	private String query = "";
+	private Panel panel = new Panel(0, 0, 0, 0);
 	private int leftX;
 	private int rightX;
+	private int membersLabelY;
+	private int addLabelY;
 	private int listTop;
 
 	private CategoryTuningScreen(TuningContext context) {
@@ -80,23 +80,26 @@ public class CategoryTuningScreen extends Screen {
 		}
 	}
 
-	private int top() {
-		return Math.max(40, this.height / 2 - 110);
-	}
-
 	@Override
 	protected void init() {
 		super.init();
 		open = this;
 		this.dynamic.clear();
-		this.icons.clear();
-		this.leftX = this.width / 2 - Ui.PANEL_WIDTH / 2;
-		this.rightX = this.leftX + Ui.COLUMN_WIDTH + Ui.GAP;
-		int top = top();
-		this.listTop = top + 12;
+		boolean canEdit = this.context.canEdit();
 
-		// ---- right: search, add held, reset
-		EditBox search = new EditBox(this.font, this.rightX, top, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT,
+		// section label, search/pager row, rows, actions, done (+ a read-only notice line)
+		int contentHeight = Ui.SECTION_LABEL + Ui.ROW + ROWS * Ui.ROW + Ui.GAP + Ui.ROW + Ui.GAP + Ui.ROW
+				+ (canEdit ? 0 : Ui.SECTION_LABEL);
+		this.panel = Panel.centered(this.width, this.height, Ui.PANEL_WIDTH, contentHeight);
+		this.leftX = this.panel.contentX();
+		this.rightX = this.leftX + Ui.COLUMN_WIDTH + Ui.GAP;
+		int top = this.panel.contentTop() + (canEdit ? 0 : Ui.SECTION_LABEL);
+		this.membersLabelY = top;
+		this.addLabelY = top;
+		this.listTop = top + Ui.SECTION_LABEL + Ui.ROW;
+
+		// ---- right: search box above the add list
+		EditBox search = new EditBox(this.font, this.rightX, top + Ui.SECTION_LABEL, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT,
 				Component.translatable("waybettercoppergolem.picker.search"));
 		search.setHint(Component.translatable("waybettercoppergolem.tuning.search_hint"));
 		search.setMaxLength(40);
@@ -107,30 +110,11 @@ public class CategoryTuningScreen extends Screen {
 		});
 		this.addRenderableWidget(search);
 
-		int bottom = this.listTop + Ui.ROW + ROWS * Ui.ROW + Ui.GAP;
-		Button addHeld = this.addRenderableWidget(Button.builder(
-						Component.translatable("waybettercoppergolem.tuning.add_held"), button -> {
-							if (this.minecraft != null && this.minecraft.player != null) {
-								ItemStack held = this.minecraft.player.getMainHandItem();
-								if (!held.isEmpty()) {
-									send(BuiltInRegistries.ITEM.getKey(held.getItem()), true);
-								}
-							}
-						})
-				.bounds(this.rightX, bottom, (Ui.COLUMN_WIDTH - Ui.GAP) / 2, Ui.BUTTON_HEIGHT).build());
-		Button reset = this.addRenderableWidget(Button.builder(
-						Component.translatable("waybettercoppergolem.tuning.reset"),
-						button -> ClientPlayNetworking.send(TuningPayloads.TuneCategory.reset(this.context.tagId())))
-				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.tuning.reset.tooltip")))
-				.bounds(this.rightX + (Ui.COLUMN_WIDTH + Ui.GAP) / 2, bottom, (Ui.COLUMN_WIDTH - Ui.GAP) / 2, Ui.BUTTON_HEIGHT)
-				.build());
-		addHeld.active = this.context.canEdit();
-		reset.active = this.context.canEdit() && !(this.context.added().isEmpty() && this.context.removed().isEmpty());
-
-		// ---- left: paging
-		int pages = Math.max(1, (memberRows().size() + ROWS - 1) / ROWS);
+		// ---- left: pager in the row above the member list
+		List<MemberRow> rows = memberRows();
+		int pages = Math.max(1, (rows.size() + ROWS - 1) / ROWS);
 		this.page = Math.clamp(this.page, 0, pages - 1);
-		int pagerY = bottom;
+		int pagerY = top + Ui.SECTION_LABEL;
 		this.addRenderableWidget(Button.builder(Component.literal("<"), button -> {
 			this.page = Math.max(0, this.page - 1);
 			this.rebuildWidgets();
@@ -143,9 +127,29 @@ public class CategoryTuningScreen extends Screen {
 
 		rebuildLists();
 
+		// ---- actions
+		int actionsY = this.listTop + ROWS * Ui.ROW + Ui.GAP;
+		int half = (Ui.COLUMN_WIDTH - Ui.GAP) / 2;
+		Button addHeld = this.addRenderableWidget(Button.builder(
+						Component.translatable("waybettercoppergolem.tuning.add_held"), button -> {
+							if (this.minecraft != null && this.minecraft.player != null) {
+								ItemStack held = this.minecraft.player.getMainHandItem();
+								if (!held.isEmpty()) {
+									send(BuiltInRegistries.ITEM.getKey(held.getItem()), true);
+								}
+							}
+						})
+				.bounds(this.rightX, actionsY, half, Ui.BUTTON_HEIGHT).build());
+		Button reset = this.addRenderableWidget(Button.builder(
+						Component.translatable("waybettercoppergolem.tuning.reset"),
+						button -> ClientPlayNetworking.send(TuningPayloads.TuneCategory.reset(this.context.tagId())))
+				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.tuning.reset.tooltip")))
+				.bounds(this.rightX + half + Ui.GAP, actionsY, half, Ui.BUTTON_HEIGHT).build());
+		addHeld.active = canEdit;
+		reset.active = canEdit && !(this.context.added().isEmpty() && this.context.removed().isEmpty());
+
 		this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
-				.bounds(this.width / 2 - 100, Math.min(bottom + Ui.ROW + Ui.GAP, this.height - Ui.BUTTON_HEIGHT - 6),
-						200, Ui.BUTTON_HEIGHT).build());
+				.bounds(this.panel.centerX() - 100, actionsY + Ui.ROW + Ui.GAP, 200, Ui.BUTTON_HEIGHT).build());
 	}
 
 	private record MemberRow(Item item, boolean added, boolean removed) {
@@ -183,41 +187,37 @@ public class CategoryTuningScreen extends Screen {
 			this.removeWidget(widget);
 		}
 		this.dynamic.clear();
-		this.icons.clear();
 		boolean canEdit = this.context.canEdit();
 
 		// members page
 		List<MemberRow> rows = memberRows();
-		int y = this.listTop + Ui.ROW;
+		int y = this.listTop;
 		int from = this.page * ROWS;
 		for (int i = from; i < Math.min(rows.size(), from + ROWS); i++) {
 			MemberRow row = rows.get(i);
-			Component name = row.item().getName(row.item().getDefaultInstance());
-			Component text;
-			String tooltipKey;
-			if (row.removed()) {
-				text = Component.translatable("waybettercoppergolem.tuning.excluded_row", name);
-				tooltipKey = "waybettercoppergolem.tuning.restore.tooltip";
-			} else if (row.added()) {
-				text = Component.translatable("waybettercoppergolem.tuning.added_row", name);
-				tooltipKey = "waybettercoppergolem.tuning.exclude.tooltip";
-			} else {
-				text = name;
-				tooltipKey = "waybettercoppergolem.tuning.exclude.tooltip";
-			}
 			Identifier id = BuiltInRegistries.ITEM.getKey(row.item());
 			boolean include = row.removed();
-			Button button = Button.builder(text, b -> send(id, include))
-					.tooltip(Tooltip.create(Component.translatable(tooltipKey)))
-					.bounds(this.leftX + Ui.ICON_SLOT, y, Ui.COLUMN_WIDTH - Ui.ICON_SLOT, Ui.BUTTON_HEIGHT).build();
-			button.active = canEdit;
-			add(button);
-			this.icons.add(new IconAt(new ItemStack(row.item()), this.leftX + 2, y + 2));
+			ListRow widget = new ListRow(this.leftX, y, Ui.COLUMN_WIDTH, row.item().getName(row.item().getDefaultInstance()),
+					() -> send(id, include))
+					.icon(new ItemStack(row.item()))
+					.enabled(canEdit);
+			if (row.removed()) {
+				widget.secondary(Component.translatable("waybettercoppergolem.tuning.tag_excluded"), Ui.ATTENTION)
+						.accent(Ui.ATTENTION).primaryColor(Ui.TEXT_MUTED)
+						.tooltip(Component.translatable("waybettercoppergolem.tuning.restore.tooltip"));
+			} else if (row.added()) {
+				widget.secondary(Component.translatable("waybettercoppergolem.tuning.tag_added"), Ui.OK)
+						.accent(Ui.OK)
+						.tooltip(Component.translatable("waybettercoppergolem.tuning.exclude.tooltip"));
+			} else {
+				widget.tooltip(Component.translatable("waybettercoppergolem.tuning.exclude.tooltip"));
+			}
+			add(widget);
 			y += Ui.ROW;
 		}
 
 		// search results to add
-		y = this.listTop + Ui.ROW;
+		y = this.listTop;
 		Set<Item> current = new HashSet<>();
 		for (MemberRow row : rows) {
 			if (!row.removed()) {
@@ -226,12 +226,10 @@ public class CategoryTuningScreen extends Screen {
 		}
 		for (Item item : matches(current)) {
 			Identifier id = BuiltInRegistries.ITEM.getKey(item);
-			Button button = Button.builder(Component.translatable("waybettercoppergolem.tuning.add_row",
-							item.getName(item.getDefaultInstance())), b -> send(id, true))
-					.bounds(this.rightX + Ui.ICON_SLOT, y, Ui.COLUMN_WIDTH - Ui.ICON_SLOT, Ui.BUTTON_HEIGHT).build();
-			button.active = canEdit;
-			add(button);
-			this.icons.add(new IconAt(new ItemStack(item), this.rightX + 2, y + 2));
+			add(new ListRow(this.rightX, y, Ui.COLUMN_WIDTH, item.getName(item.getDefaultInstance()), () -> send(id, true))
+					.icon(new ItemStack(item))
+					.secondary(Component.translatable("waybettercoppergolem.tuning.tag_add"), Ui.OK)
+					.enabled(canEdit));
 			y += Ui.ROW;
 		}
 	}
@@ -263,30 +261,25 @@ public class CategoryTuningScreen extends Screen {
 	}
 
 	private void send(Identifier itemId, boolean include) {
-		ClientPlayNetworking.send(new TuningPayloads.TuneCategory(this.context.tagId(), java.util.Optional.of(itemId), include));
+		ClientPlayNetworking.send(new TuningPayloads.TuneCategory(this.context.tagId(), Optional.of(itemId), include));
 	}
 
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
-		int top = top();
-		graphics.centeredText(this.font, this.title, this.width / 2, top - 30, Ui.TEXT);
+		this.panel.draw(graphics);
 		int memberCount = (int) memberRows().stream().filter(row -> !row.removed()).count();
-		Component subtitle = Component.translatable("waybettercoppergolem.tuning.subtitle",
-				this.context.tagId().toString(), memberCount, this.context.added().size(), this.context.removed().size());
-		graphics.centeredText(this.font, subtitle, this.width / 2, top - 18, Ui.TEXT_MUTED);
+		this.panel.header(graphics, this.font, this.title, Component.translatable("waybettercoppergolem.tuning.subtitle",
+				this.context.tagId().toString(), memberCount, this.context.added().size(), this.context.removed().size()));
 		if (!this.context.canEdit()) {
 			graphics.centeredText(this.font, Component.translatable("waybettercoppergolem.tuning.readonly"),
-					this.width / 2, top - 6, 0xFFFF8888);
+					this.panel.centerX(), this.panel.contentTop(), Ui.PROBLEM);
 		}
-		graphics.text(this.font, Component.translatable("waybettercoppergolem.tuning.members_header"),
-				this.leftX, this.listTop + Ui.ROW - 10, Ui.TEXT_HINT);
-		graphics.text(this.font, Component.translatable(this.query.isBlank()
-				? "waybettercoppergolem.tuning.add_hint" : "waybettercoppergolem.tuning.add_header"),
-				this.rightX, this.listTop + Ui.ROW - 10, Ui.TEXT_HINT);
-		for (IconAt icon : this.icons) {
-			graphics.item(icon.stack(), icon.x(), icon.y());
-		}
+		int pages = Math.max(1, (memberRows().size() + ROWS - 1) / ROWS);
+		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.tuning.members_header",
+				this.page + 1, pages), this.leftX, this.membersLabelY);
+		Panel.sectionLabel(graphics, this.font, Component.translatable(this.query.isBlank()
+				? "waybettercoppergolem.tuning.add_hint" : "waybettercoppergolem.tuning.add_header"), this.rightX, this.addLabelY);
 	}
 
 	@Override

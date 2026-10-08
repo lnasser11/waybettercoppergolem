@@ -142,11 +142,14 @@ public final class ToolHud implements HudElement {
 		int centerX = graphics.guiWidth() / 2;
 		int bottom = graphics.guiHeight() - BOTTOM_MARGIN;
 		int top = bottom - lines.size() * LINE_HEIGHT;
-		graphics.fill(centerX - width / 2 - 4, top - 3, centerX + width / 2 + 4, bottom + 1, 0x90000000);
+		int left = centerX - width / 2 - 5;
+		int right = centerX + width / 2 + 5;
+		graphics.fill(left, top - 4, right, bottom + 1, Ui.HUD_BACKGROUND);
+		Panel.outline(graphics, left, top - 4, right - left, bottom + 1 - (top - 4), Ui.PANEL_BORDER);
 		int y = top;
 		for (int i = 0; i < lines.size(); i++) {
 			boolean last = i == lines.size() - 1 && lines.size() > 1;
-			graphics.centeredText(font, lines.get(i), centerX, y, last ? 0xFFBBBBBB : 0xFFFFFFFF);
+			graphics.centeredText(font, lines.get(i), centerX, y, last ? Ui.TEXT_MUTED : Ui.TEXT);
 			y += LINE_HEIGHT;
 		}
 	}

@@ -7,17 +7,21 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.util.List;
 
 /** The preset categories, each opening its tuning screen. Reached from the picker's "Tune categories…". */
 public class CategoryListScreen extends Screen {
+	private Panel panel = new Panel(0, 0, 0, 0);
+
 	public CategoryListScreen() {
 		super(Component.translatable("waybettercoppergolem.categories.title"));
 	}
@@ -27,18 +31,17 @@ public class CategoryListScreen extends Screen {
 		super.init();
 		List<TagKey<Item>> presets = LabelResolver.presetCategories();
 		int rows = (presets.size() + 1) / 2;
-		int top = Math.max(30, this.height / 2 - (rows * Ui.ROW + 2 * Ui.ROW) / 2);
-		int leftX = this.width / 2 - Ui.PANEL_WIDTH / 2;
-		int y = top;
+		this.panel = Panel.centered(this.width, this.height, Ui.PANEL_WIDTH, rows * Ui.ROW + Ui.ROW);
+		int x = this.panel.contentX();
+		int y = this.panel.contentTop();
 		for (int i = 0; i < presets.size(); i++) {
 			TagKey<Item> preset = presets.get(i);
-			int x = leftX + (i % 2) * (Ui.COLUMN_WIDTH + Ui.GAP);
-			this.addRenderableWidget(Button.builder(
-							Component.translatable("waybettercoppergolem.categories.row",
-									LabelResolver.tagName(preset.location()), LabelResolver.tagSize(preset)),
-							button -> ClientPlayNetworking.send(new TuningPayloads.OpenTuning(preset.location())))
-					.tooltip(Tooltip.create(Component.literal(preset.location().toString())))
-					.bounds(x, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
+			int rowX = x + (i % 2) * (Ui.COLUMN_WIDTH + Ui.GAP);
+			this.addRenderableWidget(new ListRow(rowX, y, Ui.COLUMN_WIDTH, LabelResolver.tagName(preset.location()),
+					() -> ClientPlayNetworking.send(new TuningPayloads.OpenTuning(preset.location())))
+					.icon(sampleStack(preset))
+					.secondary(Component.translatable("waybettercoppergolem.categories.count", LabelResolver.tagSize(preset)), Ui.TEXT_MUTED)
+					.tooltip(Component.literal(preset.location().toString())));
 			if (i % 2 == 1) {
 				y += Ui.ROW;
 			}
@@ -47,18 +50,21 @@ public class CategoryListScreen extends Screen {
 			y += Ui.ROW;
 		}
 		this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
-				.bounds(this.width / 2 - 100, y + Ui.GAP, 200, Ui.BUTTON_HEIGHT).build());
+				.bounds(this.panel.centerX() - 100, y + Ui.GAP, 200, Ui.BUTTON_HEIGHT).build());
+	}
+
+	private static ItemStack sampleStack(TagKey<Item> tag) {
+		return BuiltInRegistries.ITEM.get(tag)
+				.flatMap(named -> named.stream().findFirst())
+				.map(holder -> new ItemStack(holder.value()))
+				.orElse(new ItemStack(Items.CHEST));
 	}
 
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
-		List<TagKey<Item>> presets = LabelResolver.presetCategories();
-		int rows = (presets.size() + 1) / 2;
-		int top = Math.max(30, this.height / 2 - (rows * Ui.ROW + 2 * Ui.ROW) / 2);
-		graphics.centeredText(this.font, this.title, this.width / 2, top - 22, Ui.TEXT);
-		graphics.centeredText(this.font, Component.translatable("waybettercoppergolem.categories.hint"),
-				this.width / 2, top - 10, Ui.TEXT_MUTED);
+		this.panel.draw(graphics);
+		this.panel.header(graphics, this.font, this.title, Component.translatable("waybettercoppergolem.categories.hint"));
 	}
 
 	@Override

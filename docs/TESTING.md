@@ -120,6 +120,29 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
    sparkles. Add a catch-all chest, **Refresh** → the cake now has a
    destination.
 
+## 2d. Visual pass over the screens
+
+Open each screen once at GUI scale "Auto" and once at the smallest scale
+your monitor allows, and check:
+
+1. Every screen sits on a dark panel with a thin border, a white title, a
+   muted subtitle and a separator under the header; nothing overlaps the
+   panel's edge and the Done button is inside it.
+2. Section labels (`Behavior`, `Area`, `Tools`, `Categories`, `Special`,
+   `Any item`, …) are small, muted and sit just above their controls.
+3. List rows (search results, stops, suggestions, category members,
+   overview chests, simulation moves) are flat, highlight on hover, show
+   the item icon on the left and the detail text on the right; a long
+   name is cut with `…` instead of running under the detail.
+4. State colors: in the overview an unlabeled chest is gold with a gold
+   bar, an auto-labeled chest blue, an explicit one white; in the
+   simulation a stuck move is red with a red bar; in tuning an added item
+   has a green bar and an excluded one a gold bar with a muted name; a
+   suggestion that covers every stack has a green bar.
+5. Disabled rows and buttons (tuning as a non-op, Paste without a
+   clipboard) look dimmed and do nothing when clicked.
+6. The HUD panel above the hotbar uses the same dark surface and border.
+
 ## 3. Frames: auto labels, never clicked
 
 1. Place a chest with an item frame on its front face holding an **iron
