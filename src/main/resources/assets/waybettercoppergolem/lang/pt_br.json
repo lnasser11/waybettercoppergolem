@@ -24,6 +24,8 @@
   "waybettercoppergolem.category.mob_drops": "Drops",
   "waybettercoppergolem.category.nether_and_end": "Nether e End",
   "waybettercoppergolem.category.decoration": "Decoração",
+  "waybettercoppergolem.category.brewing": "Poções",
+  "waybettercoppergolem.category.technical": "Técnicos",
   "waybettercoppergolem.tuning.added": "%s adicionado a %s",
   "waybettercoppergolem.tuning.removed": "%s removido de %s",
   "waybettercoppergolem.command.categories": "%s categorias predefinidas:",

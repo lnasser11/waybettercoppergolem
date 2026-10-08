@@ -60,6 +60,18 @@
     {
       "id": "minecraft:echo_shard",
       "required": false
+    },
+    {
+      "id": "#c:budding_blocks",
+      "required": false
+    },
+    {
+      "id": "#c:buds",
+      "required": false
+    },
+    {
+      "id": "#c:clusters",
+      "required": false
     }
   ]
 }

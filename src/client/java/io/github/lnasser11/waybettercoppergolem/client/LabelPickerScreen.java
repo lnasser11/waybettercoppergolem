@@ -64,7 +64,7 @@ import java.util.Set;
 public class LabelPickerScreen extends Screen {
 	private static final int MIN_RESULT_ROWS = 4;
 	private static final int MIN_RESULT_ROWS_NARROW = 3;
-	private static final int CHIPS_PER_ROW = 6;
+	private static final int CHIPS_PER_ROW = 7;
 	private static final int MAX_RESULT_ROWS = 12;
 	private static final int MAX_CHIPS = 2;
 

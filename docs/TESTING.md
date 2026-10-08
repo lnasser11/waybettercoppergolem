@@ -66,7 +66,7 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
 ## 2. The feather and the picker
 
 1. Hold the feather, **sneak-right-click the air** → the picker opens:
-   twelve category buttons, Catch-all / Off-limits / Remove labels /
+   fourteen category buttons, Catch-all / Off-limits / Remove labels /
    Empty clipboard, and a search box listing the items you carry.
 2. Type `iron`, click **Iron Ingot** → its stops appear: `Iron Ingot
    (exact item only)`, `Ingots › Iron · N items`, `Ingots · N items`, …
@@ -148,7 +148,7 @@ scale your monitor allows, and check:
    Area and Tools on the right. The picker is three columns (Categories,
    search, Special/This chest) at 480 px and wider. On narrower GUIs (the
    default 854 × 480 window is 427 × 240) This chest/Special take the left
-   column and the categories become a strip of twelve icon chips under the
+   column and the categories become a strip of fourteen icon chips under the
    search box, each with the category name in its tooltip. The result list
    grows with the window height (4 rows at 270 px, 3 at 240 px). The
    picker closes with Esc. No button anywhere clips its text.
@@ -322,7 +322,7 @@ scale your monitor allows, and check:
 
 ## 14. Categories and tuning
 
-1. `/wbcg categories` lists 12 presets; `/wbcg category test redstone
+1. `/wbcg categories` lists 14 presets; `/wbcg category test redstone
    minecraft:piston` answers membership questions without a golem.
 2. Label a chest **Redstone** (picker → Redstone → paste). Feed redstone
    items into the copper chest → they land there.

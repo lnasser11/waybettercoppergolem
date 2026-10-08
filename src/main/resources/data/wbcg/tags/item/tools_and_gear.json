@@ -76,6 +76,178 @@
     {
       "id": "minecraft:totem_of_undying",
       "required": false
+    },
+    {
+      "id": "#minecraft:harnesses",
+      "required": false
+    },
+    {
+      "id": "#minecraft:bundles",
+      "required": false
+    },
+    {
+      "id": "#minecraft:shulker_boxes",
+      "required": false
+    },
+    {
+      "id": "#minecraft:copper_chests",
+      "required": false
+    },
+    {
+      "id": "#c:chests/ender",
+      "required": false
+    },
+    {
+      "id": "#c:player_workstations/furnaces",
+      "required": false
+    },
+    {
+      "id": "#minecraft:anvil",
+      "required": false
+    },
+    {
+      "id": "minecraft:filled_map",
+      "required": false
+    },
+    {
+      "id": "minecraft:experience_bottle",
+      "required": false
+    },
+    {
+      "id": "minecraft:enchanted_book",
+      "required": false
+    },
+    {
+      "id": "minecraft:smoker",
+      "required": false
+    },
+    {
+      "id": "minecraft:blast_furnace",
+      "required": false
+    },
+    {
+      "id": "minecraft:cartography_table",
+      "required": false
+    },
+    {
+      "id": "minecraft:fletching_table",
+      "required": false
+    },
+    {
+      "id": "minecraft:grindstone",
+      "required": false
+    },
+    {
+      "id": "minecraft:smithing_table",
+      "required": false
+    },
+    {
+      "id": "minecraft:stonecutter",
+      "required": false
+    },
+    {
+      "id": "minecraft:enchanting_table",
+      "required": false
+    },
+    {
+      "id": "minecraft:beacon",
+      "required": false
+    },
+    {
+      "id": "minecraft:conduit",
+      "required": false
+    },
+    {
+      "id": "minecraft:sulfur_cube_bucket",
+      "required": false
+    },
+    {
+      "id": "minecraft:netherite_upgrade_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:sentry_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:dune_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:coast_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:wild_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:ward_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:eye_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:vex_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:tide_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:snout_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:rib_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:spire_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:wayfinder_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:shaper_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:silence_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:raiser_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:host_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:flow_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "minecraft:bolt_armor_trim_smithing_template",
+      "required": false
+    },
+    {
+      "id": "#c:chests/wooden",
+      "required": false
+    },
+    {
+      "id": "#c:barrels/wooden",
+      "required": false
+    },
+    {
+      "id": "#c:player_workstations/crafting_tables",
+      "required": false
     }
   ]
 }

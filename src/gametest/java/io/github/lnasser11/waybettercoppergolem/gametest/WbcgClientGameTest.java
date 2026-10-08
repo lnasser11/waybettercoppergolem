@@ -105,6 +105,11 @@ public final class WbcgClientGameTest implements FabricClientGameTest {
 			pressEscape(context);
 			openOverview(context, server, "427x240");
 			pressEscape(context);
+			context.setScreen(CategoryListScreen::new);
+			context.waitTicks(5);
+			context.takeScreenshot("categories_427x240");
+			assertWidgetsOnScreen(context, "categories 427x240");
+			pressEscape(context);
 
 			// ---- a roomy GUI: 1080p at scale 2 is 960 × 540
 			input.resizeWindow(1920, 1080);

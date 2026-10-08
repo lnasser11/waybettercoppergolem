@@ -96,6 +96,26 @@
     {
       "id": "minecraft:armadillo_scute",
       "required": false
+    },
+    {
+      "id": "#c:rods/breeze",
+      "required": false
+    },
+    {
+      "id": "#c:nether_stars",
+      "required": false
+    },
+    {
+      "id": "#c:clumps",
+      "required": false
+    },
+    {
+      "id": "minecraft:heart_of_the_sea",
+      "required": false
+    },
+    {
+      "id": "minecraft:goat_horn",
+      "required": false
     }
   ]
 }

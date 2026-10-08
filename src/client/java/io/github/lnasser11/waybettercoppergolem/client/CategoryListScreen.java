@@ -30,23 +30,32 @@ public class CategoryListScreen extends Screen {
 	protected void init() {
 		super.init();
 		List<TagKey<Item>> presets = LabelResolver.presetCategories();
-		int rows = (presets.size() + 1) / 2;
+		// Two columns normally; three when two would run past a short screen (the default 854×480 window).
+		int columns = Ui.rowsThatFit(this.height, Ui.ROW, 1, 99) >= (presets.size() + 1) / 2 ? 2 : 3;
+		int columnWidth = (Ui.PANEL_WIDTH - (columns - 1) * Ui.GAP) / columns;
+		int rows = (presets.size() + columns - 1) / columns;
 		this.panel = Panel.centered(this.width, this.height, Ui.PANEL_WIDTH, rows * Ui.ROW + Ui.ROW);
 		int x = this.panel.contentX();
 		int y = this.panel.contentTop();
 		for (int i = 0; i < presets.size(); i++) {
 			TagKey<Item> preset = presets.get(i);
-			int rowX = x + (i % 2) * (Ui.COLUMN_WIDTH + Ui.GAP);
-			this.addRenderableWidget(new ListRow(rowX, y, Ui.COLUMN_WIDTH, LabelResolver.tagName(preset.location()),
+			int rowX = x + (i % columns) * (columnWidth + Ui.GAP);
+			Component count = Ui.count(LabelResolver.tagSize(preset), "items");
+			ListRow row = new ListRow(rowX, y, columnWidth, LabelResolver.tagName(preset.location()),
 					() -> ClientPlayNetworking.send(new TuningPayloads.OpenTuning(preset.location())))
-					.icon(sampleStack(preset))
-					.secondary(Ui.count(LabelResolver.tagSize(preset), "items"), Ui.TEXT_MUTED)
-					.tooltip(Component.literal(preset.location().toString())));
-			if (i % 2 == 1) {
+					.icon(sampleStack(preset));
+			if (columns == 2) {
+				row.secondary(count, Ui.TEXT_MUTED).tooltip(Component.literal(preset.location().toString()));
+			} else {
+				// Narrow columns: the name gets the room, the count moves into the tooltip.
+				row.tooltip(Component.literal(preset.location().toString()).append("\n").append(count));
+			}
+			this.addRenderableWidget(row);
+			if (i % columns == columns - 1) {
 				y += Ui.ROW;
 			}
 		}
-		if (presets.size() % 2 == 1) {
+		if (presets.size() % columns != 0) {
 			y += Ui.ROW;
 		}
 		this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
