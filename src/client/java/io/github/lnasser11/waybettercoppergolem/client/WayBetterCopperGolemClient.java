@@ -12,6 +12,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 
 import net.minecraft.client.Minecraft;
@@ -20,6 +21,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
 public class WayBetterCopperGolemClient implements ClientModInitializer {
@@ -49,9 +51,27 @@ public class WayBetterCopperGolemClient implements ClientModInitializer {
 				(payload, context) -> ZoneOverviewScreen.openOrUpdate(context.client(), payload));
 		ClientPlayNetworking.registerGlobalReceiver(ZonePayloads.Simulation.TYPE,
 				(payload, context) -> SimulationScreen.openOrUpdate(context.client(), payload));
+		UseBlockCallback.EVENT.register(WayBetterCopperGolemClient::claimCornerClick);
 		UseItemCallback.EVENT.register(WayBetterCopperGolemClient::openPickerOnAirClick);
 		ChestScreenButton.register();
 		ToolHud.register();
+	}
+
+	/**
+	 * In area mode every sneak-right-click on a block is a corner, whatever
+	 * the block. The common handler only claims chests, and a click it
+	 * passes on makes vanilla follow up with a use-item packet, which the
+	 * server reads as "cancel area mode". Claiming the click here (the
+	 * packet for the block click is still sent) stops that follow-up.
+	 */
+	private static InteractionResult claimCornerClick(Player player, Level level, InteractionHand hand,
+			BlockHitResult hit) {
+		if (!level.isClientSide() || areaModeStep <= 0 || hand != InteractionHand.MAIN_HAND
+				|| !player.isShiftKeyDown() || player.isSpectator()
+				|| !WbcgConfig.isTool(level, player.getMainHandItem())) {
+			return InteractionResult.PASS;
+		}
+		return InteractionResult.SUCCESS;
 	}
 
 	/**

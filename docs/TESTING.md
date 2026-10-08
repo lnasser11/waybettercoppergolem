@@ -122,12 +122,20 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
 
 ## 2d. Visual pass over the screens
 
-Open each screen once at GUI scale "Auto" and once at the smallest scale
-your monitor allows, and check:
+Open each screen once at GUI scale "Auto" on a 1080p monitor (a 480 × 270
+GUI, the smallest the layouts are designed for) and once at the largest
+scale your monitor allows, and check:
 
 1. Every screen sits on a dark panel with a thin border, a white title, a
    muted subtitle and a separator under the header; nothing overlaps the
-   panel's edge and the Done button is inside it.
+   panel's edge, nothing is cut off at the bottom of the window, and the
+   Done button (where there is one) is inside the panel. Widgets are
+   drawn over the panel at full brightness, never dimmed under it.
+1b. The zone screen is two columns: Behavior and Defaults on the left,
+   Area and Tools on the right. The picker is three columns (Categories,
+   search, Special/This chest) at 480 px and wider, and two columns on
+   narrower screens with Special under Categories; its result list grows
+   with the window height (4 rows at 270 px). The picker closes with Esc.
 2. Section labels (`Behavior`, `Area`, `Tools`, `Categories`, `Special`,
    `Any item`, …) are small, muted and sit just above their controls.
 3. List rows (search results, stops, suggestions, category members,

@@ -117,6 +117,7 @@
   "waybettercoppergolem.editor.remove_one.tooltip": "Remover este rótulo do baú",
   "waybettercoppergolem.editor.remove_labels.tooltip": "Remove todos os rótulos deste baú: ele volta às molduras ou ao comportamento padrão.",
   "waybettercoppergolem.editor.suggested": "Sugestões pelo conteúdo:",
+  "waybettercoppergolem.editor.section.this_chest": "Este baú",
   "waybettercoppergolem.picker.tune_categories": "Ajustar categorias…",
   "waybettercoppergolem.picker.tune_categories.tooltip": "Adicione ou remova itens das categorias predefinidas, neste mundo.",
   "waybettercoppergolem.picker.tune_row.tooltip": "Editar o conteúdo desta categoria",

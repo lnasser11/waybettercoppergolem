@@ -33,7 +33,9 @@ import java.util.Optional;
  * unlabeled chest. Refreshes from the server after each action.
  */
 public class ZoneOverviewScreen extends Screen {
-	private static final int ROWS = 8;
+	private static final int MIN_ROWS = 3;
+	private static final int MAX_ROWS = 14;
+	private int rows = MIN_ROWS;
 	private static final int ACTION_WIDTH = 44;
 	private static final int CONTENT_WIDTH = Ui.PANEL_WIDTH + 2 * (ACTION_WIDTH + Ui.GAP);
 
@@ -71,7 +73,9 @@ public class ZoneOverviewScreen extends Screen {
 	protected void init() {
 		super.init();
 		open = this;
-		int contentHeight = Ui.ROW + Ui.GAP + Ui.SECTION_LABEL + ROWS * Ui.ROW + Ui.GAP + Ui.ROW;
+		int fixed = Ui.ROW + Ui.GAP + Ui.SECTION_LABEL + Ui.GAP + Ui.ROW;
+		this.rows = Ui.rowsThatFit(this.height, fixed, MIN_ROWS, MAX_ROWS);
+		int contentHeight = fixed + this.rows * Ui.ROW;
 		this.panel = Panel.centered(this.width, this.height, CONTENT_WIDTH, contentHeight);
 		int left = this.panel.contentX();
 		int top = this.panel.contentTop();
@@ -99,12 +103,12 @@ public class ZoneOverviewScreen extends Screen {
 
 		// ---- rows
 		List<Entry> entries = this.overview.entries();
-		int pages = Math.max(1, (entries.size() + ROWS - 1) / ROWS);
+		int pages = Math.max(1, (entries.size() + this.rows - 1) / this.rows);
 		this.page = Math.clamp(this.page, 0, pages - 1);
 		this.listLabelY = top + Ui.ROW + Ui.GAP;
 		int y = this.listLabelY + Ui.SECTION_LABEL;
 		int rowWidth = CONTENT_WIDTH - 3 * (ACTION_WIDTH + Ui.GAP);
-		for (int i = this.page * ROWS; i < Math.min(entries.size(), (this.page + 1) * ROWS); i++) {
+		for (int i = this.page * this.rows; i < Math.min(entries.size(), (this.page + 1) * this.rows); i++) {
 			Entry entry = entries.get(i);
 			BlockPos pos = entry.pos();
 			this.addRenderableWidget(row(left, y, rowWidth, entry));
@@ -129,7 +133,7 @@ public class ZoneOverviewScreen extends Screen {
 		}
 
 		// ---- pager + done
-		int bottom = this.listLabelY + Ui.SECTION_LABEL + ROWS * Ui.ROW + Ui.GAP;
+		int bottom = this.listLabelY + Ui.SECTION_LABEL + this.rows * Ui.ROW + Ui.GAP;
 		this.addRenderableWidget(Button.builder(Component.literal("<"), button -> {
 			this.page--;
 			this.rebuildWidgets();
@@ -189,10 +193,16 @@ public class ZoneOverviewScreen extends Screen {
 		}
 	}
 
+	/** The panel goes under the widgets, so it is drawn with the background. */
+	@Override
+	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+		super.extractBackground(graphics, mouseX, mouseY, a);
+		this.panel.draw(graphics);
+	}
+
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
-		this.panel.draw(graphics);
 		BlockPos anchor = this.overview.anchor();
 		List<Entry> entries = this.overview.entries();
 		long unlabeled = entries.stream().filter(e -> e.labels().isEmpty()).count();
@@ -203,7 +213,7 @@ public class ZoneOverviewScreen extends Screen {
 						anchor.getX() + " " + anchor.getY() + " " + anchor.getZ(), Zones.describeArea(this.overview.area())),
 				Component.translatable("waybettercoppergolem.overview.summary",
 						entries.size(), unlabeled, misplaced, duplicate, this.overview.copperChests()));
-		int pages = Math.max(1, (entries.size() + ROWS - 1) / ROWS);
+		int pages = Math.max(1, (entries.size() + this.rows - 1) / this.rows);
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.overview.section",
 				this.page + 1, pages), this.panel.contentX(), this.listLabelY);
 		if (entries.isEmpty()) {

@@ -60,10 +60,16 @@ public class CategoryListScreen extends Screen {
 				.orElse(new ItemStack(Items.CHEST));
 	}
 
+	/** The panel goes under the widgets, so it is drawn with the background. */
+	@Override
+	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+		super.extractBackground(graphics, mouseX, mouseY, a);
+		this.panel.draw(graphics);
+	}
+
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
-		this.panel.draw(graphics);
 		this.panel.header(graphics, this.font, this.title, Component.translatable("waybettercoppergolem.categories.hint"));
 	}
 

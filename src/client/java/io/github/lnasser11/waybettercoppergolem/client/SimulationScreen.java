@@ -30,7 +30,9 @@ import java.util.List;
  * its destination (or its source when there is none).
  */
 public class SimulationScreen extends Screen {
-	private static final int ROWS = 10;
+	private static final int MIN_ROWS = 3;
+	private static final int MAX_ROWS = 16;
+	private int rows = MIN_ROWS;
 	private static final int CONTENT_WIDTH = Ui.PANEL_WIDTH + 60;
 
 	private static @Nullable SimulationScreen open;
@@ -67,19 +69,21 @@ public class SimulationScreen extends Screen {
 	protected void init() {
 		super.init();
 		open = this;
-		int contentHeight = Ui.SECTION_LABEL + ROWS * Ui.ROW + Ui.GAP + Ui.ROW;
+		int fixed = Ui.SECTION_LABEL + Ui.GAP + Ui.ROW;
+		this.rows = Ui.rowsThatFit(this.height, fixed, MIN_ROWS, MAX_ROWS);
+		int contentHeight = fixed + this.rows * Ui.ROW;
 		this.panel = Panel.centered(this.width, this.height, CONTENT_WIDTH, contentHeight);
 		int left = this.panel.contentX();
 		this.listLabelY = this.panel.contentTop();
 		List<Move> moves = this.simulation.moves();
-		int pages = Math.max(1, (moves.size() + ROWS - 1) / ROWS);
+		int pages = Math.max(1, (moves.size() + this.rows - 1) / this.rows);
 		this.page = Math.clamp(this.page, 0, pages - 1);
 		int y = this.listLabelY + Ui.SECTION_LABEL;
-		for (int i = this.page * ROWS; i < Math.min(moves.size(), (this.page + 1) * ROWS); i++) {
+		for (int i = this.page * this.rows; i < Math.min(moves.size(), (this.page + 1) * this.rows); i++) {
 			this.addRenderableWidget(row(left, y, moves.get(i)));
 			y += Ui.ROW;
 		}
-		int bottom = this.listLabelY + Ui.SECTION_LABEL + ROWS * Ui.ROW + Ui.GAP;
+		int bottom = this.listLabelY + Ui.SECTION_LABEL + this.rows * Ui.ROW + Ui.GAP;
 		this.addRenderableWidget(Button.builder(Component.literal("<"), button -> {
 			this.page--;
 			this.rebuildWidgets();
@@ -124,10 +128,16 @@ public class SimulationScreen extends Screen {
 		}
 	}
 
+	/** The panel goes under the widgets, so it is drawn with the background. */
+	@Override
+	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+		super.extractBackground(graphics, mouseX, mouseY, a);
+		this.panel.draw(graphics);
+	}
+
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
-		this.panel.draw(graphics);
 		long stuck = this.simulation.moves().stream().filter(move -> move.to().isEmpty()).count();
 		this.panel.header(graphics, this.font, this.title, Component.translatable("waybettercoppergolem.simulation.summary",
 				this.simulation.sourceChests(), this.simulation.moves().size(), stuck));
