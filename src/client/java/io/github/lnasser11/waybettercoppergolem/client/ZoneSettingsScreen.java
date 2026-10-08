@@ -142,7 +142,7 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 						Component.translatable("waybettercoppergolem.settings.reach", this.shown.verticalReach()), button -> {})
 				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.reach.tooltip")))
 				.bounds(this.rightX + Ui.BUTTON_HEIGHT + Ui.GAP, y, Ui.COLUMN_WIDTH - 2 * (Ui.BUTTON_HEIGHT + Ui.GAP), Ui.BUTTON_HEIGHT)
-				.build()).active = false;
+				.build()); // a readout: looks live, does nothing on click, carries the tooltip
 		Button up = Button.builder(Component.translatable("waybettercoppergolem.settings.reach_up"),
 						button -> click(ZoneSettingsMenu.BUTTON_REACH_UP))
 				.bounds(this.rightX + Ui.COLUMN_WIDTH - Ui.BUTTON_HEIGHT, y, Ui.BUTTON_HEIGHT, Ui.BUTTON_HEIGHT).build();
