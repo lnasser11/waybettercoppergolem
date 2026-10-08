@@ -40,6 +40,12 @@ public final class ChestEditor {
 		if (!(player.level() instanceof ServerLevel level) || !inReach(player, level, pos)) {
 			return;
 		}
+		// The button sits in the chest's own screen. The editor is a plain screen, not a
+		// container menu, so the chest menu must be closed on both sides first; otherwise
+		// the server keeps syncing a 90-slot chest into whatever menu the client opens next.
+		if (player.containerMenu != player.inventoryMenu) {
+			player.closeContainer();
+		}
 		BlockState state = level.getBlockState(pos);
 		if (ChestLabels.isLabelableChest(state)) {
 			sendContext(player, level, pos, state);
