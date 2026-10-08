@@ -6,8 +6,15 @@ runs an integrated server, so everything works without EnxadaHost.
 
 The automated game tests (`./gradlew build` runs them) already cover the
 label model, the learn inference, the tool's copy/paste, zones and the
-picker's server side. This checklist is for what needs a real client:
-screens, the HUD, click handling, golems moving, and how it all feels.
+picker's server side. A second automated test drives a **real client**
+(`./gradlew runClientGameTest`; on a headless machine wrap it in
+`xvfb-run -s "-screen 0 1920x1080x24"`): it builds a small chest room,
+opens every screen at 480 × 270, 427 × 240 and 960 × 540, fails if any
+widget is off-screen or any button clips its text, and walks through area
+mode with real sneak-right-clicks on plain blocks. Its screenshots land in
+`build/run/clientGameTest/screenshots`. This checklist is for what still
+needs a person: golems moving, how the HUD reads in play, and how it all
+feels.
 
 **Setup:** Fabric Loader 0.19.3 profile for 26.2, with `fabric-api` and
 `waybettercoppergolem-1.0.0.jar` in the mods folder. Keep a **feather** in
@@ -133,9 +140,12 @@ scale your monitor allows, and check:
    drawn over the panel at full brightness, never dimmed under it.
 1b. The zone screen is two columns: Behavior and Defaults on the left,
    Area and Tools on the right. The picker is three columns (Categories,
-   search, Special/This chest) at 480 px and wider, and two columns on
-   narrower screens with Special under Categories; its result list grows
-   with the window height (4 rows at 270 px). The picker closes with Esc.
+   search, Special/This chest) at 480 px and wider. On narrower GUIs (the
+   default 854 × 480 window is 427 × 240) This chest/Special take the left
+   column and the categories become a strip of twelve icon chips under the
+   search box, each with the category name in its tooltip. The result list
+   grows with the window height (4 rows at 270 px, 3 at 240 px). The
+   picker closes with Esc. No button anywhere clips its text.
 2. Section labels (`Behavior`, `Area`, `Tools`, `Categories`, `Special`,
    `Any item`, …) are small, muted and sit just above their controls.
 3. List rows (search results, stops, suggestions, category members,

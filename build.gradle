@@ -88,12 +88,16 @@ loom {
 	}
 }
 
-// Server-side game tests (src/gametest), run with `./gradlew runGameTest`.
-// They live in their own test-only mod, so nothing here ships in the jar.
+// Game tests (src/gametest) live in their own test-only mod, so nothing
+// here ships in the jar. `./gradlew runGameTest` runs the server-side
+// tests; `./gradlew runClientGameTest` drives a real client (it needs a
+// display: `xvfb-run` on a headless machine) through the screens and the
+// tool, and leaves screenshots in build/run/clientGameTest/screenshots.
 fabricApi {
 	configureTests {
 		createSourceSet = true
 		modId = "waybettercoppergolem_tests"
 		eula = true
+		enableClientGameTests = true
 	}
 }

@@ -47,6 +47,12 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		return this.menu;
 	}
 
+	/** An on/off toggle with short state words, so "name: state" fits one column in every language. */
+	private static CycleButton.Builder<Boolean> toggle(boolean value) {
+		return CycleButton.booleanBuilder(Component.translatable("waybettercoppergolem.toggle.on"),
+				Component.translatable("waybettercoppergolem.toggle.off"), value);
+	}
+
 	@Override
 	protected void init() {
 		super.init();
@@ -54,7 +60,7 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		this.shownAnchor = this.menu.anchorPos();
 		this.shownArea = this.menu.area();
 
-		int leftHeight = Ui.SECTION_LABEL + 3 * Ui.ROW + Ui.GAP + Ui.SECTION_LABEL + Ui.ROW;
+		int leftHeight = Ui.SECTION_LABEL + 3 * Ui.ROW + Ui.GAP + Ui.SECTION_LABEL + 2 * Ui.ROW;
 		int rightHeight = Ui.SECTION_LABEL + 2 * Ui.ROW + Ui.GAP + Ui.SECTION_LABEL + 2 * Ui.ROW;
 		int contentHeight = Math.max(leftHeight, rightHeight) + Ui.GAP + Ui.ROW;
 		this.panel = Panel.centered(this.width, this.height, Ui.PANEL_WIDTH, contentHeight);
@@ -67,19 +73,19 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		int y = top;
 		this.behaviorLabelY = y;
 		y += Ui.SECTION_LABEL;
-		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.reorganize())
+		this.addRenderableWidget(toggle(this.shown.reorganize())
 				.create(this.leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT,
 						Component.translatable("waybettercoppergolem.settings.reorganize"),
 						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_REORGANIZE)))
 				.setTooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.reorganize.tooltip")));
 		y += Ui.ROW;
-		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.tidyInside())
+		this.addRenderableWidget(toggle(this.shown.tidyInside())
 				.create(this.leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT,
 						Component.translatable("waybettercoppergolem.settings.tidy"),
 						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_TIDY)))
 				.setTooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.tidy.tooltip")));
 		y += Ui.ROW;
-		this.addRenderableWidget(CycleButton.onOffBuilder(this.shown.dryRun())
+		this.addRenderableWidget(toggle(this.shown.dryRun())
 				.create(this.leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT,
 						Component.translatable("waybettercoppergolem.settings.dry_run"),
 						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_DRY_RUN)))
@@ -93,12 +99,13 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 						Component.translatable("waybettercoppergolem.settings.save_defaults"),
 						button -> click(ZoneSettingsMenu.BUTTON_SAVE_DEFAULTS))
 				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.save_defaults.tooltip")))
-				.bounds(this.leftX, y, half, Ui.BUTTON_HEIGHT).build());
+				.bounds(this.leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
+		y += Ui.ROW;
 		this.addRenderableWidget(Button.builder(
 						Component.translatable("waybettercoppergolem.settings.apply_all"),
 						button -> click(ZoneSettingsMenu.BUTTON_APPLY_ALL))
 				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.apply_all.tooltip")))
-				.bounds(this.leftX + half + Ui.GAP, y, half, Ui.BUTTON_HEIGHT).build());
+				.bounds(this.leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
 
 		// ---- right: area
 		y = top;

@@ -8,6 +8,9 @@
 	"entrypoints": {
 		"fabric-gametest": [
 			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgGameTests"
+		],
+		"fabric-client-gametest": [
+			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgClientGameTest"
 		]
 	},
 	"depends": {
