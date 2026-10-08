@@ -63,10 +63,31 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class LabelTool {
 	private static final long AREA_MODE_TTL_MILLIS = 60 * 1000;
+	/**
+	 * A use-item packet arriving this soon after a corner click is the tail
+	 * of that same click (vanilla sends one when the block use passed), not
+	 * a cancel.
+	 */
+	private static final long CORNER_CLICK_GRACE_MILLIS = 300;
 
-	private record AreaSelection(ResourceKey<Level> dimension, BlockPos anchor, @Nullable BlockPos first, long expiresAt) {
+	private record AreaSelection(ResourceKey<Level> dimension, BlockPos anchor, @Nullable BlockPos first,
+			long expiresAt, long lastClickAt) {
+		static AreaSelection start(ResourceKey<Level> dimension, BlockPos anchor) {
+			long now = System.currentTimeMillis();
+			return new AreaSelection(dimension, anchor, null, now + AREA_MODE_TTL_MILLIS, now);
+		}
+
+		AreaSelection withFirst(BlockPos first) {
+			long now = System.currentTimeMillis();
+			return new AreaSelection(dimension, anchor, first, now + AREA_MODE_TTL_MILLIS, now);
+		}
+
 		boolean expired() {
 			return System.currentTimeMillis() > expiresAt;
+		}
+
+		boolean justClicked() {
+			return System.currentTimeMillis() - lastClickAt < CORNER_CLICK_GRACE_MILLIS;
 		}
 	}
 
@@ -90,8 +111,7 @@ public final class LabelTool {
 
 	/** Starts area mode for the zone anchored at {@code anchor}. */
 	public static void beginAreaSelection(ServerPlayer player, ServerLevel level, BlockPos anchor) {
-		AREA_SELECTIONS.put(player.getUUID(), new AreaSelection(level.dimension(), anchor.immutable(), null,
-				System.currentTimeMillis() + AREA_MODE_TTL_MILLIS));
+		AREA_SELECTIONS.put(player.getUUID(), AreaSelection.start(level.dimension(), anchor.immutable()));
 		player.sendSystemMessage(Component.translatable("waybettercoppergolem.area.begin",
 				WbcgConfig.toolItem(level).getName(WbcgConfig.toolItem(level).getDefaultInstance())));
 		syncAreaMode(player, 1);
@@ -124,8 +144,7 @@ public final class LabelTool {
 			return true;
 		}
 		if (selection.first() == null) {
-			AREA_SELECTIONS.put(player.getUUID(), new AreaSelection(selection.dimension(), selection.anchor(),
-					pos.immutable(), System.currentTimeMillis() + AREA_MODE_TTL_MILLIS));
+			AREA_SELECTIONS.put(player.getUUID(), selection.withFirst(pos.immutable()));
 			cornerParticles(level, player, pos);
 			player.sendSystemMessage(Component.translatable("waybettercoppergolem.area.first"));
 			syncAreaMode(player, 2);
@@ -149,9 +168,14 @@ public final class LabelTool {
 	}
 
 	private static boolean cancelAreaMode(ServerPlayer player) {
-		if (AREA_SELECTIONS.remove(player.getUUID()) == null) {
+		AreaSelection selection = AREA_SELECTIONS.get(player.getUUID());
+		if (selection == null) {
 			return false;
 		}
+		if (selection.justClicked()) {
+			return true; // the use-item tail of the corner click itself; nothing to cancel
+		}
+		AREA_SELECTIONS.remove(player.getUUID());
 		syncAreaMode(player, 0);
 		player.sendSystemMessage(Component.translatable("waybettercoppergolem.area.cancelled"));
 		return true;

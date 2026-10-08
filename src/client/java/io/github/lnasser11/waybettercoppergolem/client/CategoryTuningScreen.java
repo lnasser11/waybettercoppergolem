@@ -41,7 +41,10 @@ import java.util.Set;
  * operator permission.
  */
 public class CategoryTuningScreen extends Screen {
-	private static final int ROWS = 8;
+	private static final int MIN_ROWS = 3;
+	private static final int MAX_ROWS = 12;
+	/** Rows per page, chosen to fit the screen. */
+	private int rows = MIN_ROWS;
 
 	/** The tuning screen currently open, if any, so the server's refresh can update it in place. */
 	private static @Nullable CategoryTuningScreen open;
@@ -87,9 +90,10 @@ public class CategoryTuningScreen extends Screen {
 		this.dynamic.clear();
 		boolean canEdit = this.context.canEdit();
 
-		// section label, search/pager row, rows, actions, done (+ a read-only notice line)
-		int contentHeight = Ui.SECTION_LABEL + Ui.ROW + ROWS * Ui.ROW + Ui.GAP + Ui.ROW + Ui.GAP + Ui.ROW
-				+ (canEdit ? 0 : Ui.SECTION_LABEL);
+		// section label, search/pager row, rows, actions row (+ a read-only notice line)
+		int fixed = Ui.SECTION_LABEL + Ui.ROW + Ui.GAP + Ui.ROW + (canEdit ? 0 : Ui.SECTION_LABEL);
+		this.rows = Ui.rowsThatFit(this.height, fixed, MIN_ROWS, MAX_ROWS);
+		int contentHeight = fixed + this.rows * Ui.ROW;
 		this.panel = Panel.centered(this.width, this.height, Ui.PANEL_WIDTH, contentHeight);
 		this.leftX = this.panel.contentX();
 		this.rightX = this.leftX + Ui.COLUMN_WIDTH + Ui.GAP;
@@ -112,7 +116,7 @@ public class CategoryTuningScreen extends Screen {
 
 		// ---- left: pager in the row above the member list
 		List<MemberRow> rows = memberRows();
-		int pages = Math.max(1, (rows.size() + ROWS - 1) / ROWS);
+		int pages = Math.max(1, (rows.size() + this.rows - 1) / this.rows);
 		this.page = Math.clamp(this.page, 0, pages - 1);
 		int pagerY = top + Ui.SECTION_LABEL;
 		this.addRenderableWidget(Button.builder(Component.literal("<"), button -> {
@@ -127,9 +131,9 @@ public class CategoryTuningScreen extends Screen {
 
 		rebuildLists();
 
-		// ---- actions
-		int actionsY = this.listTop + ROWS * Ui.ROW + Ui.GAP;
-		int half = (Ui.COLUMN_WIDTH - Ui.GAP) / 2;
+		// ---- actions row: add held · reset · done
+		int actionsY = this.listTop + this.rows * Ui.ROW + Ui.GAP;
+		int third = (Ui.PANEL_WIDTH - 2 * Ui.GAP) / 3;
 		Button addHeld = this.addRenderableWidget(Button.builder(
 						Component.translatable("waybettercoppergolem.tuning.add_held"), button -> {
 							if (this.minecraft != null && this.minecraft.player != null) {
@@ -139,17 +143,23 @@ public class CategoryTuningScreen extends Screen {
 								}
 							}
 						})
-				.bounds(this.rightX, actionsY, half, Ui.BUTTON_HEIGHT).build());
+				.bounds(this.leftX, actionsY, third, Ui.BUTTON_HEIGHT).build());
 		Button reset = this.addRenderableWidget(Button.builder(
 						Component.translatable("waybettercoppergolem.tuning.reset"),
 						button -> ClientPlayNetworking.send(TuningPayloads.TuneCategory.reset(this.context.tagId())))
 				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.tuning.reset.tooltip")))
-				.bounds(this.rightX + half + Ui.GAP, actionsY, half, Ui.BUTTON_HEIGHT).build());
+				.bounds(this.leftX + third + Ui.GAP, actionsY, third, Ui.BUTTON_HEIGHT).build());
 		addHeld.active = canEdit;
 		reset.active = canEdit && !(this.context.added().isEmpty() && this.context.removed().isEmpty());
-
 		this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
-				.bounds(this.panel.centerX() - 100, actionsY + Ui.ROW + Ui.GAP, 200, Ui.BUTTON_HEIGHT).build());
+				.bounds(this.leftX + 2 * (third + Ui.GAP), actionsY, third, Ui.BUTTON_HEIGHT).build());
+	}
+
+	/** The panel goes under the widgets, so it is drawn with the background. */
+	@Override
+	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+		super.extractBackground(graphics, mouseX, mouseY, a);
+		this.panel.draw(graphics);
 	}
 
 	private record MemberRow(Item item, boolean added, boolean removed) {
@@ -192,8 +202,8 @@ public class CategoryTuningScreen extends Screen {
 		// members page
 		List<MemberRow> rows = memberRows();
 		int y = this.listTop;
-		int from = this.page * ROWS;
-		for (int i = from; i < Math.min(rows.size(), from + ROWS); i++) {
+		int from = this.page * this.rows;
+		for (int i = from; i < Math.min(rows.size(), from + this.rows); i++) {
 			MemberRow row = rows.get(i);
 			Identifier id = BuiltInRegistries.ITEM.getKey(row.item());
 			boolean include = row.removed();
@@ -252,7 +262,7 @@ public class CategoryTuningScreen extends Screen {
 		results.sort(Comparator
 				.comparing((Item item) -> !item.getName(item.getDefaultInstance()).getString().toLowerCase(Locale.ROOT).startsWith(needle))
 				.thenComparing(item -> item.getName(item.getDefaultInstance()).getString()));
-		return results.size() > ROWS ? results.subList(0, ROWS) : results;
+		return results.size() > this.rows ? results.subList(0, this.rows) : results;
 	}
 
 	private void add(AbstractWidget widget) {
@@ -267,7 +277,6 @@ public class CategoryTuningScreen extends Screen {
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
-		this.panel.draw(graphics);
 		int memberCount = (int) memberRows().stream().filter(row -> !row.removed()).count();
 		this.panel.header(graphics, this.font, this.title, Component.translatable("waybettercoppergolem.tuning.subtitle",
 				this.context.tagId().toString(), memberCount, this.context.added().size(), this.context.removed().size()));
@@ -275,7 +284,7 @@ public class CategoryTuningScreen extends Screen {
 			graphics.centeredText(this.font, Component.translatable("waybettercoppergolem.tuning.readonly"),
 					this.panel.centerX(), this.panel.contentTop(), Ui.PROBLEM);
 		}
-		int pages = Math.max(1, (memberRows().size() + ROWS - 1) / ROWS);
+		int pages = Math.max(1, (memberRows().size() + this.rows - 1) / this.rows);
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.tuning.members_header",
 				this.page + 1, pages), this.leftX, this.membersLabelY);
 		Panel.sectionLabel(graphics, this.font, Component.translatable(this.query.isBlank()

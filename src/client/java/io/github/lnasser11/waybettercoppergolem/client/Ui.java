@@ -26,7 +26,11 @@ public final class Ui {
 	/** Space reserved for a 16px item icon to the left of a row's text. */
 	public static final int ICON_SLOT = 20;
 	/** Padding between a panel's border and its content. */
-	public static final int PADDING = 10;
+	public static final int PADDING = 8;
+	/** Three columns side by side (the picker on wide enough screens). */
+	public static final int WIDE_PANEL_WIDTH = 3 * COLUMN_WIDTH + 2 * GAP;
+	/** The smallest GUI the layouts are designed for: 1080p at "Auto" scale is 480 × 270. */
+	public static final int MIN_GUI_HEIGHT = 270;
 	/** Height of a panel header: title, subtitle, separator. */
 	public static final int HEADER_HEIGHT = 34;
 	/** Height of a section label line above a group of controls. */
@@ -61,5 +65,20 @@ public final class Ui {
 	public static final int HUD_BACKGROUND = 0xB0121212;
 
 	private Ui() {
+	}
+
+	/**
+	 * How many list rows fit on this screen next to {@code fixedContentHeight}
+	 * of other content (labels, buttons), inside a panel with header and
+	 * padding, leaving a small margin. Clamped to [{@code min}, {@code max}].
+	 */
+	public static int rowsThatFit(int screenHeight, int fixedContentHeight, int min, int max) {
+		int available = screenHeight - 8 - HEADER_HEIGHT - 2 * PADDING - fixedContentHeight;
+		return Math.clamp(available / ROW, min, max);
+	}
+
+	/** Whether three columns fit side by side on this screen. */
+	public static boolean wide(int screenWidth) {
+		return screenWidth >= WIDE_PANEL_WIDTH + 2 * PADDING + 4;
 	}
 }

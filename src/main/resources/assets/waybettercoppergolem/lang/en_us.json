@@ -117,6 +117,7 @@
   "waybettercoppergolem.editor.remove_one.tooltip": "Remove this label from the chest",
   "waybettercoppergolem.editor.remove_labels.tooltip": "Removes all of this chest's labels: it goes back to its frames, or to vanilla behavior.",
   "waybettercoppergolem.editor.suggested": "Suggested from what's inside:",
+  "waybettercoppergolem.editor.section.this_chest": "This chest",
   "waybettercoppergolem.picker.tune_categories": "Tune categories…",
   "waybettercoppergolem.picker.tune_categories.tooltip": "Add or remove items from the preset categories, for this world.",
   "waybettercoppergolem.picker.tune_row.tooltip": "Edit what this category contains",
