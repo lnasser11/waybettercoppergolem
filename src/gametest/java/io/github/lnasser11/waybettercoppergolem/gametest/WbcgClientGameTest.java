@@ -3,6 +3,7 @@ package io.github.lnasser11.waybettercoppergolem.gametest;
 import io.github.lnasser11.waybettercoppergolem.client.CategoryListScreen;
 import io.github.lnasser11.waybettercoppergolem.client.CategoryTuningScreen;
 import io.github.lnasser11.waybettercoppergolem.client.LabelPickerScreen;
+import io.github.lnasser11.waybettercoppergolem.client.ListRow;
 import io.github.lnasser11.waybettercoppergolem.client.SimulationScreen;
 import io.github.lnasser11.waybettercoppergolem.client.WayBetterCopperGolemClient;
 import io.github.lnasser11.waybettercoppergolem.client.ZoneOverviewScreen;
@@ -24,6 +25,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
@@ -38,6 +40,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.phys.BlockHitResult;
 
 import org.lwjgl.glfw.GLFW;
 
@@ -135,8 +138,11 @@ public final class WbcgClientGameTest implements FabricClientGameTest {
 			this.anchor = base.offset(4, 0, 0);
 			this.ingotChest = base.offset(4, 0, 2);
 			this.cobbleChest = base.offset(4, 0, -2);
-			this.cornerA = base.offset(2, -1, 3);
-			this.cornerB = base.offset(7, -1, -3);
+			// Corner markers at eye level and within reach, so the crosshair lands on them exactly.
+			this.cornerA = base.offset(2, 1, 3);
+			this.cornerB = base.offset(3, 1, -3);
+			level.setBlock(this.cornerA, Blocks.STONE_BRICKS.defaultBlockState(), 3);
+			level.setBlock(this.cornerB, Blocks.STONE_BRICKS.defaultBlockState(), 3);
 			level.setBlock(this.anchor, Blocks.COPPER_CHEST.asList().getFirst().defaultBlockState(), 3);
 			level.setBlock(this.ingotChest, Blocks.CHEST.defaultBlockState(), 3);
 			level.setBlock(this.cobbleChest, Blocks.CHEST.defaultBlockState(), 3);
@@ -177,18 +183,18 @@ public final class WbcgClientGameTest implements FabricClientGameTest {
 		assertTrue(server.computeOnServer(s -> LabelTool.inAreaMode(player(s))), "server in area mode");
 		context.takeScreenshot("area_1_hud_" + size);
 
-		// First corner: a floor block, not a chest. Before the fix this cancelled area mode.
-		sneakRightClick(context, this.cornerA);
+		// First corner: a plain block, not a chest. Before the fix this cancelled area mode.
+		BlockPos first = sneakRightClick(context, this.cornerA);
 		assertTrue(server.computeOnServer(s -> LabelTool.inAreaMode(player(s))),
 				"still in area mode after the first corner (a non-chest block)");
 		assertEquals(2, WayBetterCopperGolemClient.areaModeStep(), "client area mode step after corner 1");
 		context.takeScreenshot("area_2_first_corner_" + size);
 
 		// Second corner → the zone's area is the box spanned by both corners (plus the anchor).
-		sneakRightClick(context, this.cornerB);
+		BlockPos second = sneakRightClick(context, this.cornerB);
 		assertEquals(0, WayBetterCopperGolemClient.areaModeStep(), "client area mode step after corner 2");
 		assertTrue(server.computeOnServer(s -> !LabelTool.inAreaMode(player(s))), "area mode over");
-		BoundingBox expected = Zone.areaFromCorners(this.cornerA, this.cornerB).encapsulate(this.anchor);
+		BoundingBox expected = Zone.areaFromCorners(first, second).encapsulate(this.anchor);
 		BoundingBox actual = server.computeOnServer(s -> {
 			Map<BlockPos, Zone> zones = Zones.all(player(s).level());
 			Zone zone = zones.get(this.anchor);
@@ -213,17 +219,25 @@ public final class WbcgClientGameTest implements FabricClientGameTest {
 		assertWidgetsOnScreen(context, "zone settings " + size);
 	}
 
-	/** Looks at the block, holds sneak, right-clicks with the real input path, releases. */
-	private static void sneakRightClick(ClientGameTestContext context, BlockPos pos) {
+	/**
+	 * Looks at the block, holds sneak, right-clicks through the real input
+	 * path, releases. Returns the block under the crosshair at the click.
+	 */
+	private static BlockPos sneakRightClick(ClientGameTestContext context, BlockPos pos) {
 		TestInput input = context.getInput();
 		input.lookAt(pos);
 		context.waitTicks(2);
+		BlockPos aimed = context.computeOnClient(mc -> mc.hitResult instanceof BlockHitResult hit
+				? hit.getBlockPos() : null);
+		assertTrue(aimed != null, "the crosshair should be on a block when aiming at " + pos);
+		assertTrue(pos.equals(aimed), "aimed at " + aimed + ", expected " + pos);
 		input.holdShift();
 		context.waitTicks(2);
 		input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_RIGHT);
 		context.waitTicks(10);
 		input.releaseShift();
 		context.waitTicks(5);
+		return aimed;
 	}
 
 	// ---------------------------------------------------------------- pickers
@@ -311,7 +325,7 @@ public final class WbcgClientGameTest implements FabricClientGameTest {
 				"GUI size " + actual[0] + "x" + actual[1] + ", expected " + width + "x" + height);
 	}
 
-	/** Every visible widget of the current screen lies inside the screen. */
+	/** Every visible widget of the current screen lies inside the screen, and no button clips its text. */
 	private static void assertWidgetsOnScreen(ClientGameTestContext context, String what) {
 		List<String> problems = context.computeOnClient(mc -> {
 			Screen screen = mc.gui.screen();
@@ -329,6 +343,12 @@ public final class WbcgClientGameTest implements FabricClientGameTest {
 						out.add(widget.getMessage().getString() + " at [" + widget.getX() + "," + widget.getY()
 								+ " " + widget.getRight() + "," + widget.getBottom() + "] outside "
 								+ screen.width + "x" + screen.height);
+					}
+					// Vanilla buttons scroll text wider than the button; list rows cut with an ellipsis instead.
+					if (!(widget instanceof ListRow) && !(widget instanceof EditBox)
+							&& mc.font.width(widget.getMessage()) > widget.getWidth() - 6) {
+						out.add("'" + widget.getMessage().getString() + "' ("
+								+ mc.font.width(widget.getMessage()) + "px) clipped in a " + widget.getWidth() + "px button");
 					}
 				}
 			}
