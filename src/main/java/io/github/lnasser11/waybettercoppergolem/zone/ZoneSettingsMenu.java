@@ -40,7 +40,8 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	public static final int DATA_MAX_Y = 10;
 	public static final int DATA_MAX_Z = 11;
 	public static final int DATA_REACH = 12;
-	public static final int DATA_COUNT = 13;
+	public static final int DATA_STAY_INSIDE = 13;
+	public static final int DATA_COUNT = 14;
 
 	public static final int BUTTON_TOGGLE_REORGANIZE = 0;
 	public static final int BUTTON_TOGGLE_TIDY = 1;
@@ -64,6 +65,7 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	/** Vertical reach one block lower / higher. */
 	public static final int BUTTON_REACH_DOWN = 11;
 	public static final int BUTTON_REACH_UP = 12;
+	public static final int BUTTON_TOGGLE_STAY_INSIDE = 13;
 
 	private final ContainerLevelAccess access;
 	private final ContainerData data;
@@ -105,13 +107,15 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 		data.set(DATA_MAX_Y, area.maxY());
 		data.set(DATA_MAX_Z, area.maxZ());
 		data.set(DATA_REACH, settings.verticalReach());
+		data.set(DATA_STAY_INSIDE, settings.stayInside() ? 1 : 0);
 	}
 
 	public ZoneSettings settings() {
 		return new ZoneSettings(this.data.get(DATA_REACH),
 				this.data.get(DATA_REORGANIZE) != 0,
 				this.data.get(DATA_TIDY) != 0,
-				this.data.get(DATA_DRY_RUN) != 0);
+				this.data.get(DATA_DRY_RUN) != 0,
+				this.data.get(DATA_STAY_INSIDE) != 0);
 	}
 
 	public BlockPos anchorPos() {
@@ -141,6 +145,7 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 				case BUTTON_TOGGLE_REORGANIZE -> zone = zone.withSettings(current.withReorganize(!current.reorganize()));
 				case BUTTON_TOGGLE_TIDY -> zone = zone.withSettings(current.withTidyInside(!current.tidyInside()));
 				case BUTTON_TOGGLE_DRY_RUN -> zone = zone.withSettings(current.withDryRun(!current.dryRun()));
+				case BUTTON_TOGGLE_STAY_INSIDE -> zone = zone.withSettings(current.withStayInside(!current.stayInside()));
 				case BUTTON_REACH_DOWN -> zone = zone.withSettings(current.withVerticalReach(current.verticalReach() - 1));
 				case BUTTON_REACH_UP -> zone = zone.withSettings(current.withVerticalReach(current.verticalReach() + 1));
 				case BUTTON_RESET_AREA -> zone = zone.withArea(Zone.defaultArea(ref.anchor()));

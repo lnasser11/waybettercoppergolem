@@ -112,6 +112,14 @@ public class WayBetterCopperGolem implements ModInitializer {
 	public static final AttachmentType<ZoneSettings> ZONE_SETTINGS =
 			AttachmentRegistry.createPersistent(id("zone_settings"), ZoneSettings.CODEC);
 
+	/**
+	 * The anchor of the zone a golem belongs to, set the first time it takes
+	 * from a copper chest inside a zone and kept until that zone is removed.
+	 * Persisted on the golem; see {@link io.github.lnasser11.waybettercoppergolem.sorting.ZoneAwareGolem}.
+	 */
+	public static final AttachmentType<BlockPos> GOLEM_ZONE =
+			AttachmentRegistry.createPersistent(id("golem_zone"), BlockPos.CODEC);
+
 	/** Settings new zones start from in this world (overworld attachment; absent = built-in defaults). */
 	public static final AttachmentType<ZoneSettings> ZONE_DEFAULTS =
 			AttachmentRegistry.createPersistent(id("zone_defaults"), ZoneSettings.CODEC);

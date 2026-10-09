@@ -232,6 +232,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 		boolean reorganize = this.wbcg$reorganizeActive;
 		if (this.target.state().is(BlockTags.COPPER_CHESTS)) {
 			golem.wbcg$setZoneChest(this.target.pos());
+			golem.wbcg$joinZoneAt(level, this.target.pos());
 		}
 		ZoneSettings settings = golem.wbcg$zoneSettings(level);
 

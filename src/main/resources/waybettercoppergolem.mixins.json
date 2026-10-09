@@ -6,6 +6,8 @@
 		"ChestBlockEntityMixin",
 		"CopperGolemMixin",
 		"ItemFrameMixin",
+		"LandRandomPosMixin",
+		"PathNavigationMixin",
 		"TransportItemsBetweenContainersMixin"
 	],
 	"injectors": {
