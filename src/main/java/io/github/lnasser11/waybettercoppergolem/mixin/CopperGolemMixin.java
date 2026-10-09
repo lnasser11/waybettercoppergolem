@@ -59,9 +59,11 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	@Unique
 	private @Nullable BlockPos wbcg$tidyDestination;
 	@Unique
-	private @Nullable BlockPos wbcg$frameReturnChest;
+	private @Nullable BlockPos wbcg$returnChest;
 	@Unique
 	private final java.util.Map<BlockPos, Long> wbcg$skippedFrameChests = new java.util.HashMap<>();
+	@Unique
+	private final java.util.Map<BlockPos, Long> wbcg$skippedSources = new java.util.HashMap<>();
 
 	@Override
 	public void wbcg$setZoneChest(BlockPos pos) {
@@ -97,6 +99,23 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	}
 
 	@Override
+	public void wbcg$skipSourceUntil(BlockPos pos, long untilGameTime) {
+		this.wbcg$skippedSources.values().removeIf(until -> until < untilGameTime - 12000L);
+		this.wbcg$skippedSources.put(pos.immutable(), untilGameTime);
+	}
+
+	@Override
+	public boolean wbcg$isSourceSkipped(BlockPos pos, long gameTime) {
+		Long until = this.wbcg$skippedSources.get(pos);
+		return until != null && gameTime < until;
+	}
+
+	@Override
+	public void wbcg$forgetSkippedSources(java.util.Collection<BlockPos> positions) {
+		positions.forEach(this.wbcg$skippedSources::remove);
+	}
+
+	@Override
 	public void wbcg$skipFrameChestUntil(BlockPos pos, long untilGameTime) {
 		this.wbcg$skippedFrameChests.values().removeIf(until -> until < untilGameTime - 12000L);
 		this.wbcg$skippedFrameChests.put(pos.immutable(), untilGameTime);
@@ -109,13 +128,13 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	}
 
 	@Override
-	public @Nullable BlockPos wbcg$frameReturnChest() {
-		return this.wbcg$frameReturnChest;
+	public @Nullable BlockPos wbcg$returnChest() {
+		return this.wbcg$returnChest;
 	}
 
 	@Override
-	public void wbcg$setFrameReturnChest(@Nullable BlockPos pos) {
-		this.wbcg$frameReturnChest = pos == null ? null : pos.immutable();
+	public void wbcg$setReturnChest(@Nullable BlockPos pos) {
+		this.wbcg$returnChest = pos == null ? null : pos.immutable();
 	}
 
 	@Override

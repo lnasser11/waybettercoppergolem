@@ -701,7 +701,7 @@ public final class WbcgGameTests {
 		helper.assertTrue(created.settings().tidyInside(), "new zone starts from the world defaults");
 
 		BoundingBox box = created.area();
-		int changed = Zones.applyToAll(level, ZoneSettings.DEFAULT.withDryRun(true));
+		int changed = Zones.applyToAll(level, ZoneSettings.DEFAULT.withDryRun(true).withTidyInside(false));
 		helper.assertTrue(changed >= 1, "at least this zone changed");
 		Zone after = Zones.all(level).get(first);
 		helper.assertTrue(after.settings().dryRun() && !after.settings().tidyInside(), "settings replaced");
@@ -1357,14 +1357,14 @@ public final class WbcgGameTests {
 		ZoneSettingsMenu.trust(owner, anchor, new net.minecraft.server.players.NameAndId(other.getGameProfile()), true);
 		helper.assertTrue(Zones.all(level).get(anchor).access().isTrusted(other.getUUID()), "trusted by the owner");
 		menu.clickMenuButton(other, ZoneSettingsMenu.BUTTON_TOGGLE_TIDY);
-		helper.assertTrue(Zones.settingsAt(level, anchor).tidyInside(), "a trusted player's toggle is applied");
+		helper.assertFalse(Zones.settingsAt(level, anchor).tidyInside(), "a trusted player's toggle is applied (tidy is on by default)");
 		ChestEditor.apply(other, chest, List.of());
 		helper.assertTrue(ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest)).isEmpty(),
 				"a trusted player's label edit is applied");
 		ZoneSettingsMenu.trust(owner, anchor, new net.minecraft.server.players.NameAndId(other.getGameProfile()), false);
 		helper.assertFalse(Zones.all(level).get(anchor).access().isTrusted(other.getUUID()), "untrusted again");
 		menu.clickMenuButton(other, ZoneSettingsMenu.BUTTON_TOGGLE_TIDY);
-		helper.assertTrue(Zones.settingsAt(level, anchor).tidyInside(), "refused again once untrusted");
+		helper.assertFalse(Zones.settingsAt(level, anchor).tidyInside(), "refused again once untrusted");
 
 		// Operators: the rule itself lets them through whatever the lists say.
 		ZoneAccess access = Zones.all(level).get(anchor).access();

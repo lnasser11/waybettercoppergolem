@@ -241,23 +241,6 @@ public final class FrameHanger {
 	}
 
 	/**
-	 * The vanilla pickup, frames excluded: takes up to {@code carrySize} of
-	 * the first stack that is not an item frame (empty if only frames are
-	 * left).
-	 */
-	public static ItemStack takeFirstNonFrame(Container container, int carrySize) {
-		for (int slot = 0; slot < container.getContainerSize(); slot++) {
-			ItemStack stack = container.getItem(slot);
-			if (!stack.isEmpty() && !isFrame(stack)) {
-				ItemStack taken = container.removeItem(slot, Math.min(stack.getCount(), carrySize));
-				container.setChanged();
-				return taken;
-			}
-		}
-		return ItemStack.EMPTY;
-	}
-
-	/**
 	 * Hangs the frame in the golem's hand on the chest's front face, showing
 	 * one of the chest's items (which leaves the chest). Returns false, with
 	 * nothing changed, when the chest no longer wants a frame or the frame

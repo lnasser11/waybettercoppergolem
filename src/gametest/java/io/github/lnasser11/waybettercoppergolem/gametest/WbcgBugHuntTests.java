@@ -193,7 +193,7 @@ public final class WbcgBugHuntTests {
 		golem.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.ITEM_FRAME, 1));
 		golem.setGuaranteedDrop(EquipmentSlot.MAINHAND);
 		aware.wbcg$setPendingFrameChest(iron);
-		aware.wbcg$setFrameReturnChest(source);
+		aware.wbcg$setReturnChest(source);
 		helper.runBeforeTestEnd(() -> {
 			Zones.remove(level, source);
 			framesInRoom(helper).forEach(ItemFrame::discard);
@@ -202,7 +202,7 @@ public final class WbcgBugHuntTests {
 		helper.runAfterDelay(600, () -> {
 			boolean stillTrying = iron.equals(aware.wbcg$pendingFrameChest()) && golem.getMainHandItem().is(Items.ITEM_FRAME);
 			helper.assertFalse(stillTrying, "after 600 ticks the golem is still holding the frame for the walled-in chest");
-			String where = "hand=" + golem.getMainHandItem() + " pending=" + aware.wbcg$pendingFrameChest() + " return=" + aware.wbcg$frameReturnChest()
+			String where = "hand=" + golem.getMainHandItem() + " pending=" + aware.wbcg$pendingFrameChest() + " return=" + aware.wbcg$returnChest()
 					+ " golemAt=" + golem.position() + " framesHung=" + framesInRoom(helper).size() + " framesOnIronFront=" + framesOnFront(level, iron).size()
 					+ " framesInIron=" + count(level, iron, Items.ITEM_FRAME) + " ironIngots=" + count(level, iron, Items.IRON_INGOT)
 					+ " dropped=" + level.getEntitiesOfClass(ItemEntity.class, Zones.toAABB(structureBox(helper)).inflate(1)).size();
@@ -388,6 +388,85 @@ public final class WbcgBugHuntTests {
 			helper.assertTrue(frames.getFirst().getItem().is(Items.IRON_INGOT), "the frame shows an iron ingot");
 			helper.assertValueEqual(count(level, iron, Items.IRON_INGOT), 9, "one ingot left the chest for the frame");
 			helper.assertValueEqual(count(level, source, Items.ITEM_FRAME), 2, "one frame taken from the copper chest");
+		});
+	}
+
+	/** A stack with nowhere to go stays in the copper chest; the golem delivers what it can and keeps its hands free. */
+	@GameTest(maxTicks = GOLEM_TIMEOUT)
+	public void golemLeavesUndeliverableStacksInTheCopperChest(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 3));
+		fill(helper, source, Items.SPONGE, 5, Items.IRON_INGOT, 16); // the sponge sits in the first slot, where vanilla would take it
+		BlockPos iron = chest(helper, new BlockPos(6, 1, 3));
+		label(level, iron, ChestLabel.exact(id(Items.IRON_INGOT)));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		((ZoneAwareGolem) golem).wbcg$joinZoneAt(level, source);
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		helper.startSequence()
+				.thenWaitUntil(() -> helper.assertValueEqual(count(level, iron, Items.IRON_INGOT), 16, "iron delivered"))
+				.thenExecuteAfter(100, () -> {
+					helper.assertValueEqual(count(level, source, Items.SPONGE), 5, "the sponge stays in the copper chest");
+					helper.assertTrue(golem.getMainHandItem().isEmpty(), "the golem carries nothing, but holds " + golem.getMainHandItem());
+				})
+				.thenSucceed();
+	}
+
+	/** A golem stuck with cargo that has nowhere to go brings it back to the copper chest it took it from. */
+	@GameTest(maxTicks = 1600)
+	public void golemBringsStuckCargoBackToTheCopperChest(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 3));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		ZoneAwareGolem aware = (ZoneAwareGolem) golem;
+		aware.wbcg$joinZoneAt(level, source);
+		aware.wbcg$setZoneChest(source);
+		golem.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.SPONGE, 5));
+		golem.setGuaranteedDrop(EquipmentSlot.MAINHAND);
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		helper.succeedWhen(() -> {
+			helper.assertValueEqual(count(level, source, Items.SPONGE), 5, "the sponge is back in the copper chest");
+			helper.assertTrue(golem.getMainHandItem().isEmpty(), "the golem's hands are free again");
+		});
+	}
+
+	/**
+	 * Tidy across different labels: a stray stack of dirt in a "Stone & Dirt"
+	 * chest belongs in the chest labeled *Dirt* (narrower, and holding a lot
+	 * of dirt already), even though the two chests do not share a label set.
+	 */
+	@GameTest(maxTicks = GOLEM_TIMEOUT)
+	public void tidyMovesTheStrayDirtToTheNarrowerDirtChest(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 1)); // empty: nothing to deliver
+		BlockPos stone = chest(helper, new BlockPos(1, 1, 5), Items.COBBLESTONE, 64, Items.COBBLESTONE, 64, Items.DIRT, 7, Items.COBBLESTONE, 64);
+		BlockPos dirt = chest(helper, new BlockPos(6, 1, 5), Items.DIRT, 20);
+		label(level, stone, ChestLabel.tag(id(Items.COBBLESTONE), Identifier.fromNamespaceAndPath("wbcg", "stone")));
+		label(level, dirt, ChestLabel.exact(id(Items.DIRT)));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT.withTidyInside(true)));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		((ZoneAwareGolem) golem).wbcg$joinZoneAt(level, source);
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		helper.succeedWhen(() -> {
+			helper.assertValueEqual(count(level, dirt, Items.DIRT), 27, "the stray dirt joined the dirt chest");
+			helper.assertValueEqual(count(level, stone, Items.DIRT), 0, "no dirt left in the stone chest");
+			helper.assertValueEqual(count(level, stone, Items.COBBLESTONE), 192, "the cobblestone stayed");
 		});
 	}
 

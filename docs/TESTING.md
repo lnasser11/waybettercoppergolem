@@ -356,7 +356,7 @@ scale your monitor allows, and check:
    ends up in the Food chest.
 4. Toggle reorganize OFF in the zone screen, plant more dirt → it stays.
 
-## 12. Tidy sibling chests (off by default)
+## 12. Tidy chests (on by default)
 
 1. Label two chests *Stone & Dirt*. Fill chest A with 26 stacks of stone
    and one stack of dirt, and chest B with two stacks of dirt. Empty the

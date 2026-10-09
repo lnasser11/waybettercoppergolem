@@ -104,6 +104,10 @@ public abstract class TransportItemsBetweenContainersMixin {
 	@org.spongepowered.asm.mixin.Unique
 	private static final int WBCG$REORGANIZE_IDLE_COOLDOWN = 1200;
 
+	/** A copper chest with nothing deliverable is left alone for this long (a minute), or until its contents change. */
+	@org.spongepowered.asm.mixin.Unique
+	private static final long WBCG$SOURCE_RETRY_TICKS = 1200;
+
 	/** A chest a frame trip could not reach is left alone for this long (five minutes) before another try. */
 	@org.spongepowered.asm.mixin.Unique
 	private static final long WBCG$FRAME_RETRY_TICKS = 6000;
@@ -143,7 +147,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 		BlockPos pending = golem.wbcg$pendingFrameChest();
 		if (held.isEmpty()) {
 			golem.wbcg$setTidyDestination(null);
-			golem.wbcg$setFrameReturnChest(null);
+			golem.wbcg$setReturnChest(null);
 			ZoneSettings settings = golem.wbcg$zoneSettings(level);
 			// A frame trip: fetch a frame for the bare chest the golem last delivered into.
 			if (pending != null) {
@@ -164,7 +168,8 @@ public abstract class TransportItemsBetweenContainersMixin {
 			Optional<TransportItemTarget> source = SortingEngine.findSource(level, body.position(), this.sourceBlockType,
 					wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
 					wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
-					wbcg$searchArea(body, level), GolemClaims.claimedByOthers(level, body), settings.hangFrames());
+					wbcg$searchArea(body, level), GolemClaims.claimedByOthers(level, body), settings.hangFrames(),
+					pos -> golem.wbcg$isSourceSkipped(pos, level.getGameTime()));
 			if (source.isPresent()) {
 				cir.setReturnValue(source);
 			}
@@ -194,21 +199,32 @@ public abstract class TransportItemsBetweenContainersMixin {
 			}
 			golem.wbcg$setPendingFrameChest(null); // the chest changed its mind (front taken, frame hung by someone) or cannot be reached: give up
 		}
-		if (FrameHanger.isFrame(held) && golem.wbcg$frameReturnChest() != null) {
-			// Giving up: the frame goes back to the copper chest it came from.
-			TransportItemTarget back = TransportItemTarget.tryCreatePossibleTarget(golem.wbcg$frameReturnChest(), level);
+		if (golem.wbcg$returnChest() != null) {
+			// Giving up: the cargo goes back to the copper chest it came from (a frame nobody wanted, a stack with nowhere to go).
+			TransportItemTarget back = TransportItemTarget.tryCreatePossibleTarget(golem.wbcg$returnChest(), level);
 			if (back != null && !wbcg$isUnreachable(body, level, back.pos()) && back.state().is(BlockTags.COPPER_CHESTS)
 					&& SortingEngine.canAcceptAny(back.container(), held)) {
 				cir.setReturnValue(Optional.of(back));
 				return;
 			}
-			golem.wbcg$setFrameReturnChest(null); // the copper chest is gone or full; the frame is delivered like any item
+			golem.wbcg$setReturnChest(null); // the copper chest is gone or full; the cargo is delivered like any item
 		}
-		cir.setReturnValue(SortingEngine.findDepositTarget(
+		Optional<TransportItemTarget> destination = SortingEngine.findDepositTarget(
 				level, body.position(), body.getMainHandItem(), this.destinationBlockType,
 				wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
 				wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
-				wbcg$searchArea(body, level), GolemClaims.claimedByOthers(level, body)));
+				wbcg$searchArea(body, level), GolemClaims.claimedByOthers(level, body));
+		if (destination.isEmpty() && golem.wbcg$zoneChest() != null && !wbcg$isUnreachable(body, level, golem.wbcg$zoneChest())) {
+			// Nowhere to go (the chest filled up or changed on the way): back into the copper chest it came from, so the
+			// golem's hands are free for other work instead of carrying the stack around for good.
+			TransportItemTarget back = TransportItemTarget.tryCreatePossibleTarget(golem.wbcg$zoneChest(), level);
+			if (back != null && back.state().is(BlockTags.COPPER_CHESTS) && SortingEngine.canAcceptAny(back.container(), held)) {
+				golem.wbcg$setReturnChest(golem.wbcg$zoneChest());
+				cir.setReturnValue(Optional.of(back));
+				return;
+			}
+		}
+		cir.setReturnValue(destination);
 	}
 
 	/**
@@ -323,17 +339,16 @@ public abstract class TransportItemsBetweenContainersMixin {
 				&& io.github.lnasser11.waybettercoppergolem.label.ChestLabels.isLabelableChest(block)) {
 			cir.setReturnValue(true);
 		}
-		if (mob instanceof CopperGolem && wbcg$isFrameReturn(mob) && block.is(BlockTags.COPPER_CHESTS)) {
+		if (mob instanceof CopperGolem && wbcg$isReturn(mob) && block.is(BlockTags.COPPER_CHESTS)) {
 			cir.setReturnValue(true);
 		}
 	}
 
-	/** While bringing an unused frame back to the copper chest it came from, and that chest is the current target. */
+	/** While bringing cargo back to the copper chest it came from, and that chest is the current target. */
 	@org.spongepowered.asm.mixin.Unique
-	private boolean wbcg$isFrameReturn(PathfinderMob body) {
-		BlockPos back = ((ZoneAwareGolem) body).wbcg$frameReturnChest();
-		return back != null && this.target != null && back.equals(this.target.pos())
-				&& FrameHanger.isFrame(body.getMainHandItem());
+	private boolean wbcg$isReturn(PathfinderMob body) {
+		BlockPos back = ((ZoneAwareGolem) body).wbcg$returnChest();
+		return back != null && this.target != null && back.equals(this.target.pos()) && !body.getMainHandItem().isEmpty();
 	}
 
 	@Inject(method = "stopTargetingCurrentTarget", at = @At("TAIL"))
@@ -394,7 +409,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 			if (wbcg$isFrameDelivery(body)) {
 				return FrameHanger.wantsFrame(level, this.target.pos());
 			}
-			if (wbcg$isFrameReturn(body)) {
+			if (wbcg$isReturn(body)) {
 				return SortingEngine.canAcceptAny(this.target.container(), body.getMainHandItem());
 			}
 			return SortingEngine.acceptsDeposit(level, this.target, body);
@@ -505,18 +520,25 @@ public abstract class TransportItemsBetweenContainersMixin {
 			} else {
 				body.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, frame);
 				body.setGuaranteedDrop(net.minecraft.world.entity.EquipmentSlot.MAINHAND);
-				golem.wbcg$setFrameReturnChest(this.target.pos());
+				golem.wbcg$setReturnChest(this.target.pos());
 				this.clearMemoriesAfterMatchingTargetFound(body);
 			}
 			ci.cancel();
 			return;
 		}
 
-		if (!reorganize && settings.hangFrames()) {
-			// Frames in copper chests are supplies while golems hang them: the normal pickup skips them.
-			ItemStack taken = FrameHanger.takeFirstNonFrame(container,
-					io.github.lnasser11.waybettercoppergolem.config.WbcgConfig.get().golemCarrySize());
+		if (!reorganize) {
+			// The copper-chest pickup: the first stack that has somewhere to go right now (frames are supplies while
+			// golems hang them). A stack with nowhere to go stays in the chest, where Simulate lists it, instead of
+			// being carried around for good; a chest with nothing deliverable is left alone until it changes.
+			Set<GlobalPos> unreachable = wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS);
+			net.minecraft.world.phys.AABB area = wbcg$searchArea(body, level);
+			ItemStack taken = SortingEngine.takeFirstDeliverable(container,
+					io.github.lnasser11.waybettercoppergolem.config.WbcgConfig.get().golemCarrySize(), settings.hangFrames(),
+					stack -> SortingEngine.findDepositTarget(level, body.position(), stack, this.destinationBlockType,
+							Set.of(), unreachable, area).isPresent());
 			if (taken.isEmpty()) {
+				golem.wbcg$skipSourceUntil(this.target.pos(), level.getGameTime() + WBCG$SOURCE_RETRY_TICKS);
 				this.stopTargetingCurrentTarget(body);
 			} else {
 				body.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, taken);
@@ -525,10 +547,6 @@ public abstract class TransportItemsBetweenContainersMixin {
 			}
 			ci.cancel();
 			return;
-		}
-
-		if (!reorganize) {
-			return; // vanilla pickup from the copper chest
 		}
 
 		// Reorganize pickup: take the misplaced stack, not the first stack.
@@ -585,8 +603,8 @@ public abstract class TransportItemsBetweenContainersMixin {
 		if (this.target.pos().equals(depositing.wbcg$tidyDestination())) {
 			depositing.wbcg$setTidyDestination(null);
 		}
-		if (wbcg$isFrameReturn(body)) {
-			depositing.wbcg$setFrameReturnChest(null); // vanilla stores the frame back into the copper chest
+		if (wbcg$isReturn(body)) {
+			depositing.wbcg$setReturnChest(null); // vanilla stores the cargo back into the copper chest
 			return;
 		}
 		if (!wbcg$isFrameDelivery(body)) {
@@ -594,7 +612,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 		}
 		depositing.wbcg$setPendingFrameChest(null);
 		if (FrameHanger.hang(level, body, this.target)) {
-			depositing.wbcg$setFrameReturnChest(null);
+			depositing.wbcg$setReturnChest(null);
 			this.clearMemoriesAfterMatchingTargetFound(body);
 		} else {
 			// The front got taken while the golem was on its way: give up, the frame goes back where it came from.

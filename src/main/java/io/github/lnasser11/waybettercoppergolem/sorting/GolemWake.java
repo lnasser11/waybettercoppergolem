@@ -66,8 +66,10 @@ public final class GolemWake {
 			halves.add(new GlobalPos(level.dimension(), ChestBlock.getConnectedBlockPos(pos, state)));
 		}
 		AABB around = new AABB(pos).inflate(HORIZONTAL_RANGE, VERTICAL_RANGE, HORIZONTAL_RANGE);
+		java.util.List<BlockPos> halfPositions = halves.stream().map(GlobalPos::pos).toList();
 		for (CopperGolem golem : level.getEntitiesOfClass(CopperGolem.class, around)) {
 			wake(golem.getBrain(), halves);
+			((ZoneAwareGolem) golem).wbcg$forgetSkippedSources(halfPositions);
 		}
 	}
 

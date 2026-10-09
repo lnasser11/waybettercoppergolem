@@ -81,10 +81,23 @@ public interface ZoneAwareGolem {
 
 	boolean wbcg$isFrameChestSkipped(BlockPos pos, long gameTime);
 
-	/** The copper chest the frame in hand came from, so a frame trip that fails can bring it back. Runtime only. */
-	@Nullable BlockPos wbcg$frameReturnChest();
+	/**
+	 * A copper chest the golem found nothing deliverable in is left alone until {@code untilGameTime}, or until its
+	 * contents change ({@link GolemWake} forgets it). Runtime only.
+	 */
+	void wbcg$skipSourceUntil(BlockPos pos, long untilGameTime);
 
-	void wbcg$setFrameReturnChest(@Nullable BlockPos pos);
+	boolean wbcg$isSourceSkipped(BlockPos pos, long gameTime);
+
+	void wbcg$forgetSkippedSources(java.util.Collection<BlockPos> positions);
+
+	/**
+	 * The copper chest the cargo in hand came from, so the golem can bring it back when it has nowhere to go: a
+	 * frame nobody wanted, or a stack whose chest filled up or changed on the way. Runtime only.
+	 */
+	@Nullable BlockPos wbcg$returnChest();
+
+	void wbcg$setReturnChest(@Nullable BlockPos pos);
 
 	/** Whether this golem is standing on a chest as its idle perch (strolls are suppressed while it is). */
 	boolean wbcg$isPerched(ServerLevel level);
