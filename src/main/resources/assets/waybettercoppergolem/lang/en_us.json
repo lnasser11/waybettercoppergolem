@@ -54,7 +54,7 @@
   "waybettercoppergolem.tool.clipboard_both": "Clipboard: %s · zone settings (%s)",
   "waybettercoppergolem.tool.clipboard_clear_marker": "clear labels",
   "waybettercoppergolem.tool.clipboard_empty": "Clipboard empty. Sneak-left-click a chest to copy its labels",
-  "waybettercoppergolem.zone.summary": "reorganize %s · tidy %s · dry run %s · reach %s · stay inside %s",
+  "waybettercoppergolem.zone.summary": "reorganize %s · tidy %s · dry run %s · reach %s · stay inside %s · frames %s",
   "waybettercoppergolem.settings.learn": "Learn…",
   "waybettercoppergolem.settings.learn.tooltip": "Reads every chest inside this zone's area and proposes a label for each from what it already holds. You get a preview in chat and apply it with one click.",
   "waybettercoppergolem.learn.header": "Learn: %s chests get a label, %s skipped (radius %s)",
@@ -237,5 +237,7 @@
   "waybettercoppergolem.guide.page.7": "§lWhen things look wrong§r\n\nZone screen → §oOverview§r lists every chest, problems first.\n§oSimulate§r shows where each stack would go right now.\n\n/wbcg zone, /wbcg learn, /wbcg categories.",
   "waybettercoppergolem.settings.stay_inside": "Golems stay inside",
   "waybettercoppergolem.settings.stay_inside.tooltip": "Golems working for this zone never walk out of its box: strolls stay inside, and a golem pushed or fallen outside walks back in. Off: they wander like vanilla golems.",
-  "waybettercoppergolem.settings.show_area.tooltip": "Closes this screen and draws the zone's box with particles for a moment."
+  "waybettercoppergolem.settings.show_area.tooltip": "Closes this screen and draws the zone's box with particles for a moment.",
+  "waybettercoppergolem.settings.hang_frames": "Golems hang frames",
+  "waybettercoppergolem.settings.hang_frames.tooltip": "After delivering into a labeled chest with nothing on its front face, a golem fetches an item frame from the zone's copper chests and hangs it there showing one of the chest's own items (one is taken). Frames already hanging are never touched."
 }

@@ -185,11 +185,11 @@ public final class Zones {
 		return AABB.of(area);
 	}
 
-	/** "reorganize on · tidy off · dry run off · reach 6 · stay inside on". */
+	/** "reorganize on · tidy off · dry run off · reach 6 · stay inside on · frames off". */
 	public static Component describe(ZoneSettings settings) {
 		return Component.translatable("waybettercoppergolem.zone.summary",
 				onOff(settings.reorganize()), onOff(settings.tidyInside()), onOff(settings.dryRun()), settings.verticalReach(),
-				onOff(settings.stayInside()));
+				onOff(settings.stayInside()), onOff(settings.hangFrames()));
 	}
 
 	/** "20 × 6 × 14". */

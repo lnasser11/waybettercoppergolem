@@ -54,7 +54,7 @@
   "waybettercoppergolem.tool.clipboard_both": "Área de transferência: %s · configurações de zona (%s)",
   "waybettercoppergolem.tool.clipboard_clear_marker": "remover rótulos",
   "waybettercoppergolem.tool.clipboard_empty": "Área de transferência vazia. Agache e clique com o botão esquerdo em um baú para copiar os rótulos",
-  "waybettercoppergolem.zone.summary": "reorganizar %s · arrumar %s · simulação %s · alcance %s · ficar dentro %s",
+  "waybettercoppergolem.zone.summary": "reorganizar %s · arrumar %s · simulação %s · alcance %s · ficar dentro %s · molduras %s",
   "waybettercoppergolem.settings.learn": "Aprender…",
   "waybettercoppergolem.settings.learn.tooltip": "Lê todos os baús dentro da área desta zona e propõe um rótulo para cada um a partir do que já contêm. Você vê uma prévia no chat e aplica com um clique.",
   "waybettercoppergolem.learn.header": "Aprender: %s baús recebem rótulo, %s ignorados (raio %s)",
@@ -237,5 +237,7 @@
   "waybettercoppergolem.guide.page.7": "§lQuando algo parece errado§r\n\nTela da zona → §oVisão geral§r lista todos os baús, problemas primeiro.\n§oSimular§r mostra para onde cada pilha iria agora.\n\n/wbcg zone, /wbcg learn, /wbcg categories.",
   "waybettercoppergolem.settings.stay_inside": "Golens ficam dentro",
   "waybettercoppergolem.settings.stay_inside.tooltip": "Os golens desta zona nunca saem da caixa dela: os passeios ficam dentro, e um golem empurrado ou caído para fora volta andando. Desligado: vagam como golens normais.",
-  "waybettercoppergolem.settings.show_area.tooltip": "Fecha esta tela e desenha a caixa da zona com partículas por um momento."
+  "waybettercoppergolem.settings.show_area.tooltip": "Fecha esta tela e desenha a caixa da zona com partículas por um momento.",
+  "waybettercoppergolem.settings.hang_frames": "Golens penduram molduras",
+  "waybettercoppergolem.settings.hang_frames.tooltip": "Depois de entregar em um baú rotulado sem nada na frente, o golem busca uma moldura nos baús de cobre da zona e a pendura ali mostrando um item do próprio baú (um é retirado). Molduras já penduradas nunca são mexidas."
 }

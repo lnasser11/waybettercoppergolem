@@ -222,6 +222,7 @@ outline is drawn with particles for a moment.
 | Tidy inside chests | off | merge partial stacks + close gaps in chests the golem visits |
 | Dry run | off | log intended moves, touch nothing |
 | Golems stay inside | on | the zone's golems never path out of its box; see [Golems stay inside](#golems-stay-inside-their-zone) |
+| Golems hang frames | off | golems decorate bare labeled chests with an item frame; see [Golems hang frames](#golems-hang-frames) |
 
 Buttons on the same screen:
 
@@ -309,6 +310,22 @@ and a golem that is pushed, falls or is teleported out walks back to the
 nearest spot inside. The box is the zone's area, not a radius, so an
 L-shaped or long room works as drawn. Turn it off for golems that are
 meant to roam.
+
+### Golems hang frames
+
+Off by default. When on, keep a stack of item frames (glow frames work
+too) in any copper chest of the zone. After a golem delivers into an
+**explicitly labeled** chest whose front face is bare, its next trip is a
+frame trip: it fetches one frame from a copper chest, carries it in hand
+like any item, and hangs it on the chest's front face showing one of the
+chest's own items, which leaves the chest: the first stack matching an
+exact-item label, otherwise the most common item inside. The labels you
+set never follow frames, so the chest's labels do not change; the frame is
+decoration. Frames already hanging are never touched, off-limits,
+catch-all, unlabeled, auto-labeled and copper chests never get one, and a
+chest with no content or a blocked front face is skipped. While the
+setting is on, frames in copper chests are supplies: golems do not sort
+them, and Simulate leaves them out.
 
 ### Dry run
 

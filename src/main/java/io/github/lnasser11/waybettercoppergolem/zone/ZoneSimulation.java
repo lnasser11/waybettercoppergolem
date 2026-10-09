@@ -3,6 +3,7 @@ package io.github.lnasser11.waybettercoppergolem.zone;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabels;
 import io.github.lnasser11.waybettercoppergolem.net.ZonePayloads;
 import io.github.lnasser11.waybettercoppergolem.net.ZonePayloads.Move;
+import io.github.lnasser11.waybettercoppergolem.sorting.FrameHanger;
 import io.github.lnasser11.waybettercoppergolem.sorting.SortingEngine;
 
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -31,7 +32,9 @@ import java.util.Set;
  * that copper chest, using the same ranking the golems use. Identical
  * (item, from, to) moves are merged. It ignores whether a golem could
  * physically reach either chest, and whether earlier moves fill a chest
- * up, so it is a preview, not a promise.
+ * up, so it is a preview, not a promise. While the zone's golems hang
+ * frames, item frames in the copper chests are supplies, not cargo, and
+ * are left out.
  */
 public final class ZoneSimulation {
 	private static final int MAX_MOVES = 200;
@@ -60,7 +63,7 @@ public final class ZoneSimulation {
 			}
 			Vec3 from = Vec3.atCenterOf(source);
 			for (ItemStack stack : container) {
-				if (stack.isEmpty()) {
+				if (stack.isEmpty() || (zone.settings().hangFrames() && FrameHanger.isFrame(stack))) {
 					continue;
 				}
 				Optional<TransportItemTarget> target = SortingEngine.findDepositTarget(level, from, stack,
