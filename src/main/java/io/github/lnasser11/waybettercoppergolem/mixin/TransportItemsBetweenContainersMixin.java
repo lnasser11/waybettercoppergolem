@@ -73,6 +73,14 @@ public abstract class TransportItemsBetweenContainersMixin {
 	@org.spongepowered.asm.mixin.Unique
 	private boolean wbcg$reorganizeActive;
 
+	/** True while the current target is the source chest of a tidy move (a labeled chest with a minority stack). */
+	@org.spongepowered.asm.mixin.Unique
+	private boolean wbcg$tidyActive;
+
+	/** The move planned for the current tidy pickup. */
+	@org.spongepowered.asm.mixin.Unique
+	private SortingEngine.@Nullable TidyMove wbcg$tidyPlan;
+
 	/** True while the current target is a copper chest the golem fetches an item frame from. */
 	@org.spongepowered.asm.mixin.Unique
 	private boolean wbcg$frameTripActive;
@@ -121,6 +129,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 		ItemStack held = body.getMainHandItem();
 		BlockPos pending = golem.wbcg$pendingFrameChest();
 		if (held.isEmpty()) {
+			golem.wbcg$setTidyDestination(null);
 			// A frame trip: fetch a frame for the bare chest the golem last delivered into.
 			if (pending == null) {
 				return;
@@ -139,6 +148,16 @@ public abstract class TransportItemsBetweenContainersMixin {
 			this.wbcg$frameTripActive = true;
 			cir.setReturnValue(source);
 			return;
+		}
+		BlockPos tidyHome = golem.wbcg$tidyDestination();
+		if (tidyHome != null) {
+			// Carrying a tidy stack: it goes to the home chest it was planned for, not just any sibling.
+			TransportItemTarget home = TransportItemTarget.tryCreatePossibleTarget(tidyHome, level);
+			if (home != null && this.destinationBlockType.test(home.state()) && SortingEngine.acceptsDeposit(level, home, body)) {
+				cir.setReturnValue(Optional.of(home));
+				return;
+			}
+			golem.wbcg$setTidyDestination(null); // the home changed; the stack is delivered like any item
 		}
 		if (pending != null && FrameHanger.isFrame(held)) {
 			// Carrying the frame: the destination is the chest it is meant for.
@@ -178,20 +197,35 @@ public abstract class TransportItemsBetweenContainersMixin {
 		ZoneAwareGolem golem = (ZoneAwareGolem) body;
 		ZoneSettings settings = golem.wbcg$zoneSettings(level);
 		long now = level.getGameTime();
-		if (!settings.reorganize() || now < golem.wbcg$nextReorganizeTime()) {
+		if ((!settings.reorganize() && !settings.tidyInside()) || now < golem.wbcg$nextReorganizeTime()) {
 			return;
 		}
-		Optional<TransportItemTarget> source = SortingEngine.findMisplacedSource(
-				level, body.position(), this.destinationBlockType,
-				wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
-				wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
-				wbcg$searchArea(body, level));
-		if (source.isPresent()) {
-			this.wbcg$reorganizeActive = true;
-			cir.setReturnValue(source);
-		} else {
-			golem.wbcg$setNextReorganizeTime(now + WBCG$REORGANIZE_IDLE_COOLDOWN);
+		if (settings.reorganize()) {
+			Optional<TransportItemTarget> source = SortingEngine.findMisplacedSource(
+					level, body.position(), this.destinationBlockType,
+					wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
+					wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
+					wbcg$searchArea(body, level));
+			if (source.isPresent()) {
+				this.wbcg$reorganizeActive = true;
+				cir.setReturnValue(source);
+				return;
+			}
 		}
+		if (settings.tidyInside()) {
+			// Consolidation across sibling chests: one minority stack per trip into its home chest.
+			Optional<SortingEngine.TidyMove> move = SortingEngine.findTidyMove(level, body.position(),
+					wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
+					wbcg$searchArea(body, level),
+					io.github.lnasser11.waybettercoppergolem.config.WbcgConfig.get().golemCarrySize());
+			if (move.isPresent()) {
+				this.wbcg$tidyActive = true;
+				this.wbcg$tidyPlan = move.get();
+				cir.setReturnValue(Optional.of(move.get().source()));
+				return;
+			}
+		}
+		golem.wbcg$setNextReorganizeTime(now + WBCG$REORGANIZE_IDLE_COOLDOWN);
 	}
 
 	/**
@@ -202,7 +236,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 	@Inject(method = "isWantedBlock", at = @At("HEAD"), cancellable = true)
 	private void wbcg$reorganizeWantedBlock(PathfinderMob mob, BlockState block,
 			CallbackInfoReturnable<Boolean> cir) {
-		if (this.wbcg$reorganizeActive && mob instanceof CopperGolem
+		if ((this.wbcg$reorganizeActive || this.wbcg$tidyActive) && mob instanceof CopperGolem
 				&& mob.getMainHandItem().isEmpty()
 				&& io.github.lnasser11.waybettercoppergolem.label.ChestLabels.isLabelableChest(block)) {
 			cir.setReturnValue(true);
@@ -212,6 +246,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 	@Inject(method = "stopTargetingCurrentTarget", at = @At("TAIL"))
 	private void wbcg$clearReorganizeFlag(PathfinderMob body, CallbackInfo ci) {
 		this.wbcg$reorganizeActive = false;
+		this.wbcg$tidyActive = false;
 		this.wbcg$frameTripActive = false;
 	}
 
@@ -281,6 +316,8 @@ public abstract class TransportItemsBetweenContainersMixin {
 		}
 		ZoneAwareGolem golem = (ZoneAwareGolem) body;
 		boolean reorganize = this.wbcg$reorganizeActive;
+		boolean tidy = this.wbcg$tidyActive;
+		SortingEngine.TidyMove tidyPlan = this.wbcg$tidyPlan;
 		if (this.target.state().is(BlockTags.COPPER_CHESTS)) {
 			golem.wbcg$setZoneChest(this.target.pos());
 			golem.wbcg$joinZoneAt(level, this.target.pos());
@@ -288,6 +325,14 @@ public abstract class TransportItemsBetweenContainersMixin {
 		ZoneSettings settings = golem.wbcg$zoneSettings(level);
 
 		if (settings.dryRun()) {
+			if (tidy && tidyPlan != null) {
+				SortingEngine.logWouldTidy(body, tidyPlan.stack(), this.target.pos(), tidyPlan.home().pos());
+				golem.wbcg$setNextReorganizeTime(level.getGameTime() + WBCG$REORGANIZE_SUCCESS_COOLDOWN);
+				this.stopTargetingCurrentTarget(body);
+				body.getBrain().setMemory(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS, 200);
+				ci.cancel();
+				return;
+			}
 			ItemStack would = reorganize
 					? wbcg$previewStack(SortingEngine.firstMisplacedStack(level, this.target))
 					: wbcg$peekFirstStack(container);
@@ -307,6 +352,27 @@ public abstract class TransportItemsBetweenContainersMixin {
 			// chest), drop the target, and cool down instead of picking up.
 			this.stopTargetingCurrentTarget(body);
 			body.getBrain().setMemory(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS, 200);
+			ci.cancel();
+			return;
+		}
+
+		if (tidy && tidyPlan != null) {
+			// Tidy pickup: merge partial stacks first (the old tidy), then take the planned minority stack.
+			this.wbcg$tidyActive = false;
+			this.wbcg$tidyPlan = null;
+			SortingEngine.tidyContainer(tidyPlan.source().container());
+			SortingEngine.tidyContainer(tidyPlan.home().container());
+			ItemStack taken = SortingEngine.takeTidyStack(level, tidyPlan,
+					io.github.lnasser11.waybettercoppergolem.config.WbcgConfig.get().golemCarrySize());
+			if (taken.isEmpty()) {
+				this.stopTargetingCurrentTarget(body); // the chests changed since the plan; nothing to do here
+			} else {
+				body.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, taken);
+				body.setGuaranteedDrop(net.minecraft.world.entity.EquipmentSlot.MAINHAND);
+				golem.wbcg$setTidyDestination(tidyPlan.home().pos());
+				golem.wbcg$setNextReorganizeTime(level.getGameTime() + WBCG$REORGANIZE_SUCCESS_COOLDOWN);
+				this.clearMemoriesAfterMatchingTargetFound(body);
+			}
 			ci.cancel();
 			return;
 		}
@@ -394,6 +460,10 @@ public abstract class TransportItemsBetweenContainersMixin {
 			return;
 		}
 		this.wbcg$depositPos = this.target.pos();
+		ZoneAwareGolem depositing = (ZoneAwareGolem) body;
+		if (this.target.pos().equals(depositing.wbcg$tidyDestination())) {
+			depositing.wbcg$setTidyDestination(null);
+		}
 		if (!wbcg$isFrameDelivery(body)) {
 			return;
 		}

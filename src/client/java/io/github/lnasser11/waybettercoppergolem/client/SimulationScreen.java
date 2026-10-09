@@ -104,7 +104,9 @@ public class SimulationScreen extends Screen {
 
 	private ListRow row(int x, int y, Move move) {
 		Item item = BuiltInRegistries.ITEM.getOptional(move.item()).orElse(Items.BARRIER);
-		MutableComponent primary = Component.literal(move.count() + "× ").append(item.getName(item.getDefaultInstance()));
+		MutableComponent primary = move.tidy()
+				? Component.translatable("waybettercoppergolem.simulation.tidy_row", move.count(), item.getName(item.getDefaultInstance()))
+				: Component.literal(move.count() + "× ").append(item.getName(item.getDefaultInstance()));
 		BlockPos target = move.to().orElse(move.from());
 		ListRow row = new ListRow(x, y, CONTENT_WIDTH, primary, () -> highlight(target))
 				.icon(new ItemStack(item));
@@ -120,7 +122,8 @@ public class SimulationScreen extends Screen {
 			row.secondary(detail, move.toLabels().isEmpty() ? Ui.TEXT_MUTED : Ui.AUTO);
 		}
 		BlockPos from = move.from();
-		return row.tooltip(Component.translatable("waybettercoppergolem.simulation.row.tooltip",
+		return row.tooltip(Component.translatable(move.tidy()
+						? "waybettercoppergolem.simulation.tidy_row.tooltip" : "waybettercoppergolem.simulation.row.tooltip",
 				from.getX() + " " + from.getY() + " " + from.getZ()));
 	}
 
@@ -141,9 +144,10 @@ public class SimulationScreen extends Screen {
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 		long stuck = this.simulation.moves().stream().filter(move -> move.to().isEmpty()).count();
+		long tidy = this.simulation.moves().stream().filter(Move::tidy).count();
 		this.panel.header(graphics, this.font, this.title, Component.translatable("waybettercoppergolem.simulation.summary",
-				Ui.count(this.simulation.sourceChests(), "copper"), Ui.count(this.simulation.moves().size(), "moves"),
-				Ui.count((int) stuck, "stuck")));
+				Ui.count(this.simulation.sourceChests(), "copper"), Ui.count((int) (this.simulation.moves().size() - tidy), "moves"),
+				Ui.count((int) stuck, "stuck"), Ui.count((int) tidy, "tidy")));
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.simulation.caveat"),
 				this.panel.contentX(), this.listLabelY, this.panel.contentWidth());
 		if (this.simulation.moves().isEmpty()) {

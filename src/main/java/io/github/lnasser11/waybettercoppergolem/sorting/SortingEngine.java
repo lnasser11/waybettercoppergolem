@@ -28,6 +28,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -275,6 +276,170 @@ public final class SortingEngine {
 			}
 		}
 		return ItemStack.EMPTY;
+	}
+
+	// ---------------------------------------------------------------- tidy: consolidation across sibling chests
+
+	/**
+	 * One planned consolidation: {@code stack} (a copy, sized to what fits
+	 * and to one carry) leaves {@code source} for {@code home}, a chest with
+	 * the same labels that already holds more of that item.
+	 */
+	public record TidyMove(TransportItemTarget source, ItemStack stack, TransportItemTarget home) {
+	}
+
+	private record LabeledChest(TransportItemTarget target, List<ChestLabel> labels) {
+	}
+
+	/**
+	 * Every pending consolidation in the area: for each group of chests
+	 * sharing the same label set, each item is given a home (the sibling
+	 * holding the most of it) and every other sibling's stacks of that item
+	 * become moves into the home while it has room. Stacks that match none
+	 * of the group's labels are reorganize's business and are left out;
+	 * off-limits, unlabeled and copper chests take no part. Read-only.
+	 */
+	public static List<TidyMove> planTidy(ServerLevel level, Set<GlobalPos> unreachable, AABB searchArea, int carrySize) {
+		Map<String, List<LabeledChest>> groups = new java.util.TreeMap<>();
+		for (ChunkPos chunkPos : chunksCovering(searchArea)) {
+			LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
+			if (chunk == null) {
+				continue;
+			}
+			for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+				if (!(blockEntity instanceof ChestBlockEntity) || !ChestLabels.isLabelableChest(blockEntity.getBlockState())) {
+					continue;
+				}
+				BlockPos canonical = io.github.lnasser11.waybettercoppergolem.learn.RoomLearner.canonicalHalf(
+						blockEntity.getBlockPos(), blockEntity.getBlockState());
+				if (!canonical.equals(blockEntity.getBlockPos())) {
+					continue; // one entry per double chest
+				}
+				TransportItemTarget target = validCandidate(level, blockEntity, ChestLabels::isLabelableChest, Set.of(), unreachable, searchArea);
+				if (target == null) {
+					continue;
+				}
+				List<ChestLabel> labels = ChestLabels.effectiveLabels(level, target.pos(), target.state());
+				if (labels.isEmpty() || labels.stream().anyMatch(ChestLabel::isOffLimits)) {
+					continue;
+				}
+				String key = labels.stream().map(ChestLabel::toString).sorted().collect(java.util.stream.Collectors.joining("|"));
+				groups.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(new LabeledChest(target, labels));
+			}
+		}
+		List<TidyMove> moves = new java.util.ArrayList<>();
+		for (List<LabeledChest> group : groups.values()) {
+			if (group.size() < 2) {
+				continue;
+			}
+			group.sort(java.util.Comparator.comparing(chest -> chest.target().pos()));
+			planGroup(level, group, carrySize, moves);
+		}
+		return moves;
+	}
+
+	private static void planGroup(ServerLevel level, List<LabeledChest> group, int carrySize, List<TidyMove> out) {
+		List<ChestLabel> labels = group.getFirst().labels();
+		Map<net.minecraft.world.item.Item, int[]> counts = new java.util.LinkedHashMap<>();
+		for (int i = 0; i < group.size(); i++) {
+			for (ItemStack stack : group.get(i).target().container()) {
+				if (stack.isEmpty()) {
+					continue;
+				}
+				counts.computeIfAbsent(stack.getItem(), item -> new int[group.size()])[i] += stack.getCount();
+			}
+		}
+		for (Map.Entry<net.minecraft.world.item.Item, int[]> entry : counts.entrySet()) {
+			int[] perChest = entry.getValue();
+			int home = -1;
+			int holders = 0;
+			for (int i = 0; i < perChest.length; i++) {
+				if (perChest[i] > 0) {
+					holders++;
+					if (home < 0 || perChest[i] > perChest[home]) {
+						home = i;
+					}
+				}
+			}
+			if (holders < 2) {
+				continue;
+			}
+			LabeledChest homeChest = group.get(home);
+			for (int i = 0; i < perChest.length; i++) {
+				if (i == home || perChest[i] == 0) {
+					continue;
+				}
+				for (ItemStack stack : group.get(i).target().container()) {
+					if (stack.isEmpty() || stack.getItem() != entry.getKey()) {
+						continue;
+					}
+					boolean matchesLabels = labels.stream().anyMatch(label -> label.isCatchAll() || LabelResolver.matches(level, label, stack));
+					if (!matchesLabels) {
+						continue; // misplaced: reorganize moves it out of the group instead
+					}
+					int fits = Math.min(Math.min(stack.getCount(), carrySize), room(homeChest.target().container(), stack));
+					if (fits <= 0) {
+						continue;
+					}
+					out.add(new TidyMove(group.get(i).target(), stack.copyWithCount(fits), homeChest.target()));
+				}
+			}
+		}
+	}
+
+	/** How many of {@code stack} the container can still take: empty slots plus space in matching partial stacks. */
+	public static int room(Container container, ItemStack stack) {
+		int room = 0;
+		int max = stack.getMaxStackSize();
+		for (ItemStack other : container) {
+			if (other.isEmpty()) {
+				room += max;
+			} else if (ItemStack.isSameItemSameComponents(other, stack) && other.getCount() < other.getMaxStackSize()) {
+				room += other.getMaxStackSize() - other.getCount();
+			}
+		}
+		return room;
+	}
+
+	/** The pending consolidation whose source is nearest to {@code from}. */
+	public static Optional<TidyMove> findTidyMove(ServerLevel level, Vec3 from, Set<GlobalPos> unreachable, AABB searchArea, int carrySize) {
+		return planTidy(level, unreachable, searchArea, carrySize).stream()
+				.min(java.util.Comparator.comparingDouble(move -> move.source().pos().distToCenterSqr(from)));
+	}
+
+	/**
+	 * Re-checks a planned move against the chests as they are now and takes
+	 * the stack out of the source. Returns what was taken (empty when the
+	 * move is no longer valid).
+	 */
+	public static ItemStack takeTidyStack(ServerLevel level, TidyMove move, int carrySize) {
+		Container source = move.source().container();
+		Container home = move.home().container();
+		List<ChestLabel> labels = ChestLabels.effectiveLabels(level, move.home().pos(), move.home().state());
+		boolean homeStillMatches = !labels.isEmpty() && labels.stream().noneMatch(ChestLabel::isOffLimits)
+				&& labels.stream().anyMatch(label -> label.isCatchAll() || LabelResolver.matches(level, label, move.stack()));
+		if (!homeStillMatches) {
+			return ItemStack.EMPTY;
+		}
+		for (int slot = 0; slot < source.getContainerSize(); slot++) {
+			ItemStack stack = source.getItem(slot);
+			if (stack.isEmpty() || !ItemStack.isSameItemSameComponents(stack, move.stack())) {
+				continue;
+			}
+			int fits = Math.min(Math.min(stack.getCount(), carrySize), room(home, stack));
+			if (fits <= 0) {
+				return ItemStack.EMPTY;
+			}
+			ItemStack taken = source.removeItem(slot, fits);
+			source.setChanged();
+			return taken;
+		}
+		return ItemStack.EMPTY;
+	}
+
+	public static void logWouldTidy(PathfinderMob golem, ItemStack stack, BlockPos from, BlockPos to) {
+		WayBetterCopperGolem.LOGGER.info("[DRY-RUN] would tidy {}x {} from {} to {}", stack.getCount(),
+				BuiltInRegistries.ITEM.getKey(stack.getItem()), posString(golem.level(), from), posString(golem.level(), to));
 	}
 
 	public static boolean containsSameItem(Container container, ItemStack stack) {

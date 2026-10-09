@@ -219,7 +219,7 @@ outline is drawn with particles for a moment.
 | Setting | Default | |
 |---|---|---|
 | Reorganize existing chests | on | background cleanup on/off |
-| Tidy inside chests | off | merge partial stacks + close gaps in chests the golem visits |
+| Tidy sibling chests | off | consolidate chests that share a label set, one stack per trip; see [Tidy](#tidy-sibling-chests) |
 | Dry run | off | log intended moves, touch nothing |
 | Golems stay inside | on | the zone's golems never path out of its box; see [Golems stay inside](#golems-stay-inside-their-zone) |
 | Golems hang frames | off | golems decorate bare labeled chests with an item frame; see [Golems hang frames](#golems-hang-frames) |
@@ -314,11 +314,28 @@ flow. It is deliberately low-priority background work (one move per
 **labeled** chests, and catch-all and off-limits chests are never
 considered misplaced. Toggleable per zone.
 
-### Tidy inside chests
+### Tidy sibling chests
 
-Off by default. When on, after a golem picks up from or deposits into a
-chest it merges partial stacks of the same item and closes gaps, within
-one server tick. Nothing is created or lost.
+Off by default. When on, the same low-priority background job that
+reorganizes the room also consolidates **sibling chests**: chests in the
+zone that share exactly the same label set. For each item that sits in
+more than one sibling, the sibling already holding the most of it is its
+**home**, and the golem moves the stray stacks of that item from the other
+siblings into the home while it has room, one stack per trip, like every
+other move. So a chest labeled *Stone & Dirt* holding 26 stacks of stone
+and one stack of dirt, next to a sibling that holds dirt, loses its dirt
+to the sibling, and the next stone goes into the freed slot instead of
+starting a new one: each chest trends toward one kind of content and
+twin chests stop interleaving.
+
+Partial stacks of the same item are merged within a chest first (the old
+tidy), both when the golem visits a chest and before it plans a move.
+Nothing ever leaves the group, nothing goes into a chest whose labels do
+not match it (a stack that matches none of the group's labels is
+reorganize's job), off-limits chests and copper chests take no part, and
+dry run logs the intended move instead. **Simulate…** lists pending
+consolidations as *tidy: 1× Dirt → [x y z]* rows and **Overview…** counts
+them in its summary.
 
 ### Golems stay inside their zone
 

@@ -343,14 +343,25 @@ scale your monitor allows, and check:
    to the catch-all. One stray stack must never re-label a chest.
 4. Toggle reorganize OFF in the zone screen, plant more dirt → it stays.
 
-## 12. Tidy inside (off by default)
+## 12. Tidy sibling chests (off by default)
 
-1. Confirm the iron chest stays fragmented after deposits with tidy OFF.
-2. Turn tidy ON. Spread partial iron stacks across scattered slots of the
-   iron chest (e.g. 10 / 5 / 20 with gaps).
-3. Feed iron into the copper chest. After the golem's deposit,
-   **expect** the chest compacted: merged stacks from slot 0, no gaps,
-   same total count.
+1. Label two chests *Stone & Dirt*. Fill chest A with 26 stacks of stone
+   and one stack of dirt, and chest B with two stacks of dirt. Empty the
+   copper chest so the golem is idle.
+2. With tidy OFF nothing happens (reorganize leaves dirt alone: it matches
+   the label). Open the zone screen → **Overview…** → the summary already
+   says `1 tidy move pending`; **Simulate…** shows `tidy: 64× Dirt →
+   [B]` as the last row.
+3. Turn tidy ON and wait (background work, up to a minute or two): the
+   golem walks to A, takes exactly the dirt, and puts it into B. Chest A
+   now has a free slot; feed stone into the copper chest → it lands in A.
+4. Spread partial iron stacks across the iron chest (10 / 5 / 20 with
+   gaps) → after the golem's next visit they are merged from slot 0.
+5. A chest full of one item is never touched: fill a chest with 27 stacks
+   of cobblestone and label a sibling the same with a few cobblestone →
+   nothing moves either way (no room). Dry run ON → the log shows
+   `[DRY-RUN] would tidy 64x minecraft:dirt from … to …` and nothing
+   moves.
 
 ## 12b. Golems hang frames (off by default)
 

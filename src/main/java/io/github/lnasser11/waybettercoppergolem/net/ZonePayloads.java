@@ -63,15 +63,16 @@ public final class ZonePayloads {
 	}
 
 	/** Server → client: the zone's chests, problems first; {@code canEdit} is false for a read-only look. */
-	public record Overview(BlockPos anchor, BoundingBox area, int copperChests, List<Entry> entries, boolean canEdit)
-			implements CustomPacketPayload {
+	public record Overview(BlockPos anchor, BoundingBox area, int copperChests, List<Entry> entries, boolean canEdit,
+			int tidyMoves) implements CustomPacketPayload {
 		public static final Type<Overview> TYPE = new Type<>(WayBetterCopperGolem.id("zone_overview"));
 		private static final Codec<Overview> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 				BlockPos.CODEC.fieldOf("anchor").forGetter(Overview::anchor),
 				BoundingBox.CODEC.fieldOf("area").forGetter(Overview::area),
 				Codec.INT.fieldOf("copper_chests").forGetter(Overview::copperChests),
 				Entry.CODEC.listOf().fieldOf("entries").forGetter(Overview::entries),
-				Codec.BOOL.optionalFieldOf("can_edit", true).forGetter(Overview::canEdit)
+				Codec.BOOL.optionalFieldOf("can_edit", true).forGetter(Overview::canEdit),
+				Codec.INT.optionalFieldOf("tidy_moves", 0).forGetter(Overview::tidyMoves)
 		).apply(instance, Overview::new));
 		public static final StreamCodec<ByteBuf, Overview> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
 
@@ -101,15 +102,24 @@ public final class ZonePayloads {
 		}
 	}
 
-	/** One predicted move: {@code count} of {@code item} from a copper chest to a chest, or nowhere. */
-	public record Move(Identifier item, int count, BlockPos from, Optional<BlockPos> to, List<ChestLabel> toLabels) {
+	/**
+	 * One predicted move: {@code count} of {@code item} from a copper chest
+	 * to a chest, or nowhere; a {@code tidy} move goes from a labeled chest
+	 * to a sibling with the same labels instead.
+	 */
+	public record Move(Identifier item, int count, BlockPos from, Optional<BlockPos> to, List<ChestLabel> toLabels, boolean tidy) {
 		public static final Codec<Move> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 				Identifier.CODEC.fieldOf("item").forGetter(Move::item),
 				Codec.INT.fieldOf("count").forGetter(Move::count),
 				BlockPos.CODEC.fieldOf("from").forGetter(Move::from),
 				BlockPos.CODEC.optionalFieldOf("to").forGetter(Move::to),
-				ChestLabel.CODEC.listOf().optionalFieldOf("to_labels", List.of()).forGetter(Move::toLabels)
+				ChestLabel.CODEC.listOf().optionalFieldOf("to_labels", List.of()).forGetter(Move::toLabels),
+				Codec.BOOL.optionalFieldOf("tidy", false).forGetter(Move::tidy)
 		).apply(instance, Move::new));
+
+		public Move(Identifier item, int count, BlockPos from, Optional<BlockPos> to, List<ChestLabel> toLabels) {
+			this(item, count, from, to, toLabels, false);
+		}
 	}
 
 	/** Server → client: the simulation result. */

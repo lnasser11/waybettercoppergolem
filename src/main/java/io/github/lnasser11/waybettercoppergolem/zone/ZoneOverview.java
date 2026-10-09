@@ -108,7 +108,9 @@ public final class ZoneOverview {
 		if (entries.size() > MAX_ENTRIES) {
 			entries = new ArrayList<>(entries.subList(0, MAX_ENTRIES));
 		}
-		return new ZonePayloads.Overview(anchor, zone.area(), chests.copper(), entries, canEdit);
+		int tidyMoves = io.github.lnasser11.waybettercoppergolem.sorting.SortingEngine.planTidy(level, Set.of(),
+				Zones.toAABB(zone.area()), io.github.lnasser11.waybettercoppergolem.config.WbcgConfig.get().golemCarrySize()).size();
+		return new ZonePayloads.Overview(anchor, zone.area(), chests.copper(), entries, canEdit, tidyMoves);
 	}
 
 	private static int priority(Entry entry) {
