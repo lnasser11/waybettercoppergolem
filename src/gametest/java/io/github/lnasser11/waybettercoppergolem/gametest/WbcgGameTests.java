@@ -1051,7 +1051,12 @@ public final class WbcgGameTests {
 		}
 	}
 
-	/** A copper chest with iron for the golem to take (so it joins the zone) and an iron chest to deliver into. */
+	/**
+	 * A golem that already belongs to the zone (joined at spawn: a golem that
+	 * has not joined yet may stroll out during its spawn cooldown and go
+	 * looking for copper chests in the neighbouring test structures), with a
+	 * copper chest of iron and an iron chest to keep it busy.
+	 */
 	private static CopperGolem golemInWestZone(GameTestHelper helper, boolean stayInside) {
 		ServerLevel level = helper.getLevel();
 		clearZonesAround(helper);
@@ -1062,6 +1067,7 @@ public final class WbcgGameTests {
 		label(level, ingots, ChestLabel.exact(id(Items.IRON_INGOT)));
 		Zones.put(level, source, new Zone(westBox(helper), ZoneSettings.DEFAULT.withStayInside(stayInside)));
 		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		((ZoneAwareGolem) golem).wbcg$joinZoneAt(level, source);
 		helper.runBeforeTestEnd(() -> {
 			Zones.remove(level, source);
 			golem.discard();
@@ -1080,6 +1086,31 @@ public final class WbcgGameTests {
 		});
 	}
 
+	/** Taking from a copper chest inside a zone makes the golem a member of that zone, stored on the golem. */
+	@GameTest(maxTicks = GOLEM_TIMEOUT)
+	public void golemJoinsTheZoneWhenItTakesFromACopperChest(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 3));
+		fill(helper, source, Items.IRON_INGOT, 16);
+		BlockPos ingots = chest(helper, new BlockPos(6, 1, 3));
+		label(level, ingots, ChestLabel.exact(id(Items.IRON_INGOT)));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		ZoneAwareGolem aware = (ZoneAwareGolem) golem;
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		helper.assertTrue(aware.wbcg$homeZoneAnchor() == null, "no zone before the first pickup");
+		helper.succeedWhen(() -> {
+			helper.assertTrue(source.equals(aware.wbcg$homeZoneAnchor()), "joined the zone of the copper chest it took from");
+			helper.assertTrue(source.equals(golem.getAttached(WayBetterCopperGolem.GOLEM_ZONE)), "membership stored on the golem");
+			helper.assertValueEqual(aware.wbcg$zone(level).map(Zones.ZoneRef::anchor), Optional.of(source), "works for that zone");
+		});
+	}
+
 	/** With the setting on, a golem that joined the zone never crosses the doorway in 1200 ticks, even when sent there. */
 	@GameTest(maxTicks = 1600)
 	public void confinedGolemNeverLeavesItsZone(GameTestHelper helper) {
@@ -1095,7 +1126,7 @@ public final class WbcgGameTests {
 			}
 		});
 		helper.runAfterDelay(1200, () -> {
-			helper.assertValueEqual(aware.wbcg$homeZoneAnchor(), anchor, "golem joined the zone when it took from the copper chest");
+			helper.assertTrue(anchor.equals(aware.wbcg$homeZoneAnchor()), "golem still belongs to the zone");
 			helper.assertTrue(golem.getAttached(WayBetterCopperGolem.GOLEM_ZONE) != null, "membership is stored on the golem");
 			helper.assertValueEqual(aware.wbcg$confinement(level).map(BoundingBox::toString), Optional.of(box.toString()),
 					"confined to the zone box");
@@ -1131,6 +1162,92 @@ public final class WbcgGameTests {
 				.thenWaitUntil(() -> helper.assertTrue(box.isInside(golem.blockPosition()),
 						"golem still outside its zone at " + golem.blockPosition()))
 				.thenSucceed();
+	}
+
+	// ---------------------------------------------------------------- golems hang frames
+	//
+	// Chests placed by setBlock face north, so a frame hung by a golem sits on
+	// the block north of the chest, facing north.
+
+	private static List<ItemFrame> framesOnFront(ServerLevel level, BlockPos chestAbs) {
+		return ChestLabels.labelFrames(level, chestAbs).stream().filter(frame -> frame.getDirection() == Direction.NORTH).toList();
+	}
+
+	private static List<ItemFrame> framesInRoom(GameTestHelper helper) {
+		return helper.getLevel().getEntitiesOfClass(ItemFrame.class, Zones.toAABB(structureBox(helper)).inflate(1));
+	}
+
+	/** Copper chest with iron and two frames, an explicitly labeled iron chest holding ten ingots, one golem. */
+	private static CopperGolem golemWithFrames(GameTestHelper helper, boolean hangFrames) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 3));
+		fill(helper, source, Items.IRON_INGOT, 16, Items.ITEM_FRAME, 2);
+		BlockPos iron = chest(helper, new BlockPos(6, 1, 3), Items.IRON_INGOT, 10);
+		label(level, iron, ChestLabel.exact(id(Items.IRON_INGOT)));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT.withHangFrames(hangFrames)));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			framesInRoom(helper).forEach(ItemFrame::discard);
+			golem.discard();
+		});
+		return golem;
+	}
+
+	/** After delivering the iron, the golem fetches a frame and hangs it on the iron chest showing an ingot; the chest loses exactly one. */
+	@GameTest(maxTicks = GOLEM_TIMEOUT)
+	public void golemHangsAFrameShowingTheChestsContent(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		golemWithFrames(helper, true);
+		BlockPos source = helper.absolutePos(new BlockPos(1, 1, 3));
+		BlockPos iron = helper.absolutePos(new BlockPos(6, 1, 3));
+		helper.failIfEver(() -> {
+			helper.assertTrue(count(level, iron, Items.ITEM_FRAME) == 0, "a frame was stored inside the iron chest");
+			helper.assertTrue(framesOnFront(level, iron).size() <= 1, "more than one frame on the chest");
+		});
+		helper.succeedWhen(() -> {
+			List<ItemFrame> frames = framesOnFront(level, iron);
+			helper.assertValueEqual(frames.size(), 1, "frames on the chest's front face");
+			helper.assertTrue(frames.getFirst().getItem().is(Items.IRON_INGOT), "the frame shows an iron ingot");
+			helper.assertValueEqual(count(level, iron, Items.IRON_INGOT), 25, "ten plus sixteen delivered, minus the one framed");
+			helper.assertValueEqual(count(level, source, Items.ITEM_FRAME), 1, "one frame taken from the copper chest");
+			ChestLabelSet labels = ChestLabels.effectiveLabelSet(level, iron, level.getBlockState(iron));
+			helper.assertTrue(labels.explicit() && labels.labels().equals(List.of(ChestLabel.exact(id(Items.IRON_INGOT)))),
+					"the chest's explicit labels did not change");
+		});
+	}
+
+	/** With the setting off, frames are ordinary items and nothing is hung. */
+	@GameTest(maxTicks = 1200)
+	public void golemHangsNothingWithTheSettingOff(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		golemWithFrames(helper, false);
+		BlockPos iron = helper.absolutePos(new BlockPos(6, 1, 3));
+		helper.runAfterDelay(800, () -> {
+			helper.assertTrue(framesInRoom(helper).isEmpty(), "a frame was hung with the setting off");
+			helper.assertValueEqual(count(level, iron, Items.IRON_INGOT), 26, "iron delivered, none framed");
+			helper.succeed();
+		});
+	}
+
+	/** A chest that already has a frame on its front face is left alone, and the copper chest keeps its frames. */
+	@GameTest(maxTicks = 1200)
+	public void golemLeavesAnExistingFrameAlone(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		golemWithFrames(helper, true);
+		BlockPos source = helper.absolutePos(new BlockPos(1, 1, 3));
+		BlockPos iron = helper.absolutePos(new BlockPos(6, 1, 3));
+		hangFrame(helper, iron, Items.DIAMOND);
+		helper.runAfterDelay(800, () -> {
+			List<ItemFrame> frames = framesOnFront(level, iron);
+			helper.assertValueEqual(frames.size(), 1, "still exactly one frame on the chest");
+			helper.assertTrue(frames.getFirst().getItem().is(Items.DIAMOND), "the existing frame still shows a diamond");
+			helper.assertValueEqual(count(level, iron, Items.IRON_INGOT), 26, "iron delivered, none framed");
+			helper.assertValueEqual(count(level, source, Items.ITEM_FRAME), 2, "the copper chest's frames were not taken");
+			helper.succeed();
+		});
 	}
 
 	// ---------------------------------------------------------------- the golem button

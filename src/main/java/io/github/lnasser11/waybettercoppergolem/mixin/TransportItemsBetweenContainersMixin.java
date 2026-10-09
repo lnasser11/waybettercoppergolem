@@ -1,9 +1,11 @@
 package io.github.lnasser11.waybettercoppergolem.mixin;
 
+import io.github.lnasser11.waybettercoppergolem.sorting.FrameHanger;
 import io.github.lnasser11.waybettercoppergolem.sorting.SortingEngine;
 import io.github.lnasser11.waybettercoppergolem.sorting.ZoneAwareGolem;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
@@ -71,6 +73,14 @@ public abstract class TransportItemsBetweenContainersMixin {
 	@org.spongepowered.asm.mixin.Unique
 	private boolean wbcg$reorganizeActive;
 
+	/** True while the current target is a copper chest the golem fetches an item frame from. */
+	@org.spongepowered.asm.mixin.Unique
+	private boolean wbcg$frameTripActive;
+
+	/** The chest the golem is about to deposit into, kept because the target is cleared by the deposit itself. */
+	@org.spongepowered.asm.mixin.Unique
+	private @Nullable BlockPos wbcg$depositPos;
+
 	@org.spongepowered.asm.mixin.Unique
 	private static final int WBCG$REORGANIZE_SUCCESS_COOLDOWN = 600;
 
@@ -99,8 +109,40 @@ public abstract class TransportItemsBetweenContainersMixin {
 	@Inject(method = "getTransportTarget", at = @At("HEAD"), cancellable = true)
 	private void wbcg$labelAwareDestination(ServerLevel level, PathfinderMob body,
 			CallbackInfoReturnable<Optional<TransportItemTarget>> cir) {
-		if (!(body instanceof CopperGolem) || body.getMainHandItem().isEmpty()) {
+		if (!(body instanceof CopperGolem)) {
 			return;
+		}
+		ZoneAwareGolem golem = (ZoneAwareGolem) body;
+		ItemStack held = body.getMainHandItem();
+		BlockPos pending = golem.wbcg$pendingFrameChest();
+		if (held.isEmpty()) {
+			// A frame trip: fetch a frame for the bare chest the golem last delivered into.
+			if (pending == null) {
+				return;
+			}
+			ZoneSettings settings = golem.wbcg$zoneSettings(level);
+			if (!settings.hangFrames() || settings.dryRun() || !FrameHanger.wantsFrame(level, pending)) {
+				golem.wbcg$setPendingFrameChest(null);
+				return;
+			}
+			Optional<TransportItemTarget> source = FrameHanger.findFrameSource(level, body.position(),
+					wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS), wbcg$searchArea(body, level));
+			if (source.isEmpty()) {
+				golem.wbcg$setPendingFrameChest(null); // no frames in the zone's copper chests: nothing happens
+				return;
+			}
+			this.wbcg$frameTripActive = true;
+			cir.setReturnValue(source);
+			return;
+		}
+		if (pending != null && FrameHanger.isFrame(held)) {
+			// Carrying the frame: the destination is the chest it is meant for.
+			TransportItemTarget chest = TransportItemTarget.tryCreatePossibleTarget(pending, level);
+			if (chest != null && FrameHanger.wantsFrame(level, pending)) {
+				cir.setReturnValue(Optional.of(chest));
+				return;
+			}
+			golem.wbcg$setPendingFrameChest(null); // the chest changed its mind; the frame is delivered like any item
 		}
 		cir.setReturnValue(SortingEngine.findDepositTarget(
 				level, body.position(), body.getMainHandItem(), this.destinationBlockType,
@@ -165,6 +207,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 	@Inject(method = "stopTargetingCurrentTarget", at = @At("TAIL"))
 	private void wbcg$clearReorganizeFlag(PathfinderMob body, CallbackInfo ci) {
 		this.wbcg$reorganizeActive = false;
+		this.wbcg$frameTripActive = false;
 	}
 
 	/**
@@ -211,6 +254,9 @@ public abstract class TransportItemsBetweenContainersMixin {
 			target = "Lnet/minecraft/world/entity/ai/behavior/TransportItemsBetweenContainers;matchesLeavingItemsRequirement(Lnet/minecraft/world/entity/PathfinderMob;Lnet/minecraft/world/Container;)Z"))
 	private boolean wbcg$labelAwareAccept(PathfinderMob body, Container container) {
 		if (body instanceof CopperGolem && this.target != null && body.level() instanceof ServerLevel level) {
+			if (wbcg$isFrameDelivery(body)) {
+				return FrameHanger.wantsFrame(level, this.target.pos());
+			}
 			return SortingEngine.acceptsDeposit(level, this.target, body);
 		}
 		return matchesLeavingItemsRequirement(body, container);
@@ -260,6 +306,36 @@ public abstract class TransportItemsBetweenContainersMixin {
 			return;
 		}
 
+		if (this.wbcg$frameTripActive) {
+			// Frame trip: take exactly one frame, not the first stack.
+			this.wbcg$frameTripActive = false;
+			ItemStack frame = FrameHanger.takeFrame(container);
+			if (frame.isEmpty()) {
+				this.stopTargetingCurrentTarget(body);
+			} else {
+				body.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, frame);
+				body.setGuaranteedDrop(net.minecraft.world.entity.EquipmentSlot.MAINHAND);
+				this.clearMemoriesAfterMatchingTargetFound(body);
+			}
+			ci.cancel();
+			return;
+		}
+
+		if (!reorganize && settings.hangFrames()) {
+			// Frames in copper chests are supplies while golems hang them: the normal pickup skips them.
+			ItemStack taken = FrameHanger.takeFirstNonFrame(container,
+					io.github.lnasser11.waybettercoppergolem.config.WbcgConfig.get().golemCarrySize());
+			if (taken.isEmpty()) {
+				this.stopTargetingCurrentTarget(body);
+			} else {
+				body.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, taken);
+				body.setGuaranteedDrop(net.minecraft.world.entity.EquipmentSlot.MAINHAND);
+				this.clearMemoriesAfterMatchingTargetFound(body);
+			}
+			ci.cancel();
+			return;
+		}
+
 		if (!reorganize) {
 			return; // vanilla pickup from the copper chest
 		}
@@ -301,9 +377,58 @@ public abstract class TransportItemsBetweenContainersMixin {
 		wbcg$maybeTidy(body, container);
 	}
 
+	/**
+	 * A frame delivery hangs the frame on the chest's front face instead of
+	 * storing it inside. If the chest no longer wants one (someone hung a
+	 * frame meanwhile, the front got blocked, the chest emptied), the golem
+	 * keeps the frame and the normal flow finds it a chest.
+	 */
+	@Inject(method = "putDownItem", at = @At("HEAD"), cancellable = true)
+	private void wbcg$hangFrameInsteadOfStoring(PathfinderMob body, Container container, CallbackInfo ci) {
+		if (!(body instanceof CopperGolem) || this.target == null || !(body.level() instanceof ServerLevel level)) {
+			return;
+		}
+		this.wbcg$depositPos = this.target.pos();
+		if (!wbcg$isFrameDelivery(body)) {
+			return;
+		}
+		ZoneAwareGolem golem = (ZoneAwareGolem) body;
+		golem.wbcg$setPendingFrameChest(null);
+		if (FrameHanger.hang(level, body, this.target)) {
+			this.clearMemoriesAfterMatchingTargetFound(body);
+		} else {
+			this.stopTargetingCurrentTarget(body);
+		}
+		ci.cancel();
+	}
+
 	@Inject(method = "putDownItem", at = @At("TAIL"))
 	private void wbcg$tidyAfterDeposit(PathfinderMob body, Container container, CallbackInfo ci) {
 		wbcg$maybeTidy(body, container);
+		wbcg$rememberBareChest(body);
+	}
+
+	/** While holding a frame meant for the pending chest, and that chest is the current target. */
+	@org.spongepowered.asm.mixin.Unique
+	private boolean wbcg$isFrameDelivery(PathfinderMob body) {
+		BlockPos pending = ((ZoneAwareGolem) body).wbcg$pendingFrameChest();
+		return pending != null && this.target != null && pending.equals(this.target.pos())
+				&& FrameHanger.isFrame(body.getMainHandItem());
+	}
+
+	/** After a delivery into a labeled chest with a bare front face, remember it for a frame trip. */
+	@org.spongepowered.asm.mixin.Unique
+	private void wbcg$rememberBareChest(PathfinderMob body) {
+		BlockPos deposited = this.wbcg$depositPos;
+		this.wbcg$depositPos = null;
+		if (deposited == null || !(body instanceof CopperGolem) || !(body.level() instanceof ServerLevel level)) {
+			return;
+		}
+		ZoneAwareGolem golem = (ZoneAwareGolem) body;
+		ZoneSettings settings = golem.wbcg$zoneSettings(level);
+		if (settings.hangFrames() && !settings.dryRun() && FrameHanger.wantsFrame(level, deposited)) {
+			golem.wbcg$setPendingFrameChest(deposited);
+		}
 	}
 
 	@org.spongepowered.asm.mixin.Unique

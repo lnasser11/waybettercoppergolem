@@ -54,6 +54,8 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	private boolean wbcg$zoneCacheDirty = true;
 	@Unique
 	private long wbcg$nextReorganizeTime;
+	@Unique
+	private @Nullable BlockPos wbcg$pendingFrameChest;
 
 	@Override
 	public void wbcg$setZoneChest(BlockPos pos) {
@@ -76,6 +78,16 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	@Override
 	public void wbcg$setNextReorganizeTime(long gameTime) {
 		this.wbcg$nextReorganizeTime = gameTime;
+	}
+
+	@Override
+	public @Nullable BlockPos wbcg$pendingFrameChest() {
+		return this.wbcg$pendingFrameChest;
+	}
+
+	@Override
+	public void wbcg$setPendingFrameChest(@Nullable BlockPos pos) {
+		this.wbcg$pendingFrameChest = pos == null ? null : pos.immutable();
 	}
 
 	@Override

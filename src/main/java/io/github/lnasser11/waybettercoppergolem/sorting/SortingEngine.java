@@ -108,14 +108,14 @@ public final class SortingEngine {
 	}
 
 	/** Every chunk the search box touches (the box is clamped to zone size upstream). */
-	private static List<ChunkPos> chunksCovering(AABB area) {
+	static List<ChunkPos> chunksCovering(AABB area) {
 		ChunkPos min = ChunkPos.containing(BlockPos.containing(area.minX, area.minY, area.minZ));
 		ChunkPos max = ChunkPos.containing(BlockPos.containing(area.maxX, area.maxY, area.maxZ));
 		return ChunkPos.rangeClosed(min, max).toList();
 	}
 
 	/** Vanilla validity rules: in area, resolvable container, unvisited, unlocked. */
-	private static @Nullable TransportItemTarget validCandidate(
+	static @Nullable TransportItemTarget validCandidate(
 			ServerLevel level, BlockEntity blockEntity,
 			Predicate<BlockState> destinationBlockType,
 			Set<GlobalPos> visited, Set<GlobalPos> unreachable, AABB searchArea) {

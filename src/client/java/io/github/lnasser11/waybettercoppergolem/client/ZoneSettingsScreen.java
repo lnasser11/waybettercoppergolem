@@ -60,7 +60,7 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		this.shownAnchor = this.menu.anchorPos();
 		this.shownArea = this.menu.area();
 
-		int leftHeight = Ui.SECTION_LABEL + 4 * Ui.ROW;
+		int leftHeight = Ui.SECTION_LABEL + 5 * Ui.ROW;
 		int rightHeight = Ui.SECTION_LABEL + 2 * Ui.ROW + Ui.GAP + Ui.SECTION_LABEL + 2 * Ui.ROW;
 		int contentHeight = Math.max(leftHeight, rightHeight) + Ui.GAP + Ui.ROW;
 		this.panel = Panel.centered(this.width, this.height, Ui.PANEL_WIDTH, contentHeight);
@@ -96,6 +96,12 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 						Component.translatable("waybettercoppergolem.settings.stay_inside"),
 						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_STAY_INSIDE)))
 				.setTooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.stay_inside.tooltip")));
+		y += Ui.ROW;
+		this.addRenderableWidget(toggle(this.shown.hangFrames())
+				.create(this.leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT,
+						Component.translatable("waybettercoppergolem.settings.hang_frames"),
+						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_HANG_FRAMES)))
+				.setTooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.hang_frames.tooltip")));
 
 		// ---- right: area
 		y = top;

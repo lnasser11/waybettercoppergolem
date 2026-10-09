@@ -320,6 +320,23 @@ scale your monitor allows, and check:
    **expect** the chest compacted: merged stacks from slot 0, no gaps,
    same total count.
 
+## 12b. Golems hang frames (off by default)
+
+1. Turn **Golems hang frames** ON and drop a stack of item frames into the
+   copper chest along with some iron. The iron chest must have air in
+   front of its face and no frame there yet.
+2. The golem delivers the iron first (it never carries the frames as
+   cargo), then goes back for one frame, walks to the iron chest and hangs
+   it on the front face showing an iron ingot; the chest has one ingot
+   less. Right-click the chest → the label summary is unchanged (no
+   `(auto)`).
+3. Repeat with a chest labeled *Ingots* holding mostly copper ingots and a
+   few iron → the frame shows a copper ingot. A chest that already has a
+   frame, a catch-all chest, an off-limits chest, an unlabeled chest and a
+   chest whose front face is blocked never get one.
+4. Toggle the setting OFF → the frames are ordinary cargo again (they go
+   wherever frames are labeled to go) and no frame is hung.
+
 ## 13. Persistence and upgrading
 
 1. Break the frame of the auto-labeled chest → feed matching items → they

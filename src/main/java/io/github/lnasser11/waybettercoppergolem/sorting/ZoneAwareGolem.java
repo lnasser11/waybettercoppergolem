@@ -62,4 +62,13 @@ public interface ZoneAwareGolem {
 	 * to a zone with "golems stay inside" on, otherwise empty.
 	 */
 	Optional<BoundingBox> wbcg$confinement(ServerLevel level);
+
+	/**
+	 * A labeled chest this golem delivered into whose front face has no
+	 * frame yet, waiting for a frame trip (see {@link FrameHanger}).
+	 * Runtime only.
+	 */
+	@Nullable BlockPos wbcg$pendingFrameChest();
+
+	void wbcg$setPendingFrameChest(@Nullable BlockPos pos);
 }
