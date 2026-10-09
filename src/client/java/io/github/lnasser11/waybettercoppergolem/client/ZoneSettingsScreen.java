@@ -69,7 +69,7 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		boolean canEdit = this.menu.canEdit();
 		boolean operator = this.menu.isOperator();
 
-		int leftHeight = Ui.SECTION_LABEL + 5 * Ui.ROW;
+		int leftHeight = Ui.SECTION_LABEL + 6 * Ui.ROW;
 		int rightHeight = Ui.SECTION_LABEL + 4 * Ui.ROW + Ui.GAP + Ui.SECTION_LABEL + Ui.ROW;
 		int contentHeight = Math.max(leftHeight, rightHeight) + Ui.GAP + Ui.ROW;
 		this.panel = Panel.centered(this.width, this.height, Ui.PANEL_WIDTH, contentHeight);
@@ -111,6 +111,12 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 						Component.translatable("waybettercoppergolem.settings.hang_frames"),
 						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_HANG_FRAMES))),
 				"waybettercoppergolem.settings.hang_frames.tooltip", canEdit);
+		y += Ui.ROW;
+		editable(this.addRenderableWidget(toggle(this.shown.perchIdle())
+				.create(this.leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT,
+						Component.translatable("waybettercoppergolem.settings.perch_idle"),
+						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_PERCH_IDLE))),
+				"waybettercoppergolem.settings.perch_idle.tooltip", canEdit);
 
 		// ---- right: area and tools
 		y = top;

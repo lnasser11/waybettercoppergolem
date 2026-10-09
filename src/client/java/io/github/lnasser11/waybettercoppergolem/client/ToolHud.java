@@ -122,7 +122,8 @@ public final class ToolHud implements HudElement {
 		BlockPos anchor = zone.get().anchor();
 		lines.add(Component.translatable("waybettercoppergolem.hud.zone",
 				anchor.getX() + " " + anchor.getY() + " " + anchor.getZ(), Zones.describeArea(zone.get().area())));
-		lines.add(Zones.describe(zone.get().settings()));
+		lines.add(Zones.describeBehavior(zone.get().settings()));
+		lines.add(Zones.describeGolems(zone.get().settings()));
 		long now = level.getGameTime();
 		if (now - this.lastOutlineTick >= OUTLINE_EVERY_TICKS || now < this.lastOutlineTick) {
 			this.lastOutlineTick = now;

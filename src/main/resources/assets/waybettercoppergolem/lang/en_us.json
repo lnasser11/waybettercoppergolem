@@ -54,7 +54,7 @@
   "waybettercoppergolem.tool.clipboard_both": "Clipboard: %s · zone settings (%s)",
   "waybettercoppergolem.tool.clipboard_clear_marker": "clear labels",
   "waybettercoppergolem.tool.clipboard_empty": "Clipboard empty. Sneak-left-click a chest to copy its labels",
-  "waybettercoppergolem.zone.summary": "reorganize %s · tidy %s · dry run %s · reach %s · stay inside %s · frames %s",
+  "waybettercoppergolem.zone.summary": "reorganize %s · tidy %s · dry run %s · reach %s",
   "waybettercoppergolem.settings.learn": "Learn…",
   "waybettercoppergolem.settings.learn.tooltip": "Reads every chest inside this zone's area and proposes a label for each from what it already holds. You get a preview in chat and apply it with one click.",
   "waybettercoppergolem.learn.header": "Learn: %s chests get a label, %s skipped (radius %s)",
@@ -278,5 +278,8 @@
   "waybettercoppergolem.editor.frames.allowed.tooltip": "Golems may hang an item frame on this chest (when the zone's \"Golems hang frames\" is on). Click to forbid it for this chest.",
   "waybettercoppergolem.editor.frames.blocked.tooltip": "Golems never hang an item frame on this chest. Click to allow it again.",
   "waybettercoppergolem.editor.frames.now_allowed": "Golems may hang a frame on this chest",
-  "waybettercoppergolem.editor.frames.now_blocked": "Golems will not hang a frame on this chest"
+  "waybettercoppergolem.editor.frames.now_blocked": "Golems will not hang a frame on this chest",
+  "waybettercoppergolem.zone.summary_golems": "stay inside %s · frames %s · perch %s",
+  "waybettercoppergolem.settings.perch_idle": "Idle golems perch",
+  "waybettercoppergolem.settings.perch_idle.tooltip": "A golem with nothing to do climbs onto a chest of the zone and stands there like a statue until the copper chests have items again."
 }

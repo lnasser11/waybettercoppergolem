@@ -200,11 +200,32 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 				.orElseGet(() -> new AABB(self.blockPosition()).inflate(horizontal, vertical, horizontal));
 	}
 
+	@Override
+	public boolean wbcg$isPerched(ServerLevel level) {
+		CopperGolem self = (CopperGolem) (Object) this;
+		if (!wbcg$zoneSettings(level).perchIdle() || !self.getMainHandItem().isEmpty()) {
+			return false;
+		}
+		// A chest is 7/8 high, so a golem standing on one has the chest as its own block position.
+		// (No onGround check: a bob or a hop must not open a window for a stroll off the perch.)
+		BlockPos feet = self.blockPosition();
+		return wbcg$isChest(level.getBlockState(feet)) || wbcg$isChest(level.getBlockState(feet.below()));
+	}
+
+	@Unique
+	private static boolean wbcg$isChest(net.minecraft.world.level.block.state.BlockState state) {
+		return io.github.lnasser11.waybettercoppergolem.label.ChestLabels.isLabelableChest(state) || state.is(BlockTags.COPPER_CHESTS);
+	}
+
 	/**
-	 * Once a second: a confined golem standing outside its box (pushed,
-	 * fallen, teleported) gets a walk target at the nearest spot inside,
-	 * unless it is already walking somewhere inside. Paths are not clipped
-	 * while the golem is outside, so any route back is allowed.
+	 * Once a second, two chores. A confined golem standing outside its box
+	 * (pushed, fallen, teleported) gets a walk target at the nearest spot
+	 * inside, unless it is already walking somewhere inside; paths are not
+	 * clipped while the golem is outside, so any route back is allowed. And
+	 * with "idle golems perch" on, a golem with nothing to do (empty hand,
+	 * transport cooldown running, no walk target) heads for the nearest
+	 * free chest top in its zone and stands there like a statue; the wake
+	 * on a copper chest change ends the cooldown and so the pose.
 	 */
 	@Inject(method = "customServerAiStep", at = @At("TAIL"))
 	private void wbcg$walkBackInside(ServerLevel level, CallbackInfo ci) {
@@ -212,6 +233,7 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 		if (self.tickCount % WBCG$WALK_BACK_EVERY_TICKS != 0) {
 			return;
 		}
+		wbcg$perchWhenIdle(level, self);
 		Optional<BoundingBox> confinement = wbcg$confinement(level);
 		if (confinement.isEmpty()) {
 			return;
@@ -228,6 +250,60 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 		}
 		brain.setMemory(MemoryModuleType.WALK_TARGET,
 				new WalkTarget(new BlockPosTracker(wbcg$nearestInside(box, here)), WBCG$WALK_BACK_SPEED, 0));
+	}
+
+	@Unique
+	private void wbcg$perchWhenIdle(ServerLevel level, CopperGolem self) {
+		Optional<Zones.ZoneRef> zone = wbcg$zone(level);
+		if (zone.isEmpty() || !zone.get().settings().perchIdle() || !self.getMainHandItem().isEmpty()) {
+			return;
+		}
+		Brain<CopperGolem> brain = self.getBrain();
+		if (!brain.hasMemoryValue(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS)
+				|| brain.hasMemoryValue(MemoryModuleType.WALK_TARGET) || wbcg$isPerched(level)) {
+			return;
+		}
+		BoundingBox box = zone.get().area();
+		if (!box.isInside(self.blockPosition())) {
+			return;
+		}
+		BlockPos perch = wbcg$nearestFreePerch(level, self, box);
+		if (perch != null) {
+			brain.setMemory(MemoryModuleType.WALK_TARGET, new WalkTarget(new BlockPosTracker(perch.above()), WBCG$WALK_BACK_SPEED, 0));
+		}
+	}
+
+	/** The nearest chest in the box with two blocks of air above it and no other golem standing on it. */
+	@Unique
+	private static @Nullable BlockPos wbcg$nearestFreePerch(ServerLevel level, CopperGolem self, BoundingBox box) {
+		BlockPos best = null;
+		double bestDistSq = Double.MAX_VALUE;
+		net.minecraft.world.level.ChunkPos minChunk = net.minecraft.world.level.ChunkPos.containing(new BlockPos(box.minX(), box.minY(), box.minZ()));
+		net.minecraft.world.level.ChunkPos maxChunk = net.minecraft.world.level.ChunkPos.containing(new BlockPos(box.maxX(), box.maxY(), box.maxZ()));
+		for (net.minecraft.world.level.ChunkPos chunkPos : net.minecraft.world.level.ChunkPos.rangeClosed(minChunk, maxChunk).toList()) {
+			net.minecraft.world.level.chunk.LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
+			if (chunk == null) {
+				continue;
+			}
+			for (net.minecraft.world.level.block.entity.BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+				BlockPos pos = blockEntity.getBlockPos();
+				if (!(blockEntity instanceof net.minecraft.world.level.block.entity.ChestBlockEntity) || !box.isInside(pos)
+						|| !wbcg$isChest(blockEntity.getBlockState())) {
+					continue;
+				}
+				double distSq = pos.distToCenterSqr(self.position());
+				if (distSq >= bestDistSq || !level.getBlockState(pos.above()).isAir() || !level.getBlockState(pos.above(2)).isAir()) {
+					continue;
+				}
+				boolean taken = level.getEntitiesOfClass(CopperGolem.class, new AABB(pos).expandTowards(0, 1, 0), other -> other != self).stream()
+						.anyMatch(other -> other.blockPosition().equals(pos) || other.blockPosition().below().equals(pos));
+				if (!taken) {
+					best = pos.immutable();
+					bestDistSq = distSq;
+				}
+			}
+		}
+		return best;
 	}
 
 	/** The position inside the box nearest to {@code pos}, one block in from any face it was clamped to. */

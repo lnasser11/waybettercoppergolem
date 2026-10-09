@@ -390,6 +390,16 @@ scale your monitor allows, and check:
    never gets a frame even with the zone setting on; click again to allow
    it. The switch needs the same permission as a label edit.
 
+## 12c. Idle golems perch (off by default)
+
+1. Turn **Idle golems perch** ON and empty the copper chests. Within a
+   minute the golem walks to a chest, climbs on top and stays there, no
+   strolling. Two golems pick two different chests. A chest under a golem
+   still opens.
+2. Drop items into a copper chest → the golem climbs down at once and
+   sorts them, then goes back to a perch. Toggle the setting OFF → it
+   stays on the floor and strolls like before.
+
 ## 13. Persistence and upgrading
 
 1. Break the frame of the auto-labeled chest → feed matching items → they

@@ -1614,6 +1614,59 @@ public final class WbcgGameTests {
 				.thenSucceed();
 	}
 
+	// ---------------------------------------------------------------- idle golems perch
+
+	/** With "idle golems perch" on, a golem with nothing to do climbs onto a chest and stays; new items bring it down. */
+	@GameTest(maxTicks = GOLEM_TIMEOUT)
+	public void idleGolemPerchesOnAChestAndComesDownForWork(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 1));
+		BlockPos target = chest(helper, new BlockPos(6, 1, 6));
+		label(level, target, ChestLabel.exact(id(Items.IRON_INGOT)));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT.withPerchIdle(true)));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		ZoneAwareGolem aware = (ZoneAwareGolem) golem;
+		aware.wbcg$joinZoneAt(level, source);
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		helper.startSequence()
+				.thenWaitUntil(() -> helper.assertTrue(aware.wbcg$isPerched(level), "golem not on a chest yet, at " + golem.blockPosition()))
+				.thenExecuteFor(200, () -> helper.assertTrue(aware.wbcg$isPerched(level), "golem left its perch at " + golem.blockPosition()))
+				.thenExecute(() -> fill(helper, source, Items.IRON_INGOT, 16))
+				.thenWaitUntil(() -> helper.assertValueEqual(count(level, target, Items.IRON_INGOT), 16, "iron delivered after coming down"))
+				.thenSucceed();
+	}
+
+	/** With the setting off, an idle golem is never sent onto a chest. */
+	@GameTest(maxTicks = 1200)
+	public void idleGolemStaysOnTheFloorWithPerchOff(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 1));
+		chest(helper, new BlockPos(6, 1, 6));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		ZoneAwareGolem aware = (ZoneAwareGolem) golem;
+		aware.wbcg$joinZoneAt(level, source);
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		helper.failIfEver(() -> {
+			helper.assertFalse(aware.wbcg$isPerched(level), "perched with the setting off");
+			helper.assertTrue(golem.getBrain().getMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.WALK_TARGET)
+					.map(t -> !level.getBlockState(t.getTarget().currentBlockPosition().below()).is(Blocks.CHEST)
+							&& !level.getBlockState(t.getTarget().currentBlockPosition()).is(Blocks.CHEST)).orElse(true),
+					"sent onto a chest with the setting off");
+		});
+		helper.runAfterDelay(800, helper::succeed);
+	}
+
 	// ---------------------------------------------------------------- the golem button
 
 	/** Opening the editor from a chest's screen must close that chest's menu, or the server keeps syncing it. */

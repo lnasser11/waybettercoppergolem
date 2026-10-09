@@ -223,6 +223,7 @@ outline is drawn with particles for a moment.
 | Dry run | off | log intended moves, touch nothing |
 | Golems stay inside | on | the zone's golems never path out of its box; see [Golems stay inside](#golems-stay-inside-their-zone) |
 | Golems hang frames | off | golems decorate bare labeled chests with an item frame; see [Golems hang frames](#golems-hang-frames) |
+| Idle golems perch | off | a golem with nothing to do climbs onto a chest and stands there like a statue |
 
 Buttons on the same screen (the ones that change the zone are disabled
 unless you may change it, see [Who may change a zone](#who-may-change-a-zone)):
@@ -371,6 +372,15 @@ switch** in its editor (the small item-frame chip beside *Mode*): red
 means golems never hang a frame on that chest. While the setting is on,
 frames in copper chests are supplies: golems do not sort them, and
 Simulate leaves them out.
+
+### Idle golems perch
+
+Off by default. When on, a golem with nothing to do (empty hands, no
+copper chest worth visiting) walks to the nearest chest top in its zone
+that is free (two blocks of air above it, no other golem on it) and
+stands there like a statue: no strolling, no wandering. The moment a
+copper chest in the zone changes, the golem is woken as usual and climbs
+down to work. Chests with a golem on top still open normally.
 
 ### Dry run
 
