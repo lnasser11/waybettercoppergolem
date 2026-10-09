@@ -23,7 +23,7 @@ needs a person: golems in a real, messy chest room, how the HUD reads in
 play, and how it all feels.
 
 **Setup:** Fabric Loader 0.19.3 profile for 26.2, with `fabric-api` and
-`waybettercoppergolem-1.1.0.jar` in the mods folder. Keep a **feather** in
+`waybettercoppergolem-1.1.1.jar` in the mods folder. Keep a **feather** in
 your hotbar: it is the label tool.
 
 **Watching logs:** dry-run lines go to the game log. Either enable "Open
