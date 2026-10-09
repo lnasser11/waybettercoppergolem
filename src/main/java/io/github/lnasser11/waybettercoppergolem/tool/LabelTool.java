@@ -63,7 +63,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * behavior is lost.
  */
 public final class LabelTool {
-	private static final long AREA_MODE_TTL_MILLIS = 60 * 1000;
+	/** Area mode ends by itself after this many game ticks without a corner click (five minutes of play; a paused game does not count). */
+	private static final long AREA_MODE_TTL_TICKS = 6000;
 	/**
 	 * A use-item packet arriving this soon after a corner click is the tail
 	 * of that same click (vanilla sends one when the block use passed), not
@@ -72,19 +73,17 @@ public final class LabelTool {
 	private static final long CORNER_CLICK_GRACE_MILLIS = 300;
 
 	private record AreaSelection(ResourceKey<Level> dimension, BlockPos anchor, @Nullable BlockPos first,
-			long expiresAt, long lastClickAt) {
-		static AreaSelection start(ResourceKey<Level> dimension, BlockPos anchor) {
-			long now = System.currentTimeMillis();
-			return new AreaSelection(dimension, anchor, null, now + AREA_MODE_TTL_MILLIS, now);
+			long expiresAtTick, long lastClickAt) {
+		static AreaSelection start(ResourceKey<Level> dimension, BlockPos anchor, long nowTick) {
+			return new AreaSelection(dimension, anchor, null, nowTick + AREA_MODE_TTL_TICKS, System.currentTimeMillis());
 		}
 
-		AreaSelection withFirst(BlockPos first) {
-			long now = System.currentTimeMillis();
-			return new AreaSelection(dimension, anchor, first, now + AREA_MODE_TTL_MILLIS, now);
+		AreaSelection withFirst(BlockPos first, long nowTick) {
+			return new AreaSelection(dimension, anchor, first, nowTick + AREA_MODE_TTL_TICKS, System.currentTimeMillis());
 		}
 
-		boolean expired() {
-			return System.currentTimeMillis() > expiresAt;
+		boolean expired(long nowTick) {
+			return nowTick > expiresAtTick;
 		}
 
 		boolean justClicked() {
@@ -112,7 +111,7 @@ public final class LabelTool {
 
 	/** Starts area mode for the zone anchored at {@code anchor}. */
 	public static void beginAreaSelection(ServerPlayer player, ServerLevel level, BlockPos anchor) {
-		AREA_SELECTIONS.put(player.getUUID(), AreaSelection.start(level.dimension(), anchor.immutable()));
+		AREA_SELECTIONS.put(player.getUUID(), AreaSelection.start(level.dimension(), anchor.immutable(), level.getGameTime()));
 		player.sendSystemMessage(Component.translatable("waybettercoppergolem.area.begin",
 				WbcgConfig.toolItem(level).getName(WbcgConfig.toolItem(level).getDefaultInstance())));
 		syncAreaMode(player, 1);
@@ -129,7 +128,12 @@ public final class LabelTool {
 
 	public static boolean inAreaMode(Player player) {
 		AreaSelection selection = AREA_SELECTIONS.get(player.getUUID());
-		return selection != null && !selection.expired();
+		return selection != null && !selection.expired(player.level().getGameTime());
+	}
+
+	/** Forgets every area selection (server stop). */
+	public static void clear() {
+		AREA_SELECTIONS.clear();
 	}
 
 	/** Handles a corner click; returns false when the player is not in area mode. */
@@ -138,14 +142,14 @@ public final class LabelTool {
 		if (selection == null) {
 			return false;
 		}
-		if (selection.expired() || !selection.dimension().equals(level.dimension())) {
+		if (selection.expired(level.getGameTime()) || !selection.dimension().equals(level.dimension())) {
 			AREA_SELECTIONS.remove(player.getUUID());
 			syncAreaMode(player, 0);
 			player.sendSystemMessage(Component.translatable("waybettercoppergolem.area.expired"));
 			return true;
 		}
 		if (selection.first() == null) {
-			AREA_SELECTIONS.put(player.getUUID(), selection.withFirst(pos.immutable()));
+			AREA_SELECTIONS.put(player.getUUID(), selection.withFirst(pos.immutable(), level.getGameTime()));
 			cornerParticles(level, player, pos);
 			player.sendSystemMessage(Component.translatable("waybettercoppergolem.area.first"));
 			syncAreaMode(player, 2);

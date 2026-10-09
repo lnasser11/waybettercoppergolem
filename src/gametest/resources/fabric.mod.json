@@ -8,7 +8,8 @@
 	"entrypoints": {
 		"fabric-gametest": [
 			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgGameTests",
-			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgPresetCoverageTests"
+			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgPresetCoverageTests",
+			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgBugHuntTests"
 		],
 		"fabric-client-gametest": [
 			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgClientGameTest"

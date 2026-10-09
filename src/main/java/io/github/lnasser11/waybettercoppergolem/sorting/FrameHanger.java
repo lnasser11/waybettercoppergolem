@@ -258,7 +258,8 @@ public final class FrameHanger {
 		level.addFreshEntity(frame);
 		frame.setItem(shown);
 		frame.playPlacementSound();
-		golem.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+		held.shrink(1); // exactly one frame leaves the hand; a bigger stack keeps the rest as ordinary cargo
+		golem.setItemSlot(EquipmentSlot.MAINHAND, held.isEmpty() ? ItemStack.EMPTY : held);
 		WayBetterCopperGolem.LOGGER.debug("[WBCG-DEBUG] golem hung a frame showing {} on {}", shown.getItem(), chest.pos());
 		return true;
 	}

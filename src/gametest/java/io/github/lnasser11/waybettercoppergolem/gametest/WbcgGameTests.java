@@ -1809,10 +1809,12 @@ public final class WbcgGameTests {
 	// ---------------------------------------------------------------- several golems: routing
 
 	/**
-	 * Golems do not shove each other: two spawned on the same spot are still
-	 * overlapping five ticks later (vanilla pushes them apart by about a
-	 * tenth of a block per tick), while a golem and a pig spawned together
-	 * have moved apart. Five ticks is before any stroll can start.
+	 * Golems do not shove each other. With the AI off a mob still runs
+	 * {@code pushEntities()} every tick but never travels, so pushes pile up
+	 * in its velocity and nothing else (a stroll can start on tick 2 with the
+	 * AI on, which made the position-based version of this test flaky) can
+	 * move it: two overlapping golems end with no sideways velocity at all,
+	 * while a golem and a pig overlapping get pushed.
 	 */
 	@GameTest(maxTicks = 200)
 	public void golemsDoNotPushEachOther(GameTestHelper helper) {
@@ -1824,6 +1826,9 @@ public final class WbcgGameTests {
 				BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.withDefaultNamespace("pig"));
 		CopperGolem c = spawnGolem(helper, new BlockPos(5, 1, 5));
 		net.minecraft.world.entity.Mob pig = helper.spawn(pigType, new BlockPos(5, 1, 5));
+		for (net.minecraft.world.entity.Mob mob : List.of(a, b, c, pig)) {
+			mob.setNoAi(true);
+		}
 		// Entities on exactly the same spot are not pushed at all (vanilla bails below 0.01 blocks), so offset the pairs.
 		b.setPos(a.getX() + 0.3, a.getY(), a.getZ());
 		pig.setPos(c.getX() + 0.3, c.getY(), c.getZ());
@@ -1833,11 +1838,11 @@ public final class WbcgGameTests {
 			c.discard();
 			pig.discard();
 		});
-		helper.runAfterDelay(5, () -> {
-			double golems = a.position().distanceTo(b.position());
-			double mixed = c.position().distanceTo(pig.position());
-			helper.assertTrue(mixed > 0.45, "a golem and a pig should push each other apart, distance " + mixed);
-			helper.assertTrue(golems < 0.4, "two golems pushed each other apart, distance " + golems);
+		helper.runAfterDelay(10, () -> {
+			double golems = Math.max(a.getDeltaMovement().horizontalDistance(), b.getDeltaMovement().horizontalDistance());
+			double mixed = Math.max(c.getDeltaMovement().horizontalDistance(), pig.getDeltaMovement().horizontalDistance());
+			helper.assertTrue(mixed > 0.01, "a golem and a pig should push each other, sideways velocity " + mixed);
+			helper.assertTrue(golems == 0.0, "two golems pushed each other, sideways velocity " + golems);
 			helper.succeed();
 		});
 	}

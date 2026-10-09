@@ -203,12 +203,17 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	@Override
 	public boolean wbcg$isPerched(ServerLevel level) {
 		CopperGolem self = (CopperGolem) (Object) this;
-		if (!wbcg$zoneSettings(level).perchIdle() || !self.getMainHandItem().isEmpty()) {
+		Optional<Zones.ZoneRef> zone = wbcg$zone(level);
+		if (zone.isEmpty() || !zone.get().settings().perchIdle() || !self.getMainHandItem().isEmpty()) {
 			return false;
 		}
 		// A chest is 7/8 high, so a golem standing on one has the chest as its own block position.
 		// (No onGround check: a bob or a hop must not open a window for a stroll off the perch.)
+		// Only a chest inside the zone's box is a perch: outside, the walk-back rule must be free to move the golem.
 		BlockPos feet = self.blockPosition();
+		if (!zone.get().area().isInside(feet)) {
+			return false;
+		}
 		return wbcg$isChest(level.getBlockState(feet)) || wbcg$isChest(level.getBlockState(feet.below()));
 	}
 

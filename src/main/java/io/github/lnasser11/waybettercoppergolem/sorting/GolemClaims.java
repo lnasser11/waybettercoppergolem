@@ -64,7 +64,7 @@ public final class GolemClaims {
 		return result;
 	}
 
-	/** Forgets every claim (tests). */
+	/** Forgets every claim (tests, and server stop: the map is static and would otherwise outlive the world). */
 	public static void clear() {
 		CLAIMS.clear();
 	}

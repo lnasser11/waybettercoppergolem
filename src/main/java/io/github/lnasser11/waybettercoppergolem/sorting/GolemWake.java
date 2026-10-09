@@ -37,17 +37,23 @@ public final class GolemWake {
 	private GolemWake() {
 	}
 
+	/** Forgets every throttle entry (server stop; the map is static and would otherwise outlive the world). */
+	public static void clear() {
+		LAST_WAKE.clear();
+	}
+
 	/** Called when the contents of the copper chest at {@code pos} changed. */
 	public static void copperChestChanged(ServerLevel level, BlockPos pos, BlockState state) {
 		GlobalPos key = new GlobalPos(level.dimension(), pos.immutable());
 		long now = level.getGameTime();
 		Long last = LAST_WAKE.get(key);
-		if (last != null && now - last < THROTTLE_TICKS) {
+		// (now >= last: an entry from another world of this session may lie in this world's future.)
+		if (last != null && now >= last && now - last < THROTTLE_TICKS) {
 			return;
 		}
 		LAST_WAKE.put(key, now);
 		if (LAST_WAKE.size() > 4096) {
-			LAST_WAKE.entrySet().removeIf(entry -> now - entry.getValue() > THROTTLE_TICKS);
+			LAST_WAKE.entrySet().removeIf(entry -> Math.abs(now - entry.getValue()) > THROTTLE_TICKS);
 		}
 		Set<GlobalPos> halves = new HashSet<>();
 		halves.add(key);

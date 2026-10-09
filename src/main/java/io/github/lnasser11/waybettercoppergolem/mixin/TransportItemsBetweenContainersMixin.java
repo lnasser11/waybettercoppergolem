@@ -170,7 +170,8 @@ public abstract class TransportItemsBetweenContainersMixin {
 		if (tidyHome != null) {
 			// Carrying a tidy stack: it goes to the home chest it was planned for, not just any sibling.
 			TransportItemTarget home = TransportItemTarget.tryCreatePossibleTarget(tidyHome, level);
-			if (home != null && this.destinationBlockType.test(home.state()) && SortingEngine.acceptsDeposit(level, home, body)) {
+			if (home != null && !wbcg$isUnreachable(body, level, tidyHome) && this.destinationBlockType.test(home.state())
+					&& SortingEngine.acceptsDeposit(level, home, body)) {
 				cir.setReturnValue(Optional.of(home));
 				return;
 			}
@@ -179,16 +180,17 @@ public abstract class TransportItemsBetweenContainersMixin {
 		if (pending != null && FrameHanger.isFrame(held)) {
 			// Carrying the frame: the destination is the chest it is meant for.
 			TransportItemTarget chest = TransportItemTarget.tryCreatePossibleTarget(pending, level);
-			if (chest != null && FrameHanger.wantsFrame(level, pending)) {
+			if (chest != null && !wbcg$isUnreachable(body, level, pending) && FrameHanger.wantsFrame(level, pending)) {
 				cir.setReturnValue(Optional.of(chest));
 				return;
 			}
-			golem.wbcg$setPendingFrameChest(null); // the chest changed its mind (front taken, frame hung by someone): give up
+			golem.wbcg$setPendingFrameChest(null); // the chest changed its mind (front taken, frame hung by someone) or cannot be reached: give up
 		}
 		if (FrameHanger.isFrame(held) && golem.wbcg$frameReturnChest() != null) {
 			// Giving up: the frame goes back to the copper chest it came from.
 			TransportItemTarget back = TransportItemTarget.tryCreatePossibleTarget(golem.wbcg$frameReturnChest(), level);
-			if (back != null && back.state().is(BlockTags.COPPER_CHESTS) && SortingEngine.canAcceptAny(back.container(), held)) {
+			if (back != null && !wbcg$isUnreachable(body, level, back.pos()) && back.state().is(BlockTags.COPPER_CHESTS)
+					&& SortingEngine.canAcceptAny(back.container(), held)) {
 				cir.setReturnValue(Optional.of(back));
 				return;
 			}
@@ -199,6 +201,16 @@ public abstract class TransportItemsBetweenContainersMixin {
 				wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
 				wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
 				wbcg$searchArea(body, level), GolemClaims.claimedByOthers(level, body)));
+	}
+
+	/**
+	 * Whether vanilla has marked this chest unreachable for the golem. The remembered chests (tidy home, pending
+	 * frame chest, frame return chest) skip the normal search, so they have to consult this memory themselves;
+	 * otherwise a chest that became unreachable mid-trip would be re-targeted every tick for good.
+	 */
+	@org.spongepowered.asm.mixin.Unique
+	private static boolean wbcg$isUnreachable(PathfinderMob body, ServerLevel level, BlockPos pos) {
+		return wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS).contains(new GlobalPos(level.dimension(), pos));
 	}
 
 	/** A golem that starts travelling to a chest claims it, so the others prefer another one. */
@@ -598,7 +610,9 @@ public abstract class TransportItemsBetweenContainersMixin {
 				golem.wbcg$setNextReorganizeTime(level.getGameTime());
 			}
 		}
-		if (settings.hangFrames() && !settings.dryRun() && FrameHanger.wantsFrame(level, deposited)) {
+		// Only with an empty hand: a remainder left in hand (the chest filled up) is cargo, and if it happens to be
+		// frames it must not be mistaken for the single frame of a frame trip.
+		if (settings.hangFrames() && !settings.dryRun() && body.getMainHandItem().isEmpty() && FrameHanger.wantsFrame(level, deposited)) {
 			golem.wbcg$setPendingFrameChest(deposited);
 		}
 	}

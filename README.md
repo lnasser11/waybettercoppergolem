@@ -192,7 +192,7 @@ exactly like vanilla, with or without a click-through mod.
 
 ### The HUD: see labels and zones without opening anything
 
-While the feather is in either hand, a small panel above the hotbar shows
+While the feather is in either hand, a small panel at the top of the screen shows
 what you are looking at: a chest's labels (marked *auto, from the frame*
 when derived) or *Unlabeled chest — vanilla behavior*; a copper chest's
 zone and settings, while the zone's outline is drawn around you; and
@@ -235,7 +235,8 @@ unless you may change it, see [Who may change a zone](#who-may-change-a-zone)):
 - **Set area with the tool…** closes the screen; the next two
   sneak-right-clicks with the feather on any blocks are the opposite
   corners of the zone (up to 128 blocks per side; the anchor chest is
-  always included). Sneak-right-click the air to cancel.
+  always included). Sneak-right-click the air to cancel; area mode also
+  ends on its own after five minutes of play without a corner click.
 - **Reset area** goes back to the default box; **Show area outline**
   draws it again; **Learn this zone's chests…** runs the learn pass over
   the area.

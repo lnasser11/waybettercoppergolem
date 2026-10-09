@@ -137,7 +137,7 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
    see several).
 3. Click a suggestion → the actionbar confirms, the screen **stays open**
    and the header now shows the new label. Hold the feather afterwards →
-   the HUD shows the same label on the clipboard.
+   the clipboard is left alone (only a sneak-left-click with the feather copies).
 4. Switch to **Mode: Add**, click **Catch-all** → the chest now has two
    labels (two chips). Click the `✕ Catch-all` chip → back to one.
 5. Click **Remove labels** → `No labels — vanilla behavior`, chest cleared.
@@ -197,7 +197,7 @@ scale your monitor allows, and check:
    suggestion that covers every stack has a green bar.
 5. Disabled rows and buttons (tuning as a non-op, Paste without a
    clipboard) look dimmed and do nothing when clicked.
-6. The HUD panel above the hotbar uses the same dark surface and border.
+6. The HUD panel at the top of the screen uses the same dark surface and border.
 
 ## 2e. Defaults, hints and the guide
 
@@ -256,7 +256,7 @@ scale your monitor allows, and check:
 
 ## 5. The tool HUD
 
-1. Hold the feather. A dark panel above the hotbar shows the clipboard
+1. Hold the feather. A dark panel at the top of the screen shows the clipboard
    line. Switch to another item → the panel disappears. Holding the
    feather in the **off hand** also shows it.
 2. Look at the frame chest → `Labels: Iron Ingot (auto, from the frame)`.
