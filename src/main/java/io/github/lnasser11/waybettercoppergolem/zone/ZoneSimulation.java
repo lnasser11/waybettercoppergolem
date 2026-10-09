@@ -32,8 +32,9 @@ import java.util.Set;
  * that copper chest, using the same ranking the golems use. Identical
  * (item, from, to) moves are merged. It ignores whether a golem could
  * physically reach either chest, and whether earlier moves fill a chest
- * up, so it is a preview, not a promise. With tidy on, the pending
- * consolidations across sibling chests are listed too. While the zone's golems hang
+ * up, so it is a preview, not a promise. With reorganize on, the misplaced
+ * stacks and where they would go are listed too; with tidy on, the pending
+ * consolidations across sibling chests. While the zone's golems hang
  * frames, item frames in the copper chests are supplies, not cargo, and
  * are left out.
  */
@@ -85,6 +86,17 @@ public final class ZoneSimulation {
 			moves.add(new Move(key.item(), entry.getValue(), key.from(), key.to(),
 					labelsOf.getOrDefault(key.to(), List.of())));
 		}
+		if (zone.settings().reorganize()) {
+			for (SortingEngine.ReorganizeMove fix : SortingEngine.planReorganize(level, area,
+					io.github.lnasser11.waybettercoppergolem.config.WbcgConfig.get().golemCarrySize())) {
+				if (moves.size() >= MAX_MOVES) {
+					break;
+				}
+				moves.add(new Move(BuiltInRegistries.ITEM.getKey(fix.stack().getItem()), fix.stack().getCount(),
+						fix.source().pos(), Optional.of(fix.destination().pos()),
+						ChestLabels.effectiveLabels(level, fix.destination().pos(), fix.destination().state()), Move.REORGANIZE));
+			}
+		}
 		if (zone.settings().tidyInside()) {
 			for (SortingEngine.TidyMove tidy : SortingEngine.planTidy(level, Set.of(), area,
 					io.github.lnasser11.waybettercoppergolem.config.WbcgConfig.get().golemCarrySize())) {
@@ -93,11 +105,11 @@ public final class ZoneSimulation {
 				}
 				moves.add(new Move(BuiltInRegistries.ITEM.getKey(tidy.stack().getItem()), tidy.stack().getCount(),
 						tidy.source().pos(), Optional.of(tidy.home().pos()),
-						ChestLabels.effectiveLabels(level, tidy.home().pos(), tidy.home().state()), true));
+						ChestLabels.effectiveLabels(level, tidy.home().pos(), tidy.home().state()), Move.TIDY));
 			}
 		}
-		// Moves with nowhere to go first: those are the ones the player needs to act on; tidy moves last.
-		moves.sort(java.util.Comparator.comparing((Move move) -> move.to().isPresent()).thenComparing(Move::tidy));
+		// Moves with nowhere to go first: those are the ones the player needs to act on; then deliveries, reorganize, tidy.
+		moves.sort(java.util.Comparator.comparingInt(Move::order));
 		return new ZonePayloads.Simulation(zone.anchor(), sources.size(), moves);
 	}
 }

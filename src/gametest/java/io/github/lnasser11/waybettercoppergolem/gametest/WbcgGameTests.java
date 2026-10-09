@@ -1667,6 +1667,45 @@ public final class WbcgGameTests {
 		helper.runAfterDelay(800, helper::succeed);
 	}
 
+	// ---------------------------------------------------------------- reorganize: misplaced stacks go to the right chest
+
+	/** A cake in the Stone & Dirt chest is moved to the Food chest, and the simulation predicts it. */
+	@GameTest(maxTicks = GOLEM_TIMEOUT)
+	public void golemMovesAMisplacedStackToTheChestLabeledForIt(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos anchor = copperChest(helper, new BlockPos(1, 1, 1));
+		Zones.put(level, anchor, new Zone(structureBox(helper), ZoneSettings.DEFAULT));
+		BlockPos stone = chest(helper, new BlockPos(6, 1, 2), Items.STONE, 64, Items.STONE, 64, Items.CAKE, 1);
+		BlockPos food = chest(helper, new BlockPos(6, 1, 5), Items.BREAD, 4);
+		label(level, stone, ChestLabel.tag(id(Items.STONE), STONE_AND_DIRT));
+		label(level, food, ChestLabel.tag(id(Items.BREAD), Identifier.fromNamespaceAndPath("wbcg", "food")));
+
+		ZonePayloads.Simulation simulation = ZoneSimulation.build(level, new Zones.ZoneRef(anchor, Zones.all(level).get(anchor)));
+		helper.assertValueEqual(simulation.moves().size(), 1, "one reorganize row");
+		ZonePayloads.Move row = simulation.moves().getFirst();
+		helper.assertTrue(row.reorganize() && row.item().equals(id(Items.CAKE)) && row.count() == 1
+				&& row.from().equals(stone) && row.to().equals(Optional.of(food)),
+				"reorganize: 1x cake from the stone chest " + stone + " to the food chest " + food + ", got " + row);
+
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		((ZoneAwareGolem) golem).wbcg$joinZoneAt(level, anchor);
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, anchor);
+			golem.discard();
+		});
+		helper.failIfEver(() -> {
+			helper.assertValueEqual(count(level, stone, Items.STONE), 128, "stone never leaves the stone chest");
+			helper.assertValueEqual(count(level, food, Items.STONE), 0, "no stone arrives in the food chest");
+		});
+		helper.succeedWhen(() -> {
+			helper.assertValueEqual(count(level, stone, Items.CAKE), 0, "the cake left the stone chest");
+			helper.assertValueEqual(count(level, food, Items.CAKE), 1, "the cake is in the food chest");
+			helper.assertTrue(golem.getMainHandItem().isEmpty(), "nothing left in hand");
+		});
+	}
+
 	// ---------------------------------------------------------------- the golem button
 
 	/** Opening the editor from a chest's screen must close that chest's menu, or the server keeps syncing it. */

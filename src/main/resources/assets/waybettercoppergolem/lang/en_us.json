@@ -168,7 +168,7 @@
   "waybettercoppergolem.overview.paste_all.tooltip": "Gives every unlabeled chest in the zone the labels on your clipboard.",
   "waybettercoppergolem.overview.refresh": "Refresh",
   "waybettercoppergolem.simulation.title": "Simulation: what the golems would do now",
-  "waybettercoppergolem.simulation.summary": "%s · %s · %s · %s",
+  "waybettercoppergolem.simulation.summary": "%s · %s · %s · %s · %s",
   "waybettercoppergolem.simulation.caveat": "Ignores golem reach and chests filling up along the way.",
   "waybettercoppergolem.simulation.none": "The zone's copper chests are empty.",
   "waybettercoppergolem.simulation.nowhere": "nowhere to go",
@@ -212,7 +212,7 @@
   "waybettercoppergolem.tuning.tag_excluded": "excluded",
   "waybettercoppergolem.tuning.tag_add": "add",
   "waybettercoppergolem.overview.section": "Chests, problems first · page %s / %s",
-  "waybettercoppergolem.settings.reorganize.tooltip": "When the copper chests are empty, golems slowly move stacks that sit in the wrong labeled chest to where they belong.",
+  "waybettercoppergolem.settings.reorganize.tooltip": "When the copper chests are empty, golems move stacks that match none of their chest's labels to the chest labeled for them, one stack per trip, about one every ten seconds. Simulate shows what would move.",
   "waybettercoppergolem.settings.tidy.tooltip": "Between deliveries, golems consolidate chests that share the same labels: each item gets a home (the sibling holding the most of it) and stray stacks of it move there, one stack per trip, so each chest trends toward one kind of content. Partial stacks are merged first. Nothing is created or lost.",
   "waybettercoppergolem.settings.dry_run.tooltip": "Golems log what they would move to the server log and touch nothing. For a quick answer use Simulate instead.",
   "waybettercoppergolem.settings.save_defaults": "Save default",
@@ -281,5 +281,9 @@
   "waybettercoppergolem.editor.frames.now_blocked": "Golems will not hang a frame on this chest",
   "waybettercoppergolem.zone.summary_golems": "stay inside %s · frames %s · perch %s",
   "waybettercoppergolem.settings.perch_idle": "Idle golems perch",
-  "waybettercoppergolem.settings.perch_idle.tooltip": "A golem with nothing to do climbs onto a chest of the zone and stands there like a statue until the copper chests have items again."
+  "waybettercoppergolem.settings.perch_idle.tooltip": "A golem with nothing to do climbs onto a chest of the zone and stands there like a statue until the copper chests have items again.",
+  "waybettercoppergolem.simulation.reorganize_row": "reorganize: %s× %s",
+  "waybettercoppergolem.simulation.reorganize_row.tooltip": "Reorganize: this stack matches none of the labels of the chest at %s and would move to the chest labeled for it. Click to make the destination sparkle.",
+  "waybettercoppergolem.count.reorganize.one": "%s misplaced stack to move",
+  "waybettercoppergolem.count.reorganize.many": "%s misplaced stacks to move"
 }

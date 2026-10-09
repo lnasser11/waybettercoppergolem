@@ -335,12 +335,15 @@ scale your monitor allows, and check:
 
 ## 11. Reorganize existing chests
 
-1. Manually shove a stack of dirt into the iron chest.
-2. Empty the copper chest and wait. This is deliberately slow,
-   low-priority background work: expect up to a minute or two of idling
-   first.
+1. Manually shove a stack of dirt into the iron chest. Open the zone
+   screen → **Simulate…** → a `reorganize: 64× Dirt → [catch-all]` row.
+2. Empty the copper chest and wait. This is background work that only
+   runs when there is nothing to deliver: expect up to a minute of idling
+   first, then about one move every ten seconds.
 3. **Expect:** golem takes exactly the dirt (iron untouched) and moves it
-   to the catch-all. One stray stack must never re-label a chest.
+   to the catch-all. One stray stack must never re-label a chest. Put a
+   cake into a *Stone & Dirt* chest with a *Food* chest nearby → the cake
+   ends up in the Food chest.
 4. Toggle reorganize OFF in the zone screen, plant more dirt → it stays.
 
 ## 12. Tidy sibling chests (off by default)

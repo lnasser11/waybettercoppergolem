@@ -278,6 +278,61 @@ public final class SortingEngine {
 		return ItemStack.EMPTY;
 	}
 
+	/** One pending reorganize move: a misplaced {@code stack} leaves {@code source} for the chest labeled for it. */
+	public record ReorganizeMove(TransportItemTarget source, ItemStack stack, TransportItemTarget destination) {
+	}
+
+	/**
+	 * Every misplaced stack in the area that has somewhere better to go
+	 * right now: for each labeled chest, each stack matching none of its
+	 * labels, with the destination the golems would pick. A preview for
+	 * Simulate and Overview; capped so a huge room stays cheap.
+	 */
+	public static List<ReorganizeMove> planReorganize(ServerLevel level, AABB searchArea, int carrySize) {
+		List<ReorganizeMove> moves = new java.util.ArrayList<>();
+		for (ChunkPos chunkPos : chunksCovering(searchArea)) {
+			LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
+			if (chunk == null) {
+				continue;
+			}
+			for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+				if (!(blockEntity instanceof ChestBlockEntity) || !ChestLabels.isLabelableChest(blockEntity.getBlockState())) {
+					continue;
+				}
+				BlockPos canonical = io.github.lnasser11.waybettercoppergolem.learn.RoomLearner.canonicalHalf(
+						blockEntity.getBlockPos(), blockEntity.getBlockState());
+				if (!canonical.equals(blockEntity.getBlockPos())) {
+					continue;
+				}
+				TransportItemTarget source = validCandidate(level, blockEntity, ChestLabels::isLabelableChest, Set.of(), Set.of(), searchArea);
+				if (source == null) {
+					continue;
+				}
+				List<ChestLabel> labels = ChestLabels.effectiveLabels(level, source.pos(), source.state());
+				if (labels.isEmpty() || labels.stream().anyMatch(label -> label.isCatchAll() || label.isOffLimits())) {
+					continue;
+				}
+				Set<GlobalPos> excludingSource = new java.util.HashSet<>();
+				for (BlockPos half : ChestLabels.halves(source.pos(), source.state())) {
+					excludingSource.add(new GlobalPos(level.dimension(), half));
+				}
+				for (ItemStack stack : source.container()) {
+					if (stack.isEmpty() || labels.stream().anyMatch(label -> LabelResolver.matches(level, label, stack))) {
+						continue;
+					}
+					ItemStack preview = stack.copyWithCount(Math.min(stack.getCount(), carrySize));
+					findDepositTarget(level, Vec3.atCenterOf(source.pos()), preview, ChestLabels::isLabelableChest,
+							excludingSource, Set.of(), searchArea)
+							.ifPresent(destination -> moves.add(new ReorganizeMove(source, preview, destination)));
+					if (moves.size() >= 100) {
+						return moves;
+					}
+				}
+			}
+		}
+		return moves;
+	}
+
 	// ---------------------------------------------------------------- tidy: consolidation across sibling chests
 
 	/**

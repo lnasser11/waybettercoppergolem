@@ -90,7 +90,7 @@ public abstract class TransportItemsBetweenContainersMixin {
 	private @Nullable BlockPos wbcg$depositPos;
 
 	@org.spongepowered.asm.mixin.Unique
-	private static final int WBCG$REORGANIZE_SUCCESS_COOLDOWN = 600;
+	private static final int WBCG$REORGANIZE_SUCCESS_COOLDOWN = 200;
 
 	@org.spongepowered.asm.mixin.Unique
 	private static final int WBCG$REORGANIZE_IDLE_COOLDOWN = 1200;
@@ -193,9 +193,9 @@ public abstract class TransportItemsBetweenContainersMixin {
 	/**
 	 * Reorganize-existing-chests: when the golem is empty-handed and vanilla
 	 * found no copper chest worth visiting, offer a labeled chest containing
-	 * a misplaced stack as the pickup source instead. Slow, low-priority
-	 * background work: it only runs when the dump queue is idle, and backs
-	 * off for a minute when the storage room is already tidy.
+	 * a misplaced stack as the pickup source instead. Background work that
+	 * only runs when the dump queue is idle: one move per ten seconds, a
+	 * minute's pause when the storage room is already tidy.
 	 */
 	@Inject(method = "getTransportTarget", at = @At("RETURN"), cancellable = true)
 	private void wbcg$reorganizeSource(ServerLevel level, PathfinderMob body,
@@ -447,7 +447,8 @@ public abstract class TransportItemsBetweenContainersMixin {
 		int slot = 0;
 		for (ItemStack stack : container) {
 			if (stack == misplaced) {
-				ItemStack taken = container.removeItem(slot, Math.min(stack.getCount(), 16));
+				ItemStack taken = container.removeItem(slot, Math.min(stack.getCount(),
+						io.github.lnasser11.waybettercoppergolem.config.WbcgConfig.get().golemCarrySize()));
 				body.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, taken);
 				body.setGuaranteedDrop(net.minecraft.world.entity.EquipmentSlot.MAINHAND);
 				container.setChanged();
@@ -521,7 +522,12 @@ public abstract class TransportItemsBetweenContainersMixin {
 				&& FrameHanger.isFrame(body.getMainHandItem());
 	}
 
-	/** After a delivery into a labeled chest with a bare front face, remember it for a frame trip. */
+	/**
+	 * After a delivery: a labeled chest with a bare front face is remembered
+	 * for a frame trip, and a chest holding a misplaced stack makes the next
+	 * reorganize search run at once instead of after the cooldown, so a
+	 * stack the golem just saw out of place is moved right away.
+	 */
 	@org.spongepowered.asm.mixin.Unique
 	private void wbcg$rememberBareChest(PathfinderMob body) {
 		BlockPos deposited = this.wbcg$depositPos;
@@ -531,6 +537,12 @@ public abstract class TransportItemsBetweenContainersMixin {
 		}
 		ZoneAwareGolem golem = (ZoneAwareGolem) body;
 		ZoneSettings settings = golem.wbcg$zoneSettings(level);
+		if (settings.reorganize() && !settings.dryRun()) {
+			TransportItemTarget visited = TransportItemTarget.tryCreatePossibleTarget(deposited, level);
+			if (visited != null && !SortingEngine.firstMisplacedStack(level, visited).isEmpty()) {
+				golem.wbcg$setNextReorganizeTime(level.getGameTime());
+			}
+		}
 		if (settings.hangFrames() && !settings.dryRun() && FrameHanger.wantsFrame(level, deposited)) {
 			golem.wbcg$setPendingFrameChest(deposited);
 		}

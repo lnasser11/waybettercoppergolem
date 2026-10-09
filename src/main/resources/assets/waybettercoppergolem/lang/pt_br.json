@@ -168,7 +168,7 @@
   "waybettercoppergolem.overview.paste_all.tooltip": "Dá a todos os baús sem rótulo da zona os rótulos da sua área de transferência.",
   "waybettercoppergolem.overview.refresh": "Atualizar",
   "waybettercoppergolem.simulation.title": "Simulação: o que os golens fariam agora",
-  "waybettercoppergolem.simulation.summary": "%s · %s · %s · %s",
+  "waybettercoppergolem.simulation.summary": "%s · %s · %s · %s · %s",
   "waybettercoppergolem.simulation.caveat": "Ignora o alcance dos golens e baús que lotam no caminho.",
   "waybettercoppergolem.simulation.none": "Os baús de cobre da zona estão vazios.",
   "waybettercoppergolem.simulation.nowhere": "sem destino",
@@ -212,7 +212,7 @@
   "waybettercoppergolem.tuning.tag_excluded": "excluído",
   "waybettercoppergolem.tuning.tag_add": "adicionar",
   "waybettercoppergolem.overview.section": "Baús, problemas primeiro · página %s / %s",
-  "waybettercoppergolem.settings.reorganize.tooltip": "Quando os baús de cobre estão vazios, os golens movem devagar as pilhas que estão no baú rotulado errado para onde pertencem.",
+  "waybettercoppergolem.settings.reorganize.tooltip": "Quando os baús de cobre estão vazios, os golens movem pilhas que não combinam com os rótulos do seu baú para o baú rotulado para elas, uma pilha por viagem, cerca de uma a cada dez segundos. Simular mostra o que iria mover.",
   "waybettercoppergolem.settings.tidy.tooltip": "Entre entregas, os golens consolidam baús com os mesmos rótulos: cada item ganha uma casa (o irmão que tem mais dele) e as pilhas soltas vão para lá, uma pilha por viagem, para que cada baú tenda a um só tipo de conteúdo. Pilhas parciais são juntadas antes. Nada é criado nem perdido.",
   "waybettercoppergolem.settings.dry_run.tooltip": "Os golens registram no log do servidor o que moveriam e não tocam em nada. Para uma resposta rápida use Simular.",
   "waybettercoppergolem.settings.save_defaults": "Salvar padrão",
@@ -281,5 +281,9 @@
   "waybettercoppergolem.editor.frames.now_blocked": "Os golens não vão pendurar moldura neste baú",
   "waybettercoppergolem.zone.summary_golems": "ficar dentro %s · molduras %s · pose %s",
   "waybettercoppergolem.settings.perch_idle": "Golens ociosos posam",
-  "waybettercoppergolem.settings.perch_idle.tooltip": "Um golem sem nada para fazer sobe em um baú da zona e fica parado ali como uma estátua até os baús de cobre terem itens de novo."
+  "waybettercoppergolem.settings.perch_idle.tooltip": "Um golem sem nada para fazer sobe em um baú da zona e fica parado ali como uma estátua até os baús de cobre terem itens de novo.",
+  "waybettercoppergolem.simulation.reorganize_row": "reorganizar: %s× %s",
+  "waybettercoppergolem.simulation.reorganize_row.tooltip": "Reorganizar: esta pilha não combina com nenhum rótulo do baú em %s e iria para o baú rotulado para ela. Clique para fazer o destino brilhar.",
+  "waybettercoppergolem.count.reorganize.one": "%s pilha fora do lugar a mover",
+  "waybettercoppergolem.count.reorganize.many": "%s pilhas fora do lugar a mover"
 }
