@@ -42,17 +42,37 @@ public final class EditorPayloads {
 		).apply(instance, Suggestion::new));
 	}
 
-	/** Server → client: everything the editor shows for one chest; {@code canEdit} is false for a read-only look. */
-	public record EditorContext(BlockPos pos, ChestLabelSet current, List<Suggestion> suggestions, boolean canEdit)
-			implements CustomPacketPayload {
+	/**
+	 * Server → client: everything the editor shows for one chest;
+	 * {@code canEdit} is false for a read-only look, {@code golemFrames}
+	 * is the chest's frame switch.
+	 */
+	public record EditorContext(BlockPos pos, ChestLabelSet current, List<Suggestion> suggestions, boolean canEdit,
+			boolean golemFrames) implements CustomPacketPayload {
 		public static final Type<EditorContext> TYPE = new Type<>(WayBetterCopperGolem.id("editor_context"));
 		private static final Codec<EditorContext> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 				BlockPos.CODEC.fieldOf("pos").forGetter(EditorContext::pos),
 				ChestLabelSet.CODEC.fieldOf("current").forGetter(EditorContext::current),
 				Suggestion.CODEC.listOf().fieldOf("suggestions").forGetter(EditorContext::suggestions),
-				Codec.BOOL.optionalFieldOf("can_edit", true).forGetter(EditorContext::canEdit)
+				Codec.BOOL.optionalFieldOf("can_edit", true).forGetter(EditorContext::canEdit),
+				Codec.BOOL.optionalFieldOf("golem_frames", true).forGetter(EditorContext::golemFrames)
 		).apply(instance, EditorContext::new));
 		public static final StreamCodec<ByteBuf, EditorContext> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
+	/** Client → server: allow or forbid golems to hang an item frame on this chest. */
+	public record SetChestFrames(BlockPos pos, boolean allowed) implements CustomPacketPayload {
+		public static final Type<SetChestFrames> TYPE = new Type<>(WayBetterCopperGolem.id("set_chest_frames"));
+		private static final Codec<SetChestFrames> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+				BlockPos.CODEC.fieldOf("pos").forGetter(SetChestFrames::pos),
+				Codec.BOOL.fieldOf("allowed").forGetter(SetChestFrames::allowed)
+		).apply(instance, SetChestFrames::new));
+		public static final StreamCodec<ByteBuf, SetChestFrames> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
 
 		@Override
 		public Type<? extends CustomPacketPayload> type() {

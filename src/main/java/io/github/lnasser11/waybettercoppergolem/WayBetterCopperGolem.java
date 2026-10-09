@@ -77,6 +77,16 @@ public class WayBetterCopperGolem implements ModInitializer {
 					.syncWith(ChestLabelSet.STREAM_CODEC, AttachmentSyncPredicate.all()));
 
 	/**
+	 * Set on a chest block entity whose owner does not want golems to hang
+	 * an item frame on it (the chest editor's frame switch). Absent means
+	 * allowed. Synced so the editor can show the switch without a round trip.
+	 */
+	public static final AttachmentType<Boolean> CHEST_NO_GOLEM_FRAMES = AttachmentRegistry.create(
+			id("chest_no_golem_frames"),
+			builder -> builder.persistent(com.mojang.serialization.Codec.BOOL)
+					.syncWith(net.minecraft.network.codec.ByteBufCodecs.BOOL, AttachmentSyncPredicate.all()));
+
+	/**
 	 * Legacy: the tag an old-style cycled frame meant. No longer written;
 	 * read once to migrate the chest to an explicit label set, then removed.
 	 */
@@ -147,6 +157,9 @@ public class WayBetterCopperGolem implements ModInitializer {
 				(payload, context) -> ChestEditor.open(context.player(), payload.pos()));
 		ServerPlayNetworking.registerGlobalReceiver(EditorPayloads.SetChestLabels.TYPE,
 				(payload, context) -> ChestEditor.apply(context.player(), payload.pos(), payload.labels()));
+		PayloadTypeRegistry.serverboundPlay().register(EditorPayloads.SetChestFrames.TYPE, EditorPayloads.SetChestFrames.STREAM_CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(EditorPayloads.SetChestFrames.TYPE,
+				(payload, context) -> ChestEditor.setGolemFrames(context.player(), payload.pos(), payload.allowed()));
 		PayloadTypeRegistry.clientboundPlay().register(TuningPayloads.TuningContext.TYPE, TuningPayloads.TuningContext.STREAM_CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(TuningPayloads.OpenTuning.TYPE, TuningPayloads.OpenTuning.STREAM_CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(TuningPayloads.TuneCategory.TYPE, TuningPayloads.TuneCategory.STREAM_CODEC);

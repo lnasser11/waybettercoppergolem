@@ -379,6 +379,16 @@ scale your monitor allows, and check:
    chest whose front face is blocked never get one.
 4. Toggle the setting OFF → the frames are ordinary cargo again (they go
    wherever frames are labeled to go) and no frame is hung.
+5. Put a slab (or any block) in front of a labeled chest and feed it →
+   the golem delivers but never fetches a frame. Remove the slab after
+   the golem has picked up a frame and is walking over, then put it back
+   before it arrives → the golem turns around and drops the frame back
+   into the copper chest; nothing is hung and no item is taken from the
+   chest.
+6. Open a chest's editor and click the small item-frame chip beside
+   *Mode* → it turns red (`Golem frames: not on this chest`) and the chest
+   never gets a frame even with the zone setting on; click again to allow
+   it. The switch needs the same permission as a label edit.
 
 ## 13. Persistence and upgrading
 

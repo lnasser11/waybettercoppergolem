@@ -51,9 +51,12 @@ import java.util.Set;
  *
  * <p>Never touched: frames already hanging, off-limits and catch-all chests
  * (a catch-all holds anything, so no single item describes it), copper
- * chests, chests whose front face is not air or has no content. While the
- * setting is on, frames in copper chests are supplies: the normal pickup
- * skips them.
+ * chests, chests marked "no golem frames" in the editor, chests with
+ * nothing inside or whose front face is taken (a solid block, a slab, a
+ * fluid, another hanging entity). A golem that arrives with a frame and
+ * finds the front taken gives up: it carries the frame back to the copper
+ * chest it came from. While the setting is on, frames in copper chests are
+ * supplies: the normal pickup skips them.
  */
 public final class FrameHanger {
 	private FrameHanger() {
@@ -82,15 +85,34 @@ public final class FrameHanger {
 				|| labels.labels().stream().anyMatch(ChestLabel::isCatchAll)) {
 			return false;
 		}
+		if (!ChestLabels.golemFramesAllowed(level, chestPos, state)) {
+			return false;
+		}
 		Direction facing = state.getValue(ChestBlock.FACING);
-		if (!level.getBlockState(chestPos.relative(facing)).isAir()) {
+		if (!frontIsFree(level, chestPos, facing)) {
+			return false;
+		}
+		Container container = ChestLabels.container(level, chestPos);
+		return container != null && !sampleFor(level, container, labels.labels()).isEmpty();
+	}
+
+	/**
+	 * Whether a frame could hang on the chest's front face right now: the
+	 * block in front is air or something a frame can share (no solid block,
+	 * no fluid, nothing the frame would collide with such as a slab), and no
+	 * frame hangs on that face yet. Golems give up on a chest whose front is
+	 * taken; the chest itself may still be perfectly reachable.
+	 */
+	public static boolean frontIsFree(ServerLevel level, BlockPos chestPos, Direction facing) {
+		BlockPos front = chestPos.relative(facing);
+		BlockState inFront = level.getBlockState(front);
+		if (!inFront.isAir() && (inFront.isSolid() || !inFront.getFluidState().isEmpty())) {
 			return false;
 		}
 		if (ChestLabels.labelFrames(level, chestPos).stream().anyMatch(frame -> frame.getDirection() == facing)) {
 			return false;
 		}
-		Container container = ChestLabels.container(level, chestPos);
-		return container != null && !sampleFor(level, container, labels.labels()).isEmpty();
+		return new ItemFrame(level, front, facing).survives();
 	}
 
 	/**

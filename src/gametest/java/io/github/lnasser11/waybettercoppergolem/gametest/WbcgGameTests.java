@@ -1551,6 +1551,69 @@ public final class WbcgGameTests {
 		});
 	}
 
+	/** A chest switched to "no golem frames" in the editor never gets one; the copper chest keeps its frames. */
+	@GameTest(maxTicks = 1200)
+	public void golemRespectsTheChestsFrameSwitch(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		golemWithFrames(helper, true);
+		BlockPos source = helper.absolutePos(new BlockPos(1, 1, 3));
+		BlockPos iron = helper.absolutePos(new BlockPos(6, 1, 3));
+		ServerPlayer player = mockPlayer(helper);
+		player.setPos(Vec3.atCenterOf(iron.above()));
+		ChestEditor.setGolemFrames(player, iron, false);
+		helper.assertFalse(ChestLabels.golemFramesAllowed(level, iron, level.getBlockState(iron)), "switched off");
+		helper.assertFalse(io.github.lnasser11.waybettercoppergolem.sorting.FrameHanger.wantsFrame(level, iron), "no frame wanted");
+		helper.runAfterDelay(800, () -> {
+			helper.assertTrue(framesOnFront(level, iron).isEmpty(), "a frame was hung on a chest that forbids it");
+			helper.assertValueEqual(count(level, iron, Items.IRON_INGOT), 26, "iron delivered, none framed");
+			helper.assertValueEqual(count(level, source, Items.ITEM_FRAME), 2, "the copper chest's frames were not taken");
+			ChestEditor.setGolemFrames(player, iron, true);
+			helper.assertTrue(ChestLabels.golemFramesAllowed(level, iron, level.getBlockState(iron)), "switched back on");
+			helper.succeed();
+		});
+	}
+
+	/** A chest whose front is taken (a slab, a solid block, another frame) is never planned for a frame. */
+	@GameTest
+	public void frameNeedsAFreeFront(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		BlockPos chest = chest(helper, new BlockPos(3, 1, 3), Items.IRON_INGOT, 5);
+		label(level, chest, ChestLabel.exact(id(Items.IRON_INGOT)));
+		helper.assertTrue(io.github.lnasser11.waybettercoppergolem.sorting.FrameHanger.wantsFrame(level, chest), "air in front: wanted");
+		helper.setBlock(new BlockPos(3, 1, 2), Blocks.STONE_SLAB);
+		helper.assertFalse(io.github.lnasser11.waybettercoppergolem.sorting.FrameHanger.wantsFrame(level, chest), "a slab in front: not wanted");
+		helper.setBlock(new BlockPos(3, 1, 2), Blocks.STONE);
+		helper.assertFalse(io.github.lnasser11.waybettercoppergolem.sorting.FrameHanger.wantsFrame(level, chest), "a block in front: not wanted");
+		helper.setBlock(new BlockPos(3, 1, 2), Blocks.AIR);
+		helper.assertTrue(io.github.lnasser11.waybettercoppergolem.sorting.FrameHanger.wantsFrame(level, chest), "free again: wanted");
+		hangFrame(helper, chest, Items.DIAMOND);
+		helper.assertFalse(io.github.lnasser11.waybettercoppergolem.sorting.FrameHanger.wantsFrame(level, chest), "a frame already there: not wanted");
+		helper.succeed();
+	}
+
+	/** The front gets blocked while the golem is carrying the frame: it gives up and brings the frame back. */
+	@GameTest(maxTicks = GOLEM_TIMEOUT)
+	public void golemGivesUpAndReturnsTheFrameWhenTheFrontGetsBlocked(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		CopperGolem golem = golemWithFrames(helper, true);
+		BlockPos source = helper.absolutePos(new BlockPos(1, 1, 3));
+		BlockPos iron = helper.absolutePos(new BlockPos(6, 1, 3));
+		helper.startSequence()
+				.thenWaitUntil(() -> helper.assertTrue(
+						io.github.lnasser11.waybettercoppergolem.sorting.FrameHanger.isFrame(golem.getMainHandItem()), "golem not carrying a frame yet"))
+				.thenExecute(() -> helper.setBlock(new BlockPos(6, 1, 2), Blocks.STONE_SLAB))
+				.thenWaitUntil(() -> {
+					helper.assertTrue(golem.getMainHandItem().isEmpty(), "golem still carrying the frame");
+					helper.assertValueEqual(count(level, source, Items.ITEM_FRAME), 2, "the frame went back to the copper chest");
+				})
+				.thenExecute(() -> {
+					helper.assertTrue(framesOnFront(level, iron).isEmpty(), "no frame hung on the blocked chest");
+					helper.assertValueEqual(count(level, iron, Items.ITEM_FRAME), 0, "no frame stored in the iron chest");
+					helper.assertValueEqual(count(level, iron, Items.IRON_INGOT), 26, "no ingot taken for a frame");
+				})
+				.thenSucceed();
+	}
+
 	// ---------------------------------------------------------------- the golem button
 
 	/** Opening the editor from a chest's screen must close that chest's menu, or the server keeps syncing it. */

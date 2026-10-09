@@ -272,5 +272,11 @@
   "waybettercoppergolem.simulation.tidy_row": "tidy: %s× %s",
   "waybettercoppergolem.simulation.tidy_row.tooltip": "Tidy: from the sibling chest at %s into the chest that holds more of it. Click to make the destination sparkle.",
   "waybettercoppergolem.count.tidy.one": "%s tidy move pending",
-  "waybettercoppergolem.count.tidy.many": "%s tidy moves pending"
+  "waybettercoppergolem.count.tidy.many": "%s tidy moves pending",
+  "waybettercoppergolem.editor.frames.allowed": "Golem frames: allowed",
+  "waybettercoppergolem.editor.frames.blocked": "Golem frames: not on this chest",
+  "waybettercoppergolem.editor.frames.allowed.tooltip": "Golems may hang an item frame on this chest (when the zone's \"Golems hang frames\" is on). Click to forbid it for this chest.",
+  "waybettercoppergolem.editor.frames.blocked.tooltip": "Golems never hang an item frame on this chest. Click to allow it again.",
+  "waybettercoppergolem.editor.frames.now_allowed": "Golems may hang a frame on this chest",
+  "waybettercoppergolem.editor.frames.now_blocked": "Golems will not hang a frame on this chest"
 }

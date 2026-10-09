@@ -210,7 +210,17 @@ public class LabelPickerScreen extends Screen {
 						this.rebuildWidgets();
 					})
 					.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.editor.mode.tooltip")))
-					.bounds(this.specialX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
+					.bounds(this.specialX, y, Ui.COLUMN_WIDTH - Ui.BUTTON_HEIGHT - Ui.GAP, Ui.BUTTON_HEIGHT).build());
+			// The frame switch: whether golems may hang an item frame on this chest.
+			boolean frames = this.context.golemFrames();
+			this.addRenderableWidget(new ListRow(this.specialX + Ui.COLUMN_WIDTH - Ui.BUTTON_HEIGHT, y, Ui.BUTTON_HEIGHT,
+					Component.translatable(frames ? "waybettercoppergolem.editor.frames.allowed" : "waybettercoppergolem.editor.frames.blocked"),
+					() -> ClientPlayNetworking.send(new EditorPayloads.SetChestFrames(this.context.pos(), !frames)))
+					.icon(new ItemStack(frames ? Items.ITEM_FRAME : Items.BARRIER))
+					.iconOnly()
+					.accent(frames ? Ui.OK : Ui.PROBLEM)
+					.tooltip(Component.translatable(frames
+							? "waybettercoppergolem.editor.frames.allowed.tooltip" : "waybettercoppergolem.editor.frames.blocked.tooltip")));
 			y += Ui.ROW;
 			List<ChestLabel> current = this.context.current().labels();
 			this.noLabelsY = current.isEmpty() ? y : -1;
