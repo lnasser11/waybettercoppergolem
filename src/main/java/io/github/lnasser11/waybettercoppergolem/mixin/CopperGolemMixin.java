@@ -328,6 +328,20 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 		return best;
 	}
 
+	/**
+	 * Golems do not push each other. Vanilla mobs shove every entity they
+	 * overlap, which is how three golems in one corridor end up wedged in
+	 * each other's way; without the shove they simply pass through one
+	 * another. Players, animals and everything else still push golems and
+	 * are pushed by them. (This overrides {@code LivingEntity.doPush}; the
+	 * vanilla body is {@code entity.push(this)}.)
+	 */
+	protected void doPush(net.minecraft.world.entity.Entity entity) {
+		if (!(entity instanceof CopperGolem)) {
+			entity.push((CopperGolem) (Object) this);
+		}
+	}
+
 	/** The position inside the box nearest to {@code pos}, one block in from any face it was clamped to. */
 	@Unique
 	private static BlockPos wbcg$nearestInside(BoundingBox box, BlockPos pos) {

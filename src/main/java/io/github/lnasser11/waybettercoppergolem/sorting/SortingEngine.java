@@ -63,9 +63,24 @@ public final class SortingEngine {
 			Predicate<BlockState> destinationBlockType,
 			Set<GlobalPos> visited, Set<GlobalPos> unreachable,
 			AABB searchArea) {
+		return findDepositTarget(level, from, held, destinationBlockType, visited, unreachable, searchArea, Set.of());
+	}
+
+	/**
+	 * Like {@link #findDepositTarget(ServerLevel, Vec3, ItemStack, Predicate, Set, Set, AABB)},
+	 * but among equally good chests one that no other golem is heading to
+	 * ({@code claimed}, see {@link GolemClaims}) is preferred over a nearer
+	 * one that is, so several golems spread over twin chests.
+	 */
+	public static Optional<TransportItemTarget> findDepositTarget(
+			ServerLevel level, Vec3 from, ItemStack held,
+			Predicate<BlockState> destinationBlockType,
+			Set<GlobalPos> visited, Set<GlobalPos> unreachable,
+			AABB searchArea, Set<BlockPos> claimed) {
 		TransportItemTarget best = null;
 		long bestRank = Long.MAX_VALUE;
 		boolean bestContainsItem = false;
+		boolean bestClaimed = true;
 		double bestDistSq = Double.MAX_VALUE;
 
 		for (ChunkPos chunkPos : chunksCovering(searchArea)) {
@@ -89,14 +104,17 @@ public final class SortingEngine {
 				// Between equally-labeled chests, prefer the one already holding
 				// this item, so twin chests consolidate instead of scattering.
 				boolean containsItem = containsSameItem(candidate.container(), held);
+				boolean isClaimed = isClaimed(candidate, claimed);
 				double distSq = candidate.pos().distToCenterSqr(from);
 				boolean better = rank < bestRank
 						|| (rank == bestRank && containsItem && !bestContainsItem)
-						|| (rank == bestRank && containsItem == bestContainsItem && distSq < bestDistSq);
+						|| (rank == bestRank && containsItem == bestContainsItem && !isClaimed && bestClaimed)
+						|| (rank == bestRank && containsItem == bestContainsItem && isClaimed == bestClaimed && distSq < bestDistSq);
 				if (better) {
 					best = candidate;
 					bestRank = rank;
 					bestContainsItem = containsItem;
+					bestClaimed = isClaimed;
 					bestDistSq = distSq;
 				}
 			}
@@ -106,6 +124,70 @@ public final class SortingEngine {
 					held.getItem(), best.pos(), bestRank);
 		}
 		return Optional.ofNullable(best);
+	}
+
+	private static boolean isClaimed(TransportItemTarget target, Set<BlockPos> claimed) {
+		if (claimed.isEmpty()) {
+			return false;
+		}
+		if (claimed.contains(target.pos())) {
+			return true;
+		}
+		BlockState state = target.state();
+		return state.getValueOrElse(ChestBlock.TYPE, ChestType.SINGLE) != ChestType.SINGLE
+				&& claimed.contains(ChestBlock.getConnectedBlockPos(target.pos(), state));
+	}
+
+	/**
+	 * The copper chest to take from next: the vanilla rule (nearest chest of
+	 * the source type that is not visited, unreachable or locked), with two
+	 * refinements: a chest no other golem is heading to is preferred over a
+	 * nearer one that is, and a chest holding nothing but item frames is
+	 * skipped while the zone's golems hang frames ({@code skipFrameOnly}).
+	 * Empty when there is no candidate at all.
+	 */
+	public static Optional<TransportItemTarget> findSource(
+			ServerLevel level, Vec3 from, Predicate<BlockState> sourceBlockType,
+			Set<GlobalPos> visited, Set<GlobalPos> unreachable, AABB searchArea,
+			Set<BlockPos> claimed, boolean skipFrameOnly) {
+		TransportItemTarget best = null;
+		boolean bestClaimed = true;
+		double bestDistSq = Double.MAX_VALUE;
+		for (ChunkPos chunkPos : chunksCovering(searchArea)) {
+			LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
+			if (chunk == null) {
+				continue;
+			}
+			for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+				if (!(blockEntity instanceof ChestBlockEntity)) {
+					continue;
+				}
+				TransportItemTarget candidate = validCandidate(level, blockEntity, sourceBlockType, visited, unreachable, searchArea);
+				if (candidate == null) {
+					continue;
+				}
+				if (skipFrameOnly && !candidate.container().isEmpty() && onlyFrames(candidate.container())) {
+					continue;
+				}
+				boolean isClaimed = isClaimed(candidate, claimed);
+				double distSq = candidate.pos().distToCenterSqr(from);
+				if ((!isClaimed && bestClaimed) || (isClaimed == bestClaimed && distSq < bestDistSq)) {
+					best = candidate;
+					bestClaimed = isClaimed;
+					bestDistSq = distSq;
+				}
+			}
+		}
+		return Optional.ofNullable(best);
+	}
+
+	private static boolean onlyFrames(Container container) {
+		for (ItemStack stack : container) {
+			if (!stack.isEmpty() && !FrameHanger.isFrame(stack)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/** Every chunk the search box touches (the box is clamped to zone size upstream). */

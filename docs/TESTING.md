@@ -319,6 +319,16 @@ scale your monitor allows, and check:
    later it wanders out and starts serving whatever room it ends up in.
    The HUD's zone line shows `stay inside on/off`.
 
+## 9b. Several golems
+
+1. Summon three golems in a one-block-wide corridor between the copper
+   chest and the labeled chests → they walk through each other instead of
+   jamming; you can still push a golem with your body.
+2. Two copper chests with items and two golems → each golem takes a
+   different copper chest; with two chests labeled the same, each golem
+   delivers to a different one. One copper chest and three golems → they
+   queue at it as in vanilla.
+
 ## 10. Vertical reach (the tall-wall feature)
 
 1. Build a wall of chests 5 high standing on the floor. Label the **top**

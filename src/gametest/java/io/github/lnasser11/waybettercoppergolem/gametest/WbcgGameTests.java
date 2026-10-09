@@ -1766,6 +1766,97 @@ public final class WbcgGameTests {
 		});
 	}
 
+	// ---------------------------------------------------------------- several golems: routing
+
+	/**
+	 * Golems do not shove each other: two spawned on the same spot are still
+	 * overlapping five ticks later (vanilla pushes them apart by about a
+	 * tenth of a block per tick), while a golem and a pig spawned together
+	 * have moved apart. Five ticks is before any stroll can start.
+	 */
+	@GameTest(maxTicks = 200)
+	public void golemsDoNotPushEachOther(GameTestHelper helper) {
+		buildRoom(helper);
+		CopperGolem a = spawnGolem(helper, new BlockPos(2, 1, 2));
+		CopperGolem b = spawnGolem(helper, new BlockPos(2, 1, 2));
+		@SuppressWarnings("unchecked")
+		EntityType<net.minecraft.world.entity.Mob> pigType = (EntityType<net.minecraft.world.entity.Mob>)
+				BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.withDefaultNamespace("pig"));
+		CopperGolem c = spawnGolem(helper, new BlockPos(5, 1, 5));
+		net.minecraft.world.entity.Mob pig = helper.spawn(pigType, new BlockPos(5, 1, 5));
+		// Entities on exactly the same spot are not pushed at all (vanilla bails below 0.01 blocks), so offset the pairs.
+		b.setPos(a.getX() + 0.3, a.getY(), a.getZ());
+		pig.setPos(c.getX() + 0.3, c.getY(), c.getZ());
+		helper.runBeforeTestEnd(() -> {
+			a.discard();
+			b.discard();
+			c.discard();
+			pig.discard();
+		});
+		helper.runAfterDelay(5, () -> {
+			double golems = a.position().distanceTo(b.position());
+			double mixed = c.position().distanceTo(pig.position());
+			helper.assertTrue(mixed > 0.45, "a golem and a pig should push each other apart, distance " + mixed);
+			helper.assertTrue(golems < 0.4, "two golems pushed each other apart, distance " + golems);
+			helper.succeed();
+		});
+	}
+
+	/** A chest another golem is heading to is passed over for the next best one, both as a source and as a destination. */
+	@GameTest
+	public void golemsPreferChestsNobodyElseIsHeadingTo(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		io.github.lnasser11.waybettercoppergolem.sorting.GolemClaims.clear();
+		BlockPos near = copperChest(helper, new BlockPos(2, 1, 1));
+		BlockPos far = copperChest(helper, new BlockPos(6, 1, 1));
+		fill(helper, near, Items.IRON_INGOT, 8);
+		fill(helper, far, Items.IRON_INGOT, 8);
+		BlockPos nearIron = chest(helper, new BlockPos(2, 1, 6));
+		BlockPos farIron = chest(helper, new BlockPos(6, 1, 6));
+		label(level, nearIron, ChestLabel.exact(id(Items.IRON_INGOT)));
+		label(level, farIron, ChestLabel.exact(id(Items.IRON_INGOT)));
+		CopperGolem me = spawnGolem(helper, new BlockPos(1, 1, 3));
+		CopperGolem other = spawnGolem(helper, new BlockPos(1, 1, 4));
+		me.setNoAi(true);
+		other.setNoAi(true);
+		helper.runBeforeTestEnd(() -> {
+			io.github.lnasser11.waybettercoppergolem.sorting.GolemClaims.clear();
+			me.discard();
+			other.discard();
+		});
+		Vec3 from = me.position();
+		net.minecraft.world.phys.AABB area = Zones.toAABB(structureBox(helper));
+		java.util.function.Predicate<net.minecraft.world.level.block.state.BlockState> copper = state -> state.is(net.minecraft.tags.BlockTags.COPPER_CHESTS);
+		java.util.Set<BlockPos> none = java.util.Set.of();
+
+		helper.assertValueEqual(io.github.lnasser11.waybettercoppergolem.sorting.SortingEngine.findSource(level, from, copper,
+				none(), none(), area, none, false).map(t -> t.pos()), Optional.of(near), "nobody heading anywhere: the nearest copper chest");
+		io.github.lnasser11.waybettercoppergolem.sorting.GolemClaims.claim(level, near, other);
+		java.util.Set<BlockPos> claimed = io.github.lnasser11.waybettercoppergolem.sorting.GolemClaims.claimedByOthers(level, me);
+		helper.assertValueEqual(claimed, java.util.Set.of(near), "the other golem's claim is visible");
+		helper.assertValueEqual(io.github.lnasser11.waybettercoppergolem.sorting.SortingEngine.findSource(level, from, copper,
+				none(), none(), area, claimed, false).map(t -> t.pos()), Optional.of(far), "the claimed chest is passed over");
+		helper.assertTrue(io.github.lnasser11.waybettercoppergolem.sorting.GolemClaims.claimedByOthers(level, other).isEmpty(),
+				"a golem's own claim does not count against it");
+
+		ItemStack iron = new ItemStack(Items.IRON_INGOT, 8);
+		helper.assertValueEqual(io.github.lnasser11.waybettercoppergolem.sorting.SortingEngine.findDepositTarget(level, from, iron,
+				ChestLabels::isLabelableChest, none(), none(), area, none).map(t -> t.pos()), Optional.of(nearIron), "nearest twin chest by default");
+		io.github.lnasser11.waybettercoppergolem.sorting.GolemClaims.claim(level, nearIron, other);
+		helper.assertValueEqual(io.github.lnasser11.waybettercoppergolem.sorting.SortingEngine.findDepositTarget(level, from, iron,
+				ChestLabels::isLabelableChest, none(), none(), area, io.github.lnasser11.waybettercoppergolem.sorting.GolemClaims.claimedByOthers(level, me))
+				.map(t -> t.pos()), Optional.of(farIron), "the twin chest another golem is heading to is passed over");
+		io.github.lnasser11.waybettercoppergolem.sorting.GolemClaims.claim(level, farIron, me);
+		io.github.lnasser11.waybettercoppergolem.sorting.GolemClaims.release(other);
+		helper.assertTrue(io.github.lnasser11.waybettercoppergolem.sorting.GolemClaims.claimedByOthers(level, me).isEmpty(), "released");
+		helper.succeed();
+	}
+
+	private static java.util.Set<net.minecraft.core.GlobalPos> none() {
+		return java.util.Set.of();
+	}
+
 	// ---------------------------------------------------------------- the golem button
 
 	/** Opening the editor from a chest's screen must close that chest's menu, or the server keeps syncing it. */

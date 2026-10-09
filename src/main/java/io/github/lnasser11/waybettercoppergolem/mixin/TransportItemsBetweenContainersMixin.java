@@ -1,6 +1,7 @@
 package io.github.lnasser11.waybettercoppergolem.mixin;
 
 import io.github.lnasser11.waybettercoppergolem.sorting.FrameHanger;
+import io.github.lnasser11.waybettercoppergolem.sorting.GolemClaims;
 import io.github.lnasser11.waybettercoppergolem.sorting.SortingEngine;
 import io.github.lnasser11.waybettercoppergolem.sorting.ZoneAwareGolem;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings;
@@ -49,6 +50,10 @@ public abstract class TransportItemsBetweenContainersMixin {
 	@Shadow
 	@Final
 	private Predicate<BlockState> destinationBlockType;
+
+	@Shadow
+	@Final
+	private Predicate<BlockState> sourceBlockType;
 
 	@Shadow
 	@Final
@@ -135,23 +140,30 @@ public abstract class TransportItemsBetweenContainersMixin {
 		if (held.isEmpty()) {
 			golem.wbcg$setTidyDestination(null);
 			golem.wbcg$setFrameReturnChest(null);
-			// A frame trip: fetch a frame for the bare chest the golem last delivered into.
-			if (pending == null) {
-				return;
-			}
 			ZoneSettings settings = golem.wbcg$zoneSettings(level);
-			if (!settings.hangFrames() || settings.dryRun() || !FrameHanger.wantsFrame(level, pending)) {
-				golem.wbcg$setPendingFrameChest(null);
-				return;
+			// A frame trip: fetch a frame for the bare chest the golem last delivered into.
+			if (pending != null) {
+				if (settings.hangFrames() && !settings.dryRun() && FrameHanger.wantsFrame(level, pending)) {
+					Optional<TransportItemTarget> source = FrameHanger.findFrameSource(level, body.position(),
+							wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS), wbcg$searchArea(body, level));
+					if (source.isPresent()) {
+						this.wbcg$frameTripActive = true;
+						cir.setReturnValue(source);
+						return;
+					}
+				}
+				golem.wbcg$setPendingFrameChest(null); // nothing wanted or no frames in the zone's copper chests
 			}
-			Optional<TransportItemTarget> source = FrameHanger.findFrameSource(level, body.position(),
-					wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS), wbcg$searchArea(body, level));
-			if (source.isEmpty()) {
-				golem.wbcg$setPendingFrameChest(null); // no frames in the zone's copper chests: nothing happens
-				return;
+			// The copper chest to take from: vanilla's nearest-first, but spread over several golems and
+			// skipping chests that hold only frame supplies. No candidate at all: vanilla finds none either,
+			// and the reorganize / tidy search below gets its turn.
+			Optional<TransportItemTarget> source = SortingEngine.findSource(level, body.position(), this.sourceBlockType,
+					wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
+					wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
+					wbcg$searchArea(body, level), GolemClaims.claimedByOthers(level, body), settings.hangFrames());
+			if (source.isPresent()) {
+				cir.setReturnValue(source);
 			}
-			this.wbcg$frameTripActive = true;
-			cir.setReturnValue(source);
 			return;
 		}
 		BlockPos tidyHome = golem.wbcg$tidyDestination();
@@ -186,7 +198,15 @@ public abstract class TransportItemsBetweenContainersMixin {
 				level, body.position(), body.getMainHandItem(), this.destinationBlockType,
 				wbcg$memory(body, MemoryModuleType.VISITED_BLOCK_POSITIONS),
 				wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS),
-				wbcg$searchArea(body, level)));
+				wbcg$searchArea(body, level), GolemClaims.claimedByOthers(level, body)));
+	}
+
+	/** A golem that starts travelling to a chest claims it, so the others prefer another one. */
+	@Inject(method = "onStartTravelling", at = @At("TAIL"))
+	private void wbcg$claimTarget(PathfinderMob body, CallbackInfo ci) {
+		if (body instanceof CopperGolem && this.target != null && body.level() instanceof ServerLevel level) {
+			GolemClaims.claim(level, this.target.pos(), body);
+		}
 	}
 
 	@org.spongepowered.asm.mixin.Unique
@@ -278,6 +298,9 @@ public abstract class TransportItemsBetweenContainersMixin {
 
 	@Inject(method = "stopTargetingCurrentTarget", at = @At("TAIL"))
 	private void wbcg$clearReorganizeFlag(PathfinderMob body, CallbackInfo ci) {
+		if (body instanceof CopperGolem) {
+			GolemClaims.release(body);
+		}
 		this.wbcg$reorganizeActive = false;
 		this.wbcg$tidyActive = false;
 		this.wbcg$sortActive = false;
