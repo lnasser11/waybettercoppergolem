@@ -321,6 +321,16 @@ public abstract class TransportItemsBetweenContainersMixin {
 	}
 
 	/**
+	 * Vanilla golems pick up at most 16 items per trip; the config decides
+	 * (64 by default, a whole stack). The method is static and shared by any
+	 * mob using this behavior, which in vanilla is only the copper golem.
+	 */
+	@ModifyConstant(method = "pickupItemFromContainer", constant = @Constant(intValue = 16))
+	private static int wbcg$carrySize(int original) {
+		return io.github.lnasser11.waybettercoppergolem.config.WbcgConfig.get().golemCarrySize();
+	}
+
+	/**
 	 * Vanilla only reaches a chest whose collision box (inflated 0.5 blocks
 	 * vertically) touches the golem. Raising that to the zone's vertical
 	 * reach lets golems serve chest walls 4-5 blocks tall from the floor;
