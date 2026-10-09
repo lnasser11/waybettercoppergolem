@@ -334,14 +334,20 @@ to the sibling, and the next stone goes into the freed slot instead of
 starting a new one: each chest trends toward one kind of content and
 twin chests stop interleaving.
 
-Partial stacks of the same item are merged within a chest first (the old
-tidy), both when the golem visits a chest and before it plans a move.
+Inside each chest the stacks are kept **in order**: grouped by item,
+the item with the most stacks first (five stacks of cobblestone, then
+three of the next block, then two of the next), full stacks before
+partial ones, partial stacks of the same item merged, free slots at the
+end. A golem sorts a chest whenever it picks up from or delivers into
+it, and between deliveries it visits chests whose stacks are out of
+order to sort them in place (no carrying, one chest per trip).
 Nothing ever leaves the group, nothing goes into a chest whose labels do
 not match it (a stack that matches none of the group's labels is
 reorganize's job), off-limits chests and copper chests take no part, and
 dry run logs the intended move instead. **Simulate…** lists pending
-consolidations as *tidy: 1× Dirt → [x y z]* rows and **Overview…** counts
-them in its summary.
+consolidations as *tidy: 1× Dirt → [x y z]* rows and chests to sort as
+*sort: 7 stacks out of order*, and **Overview…** counts both in its
+summary.
 
 ### Golems stay inside their zone
 

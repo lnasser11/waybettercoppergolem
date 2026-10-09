@@ -358,8 +358,13 @@ scale your monitor allows, and check:
 3. Turn tidy ON and wait (background work, up to a minute or two): the
    golem walks to A, takes exactly the dirt, and puts it into B. Chest A
    now has a free slot; feed stone into the copper chest → it lands in A.
-4. Spread partial iron stacks across the iron chest (10 / 5 / 20 with
-   gaps) → after the golem's next visit they are merged from slot 0.
+4. Interleave stacks in a labeled chest (dirt, cobble, sand, cobble, dirt,
+   cobble, sand…) and leave the golem idle → **Simulate…** shows `sort: N
+   stacks out of order`; within a minute the golem walks to the chest,
+   opens it without taking anything, and afterwards the stacks are grouped
+   by item with the item that has the most stacks first, full stacks before
+   partial ones, no gaps. The same happens to any chest it picks up from
+   or delivers into.
 5. A chest full of one item is never touched: fill a chest with 27 stacks
    of cobblestone and label a sibling the same with a few cobblestone →
    nothing moves either way (no room). Dry run ON → the log shows

@@ -1476,10 +1476,10 @@ public final class WbcgGameTests {
 		helper.assertTrue(plan.getFirst().stack().is(Items.DIRT) && plan.getFirst().stack().getCount() == 64, "the whole dirt stack");
 
 		Zones.ZoneRef ref = new Zones.ZoneRef(anchor, Zones.all(level).get(anchor));
-		helper.assertValueEqual(ZoneOverview.build(level, ref).tidyMoves(), 1, "the overview counts it");
+		helper.assertTrue(ZoneOverview.build(level, ref).tidyMoves() >= 1, "the overview counts it");
 		ZonePayloads.Simulation simulation = ZoneSimulation.build(level, ref);
-		helper.assertValueEqual(simulation.moves().size(), 1, "the simulation lists it");
-		ZonePayloads.Move move = simulation.moves().getFirst();
+		helper.assertValueEqual(simulation.moves().stream().filter(ZonePayloads.Move::tidy).count(), 1L, "the simulation lists it");
+		ZonePayloads.Move move = simulation.moves().stream().filter(ZonePayloads.Move::tidy).findFirst().orElseThrow();
 		helper.assertTrue(move.tidy() && move.item().equals(id(Items.DIRT)) && move.count() == 64
 				&& move.to().equals(Optional.of(chests[1])), "as a tidy row: 64x dirt into the dirt chest");
 
@@ -1703,6 +1703,66 @@ public final class WbcgGameTests {
 			helper.assertValueEqual(count(level, stone, Items.CAKE), 0, "the cake left the stone chest");
 			helper.assertValueEqual(count(level, food, Items.CAKE), 1, "the cake is in the food chest");
 			helper.assertTrue(golem.getMainHandItem().isEmpty(), "nothing left in hand");
+		});
+	}
+
+	// ---------------------------------------------------------------- tidy: stacks in order inside a chest
+
+	/** Interleaved stacks end up grouped by item, the item with the most stacks first, partials merged. */
+	@GameTest
+	public void tidyLaysStacksOutByItemBiggestGroupFirst(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		BlockPos pos = chest(helper, new BlockPos(2, 1, 2),
+				Items.DIRT, 64, Items.COBBLESTONE, 64, Items.SAND, 20, Items.COBBLESTONE, 30, Items.DIRT, 64,
+				Items.COBBLESTONE, 64, Items.SAND, 10, Items.COBBLESTONE, 64, Items.COBBLESTONE, 10);
+		ChestBlockEntity chest = helper.getBlockEntity(new BlockPos(2, 1, 2), ChestBlockEntity.class);
+		helper.assertFalse(io.github.lnasser11.waybettercoppergolem.sorting.SortingEngine.isTidy(chest), "untidy to begin with");
+		io.github.lnasser11.waybettercoppergolem.sorting.SortingEngine.tidyContainer(chest);
+		// Cobblestone: 64+30+64+64+10 = 232 = 3 full stacks + 40; dirt: 2 stacks; sand: 30 in one stack.
+		Item[] expected = {Items.COBBLESTONE, Items.COBBLESTONE, Items.COBBLESTONE, Items.COBBLESTONE, Items.DIRT, Items.DIRT, Items.SAND};
+		int[] counts = {64, 64, 64, 40, 64, 64, 30};
+		StringBuilder layout = new StringBuilder();
+		for (int i = 0; i < chest.getContainerSize(); i++) {
+			layout.append(i).append('=').append(chest.getItem(i)).append(' ');
+		}
+		for (int i = 0; i < expected.length; i++) {
+			helper.assertTrue(chest.getItem(i).is(expected[i]) && chest.getItem(i).getCount() == counts[i],
+					"slot " + i + " should be " + counts[i] + "x " + expected[i] + " but the layout is " + layout);
+		}
+		helper.assertTrue(chest.getItem(7).isEmpty(), "the rest is free");
+		helper.assertTrue(io.github.lnasser11.waybettercoppergolem.sorting.SortingEngine.isTidy(chest), "tidy afterwards");
+		helper.assertValueEqual(count(level, pos, Items.COBBLESTONE) + count(level, pos, Items.DIRT) + count(level, pos, Items.SAND),
+				232 + 128 + 30, "nothing created or lost");
+		helper.succeed();
+	}
+
+	/** With tidy on, a golem visits an untidy labeled chest and puts its stacks in order without carrying anything. */
+	@GameTest(maxTicks = GOLEM_TIMEOUT)
+	public void golemVisitsAndSortsAnUntidyChest(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos anchor = copperChest(helper, new BlockPos(1, 1, 1));
+		Zones.put(level, anchor, new Zone(structureBox(helper), ZoneSettings.DEFAULT.withTidyInside(true)));
+		BlockPos messy = chest(helper, new BlockPos(6, 1, 4),
+				Items.DIRT, 64, Items.COBBLESTONE, 64, Items.DIRT, 10, Items.COBBLESTONE, 64, Items.COBBLESTONE, 64);
+		label(level, messy, ChestLabel.tag(id(Items.STONE), STONE_AND_DIRT));
+		ChestBlockEntity chest = helper.getBlockEntity(new BlockPos(6, 1, 4), ChestBlockEntity.class);
+		Zones.ZoneRef ref = new Zones.ZoneRef(anchor, Zones.all(level).get(anchor));
+		helper.assertTrue(ZoneSimulation.build(level, ref).moves().stream().anyMatch(ZonePayloads.Move::sort), "the simulation lists a sorting visit");
+		helper.assertValueEqual(ZoneOverview.build(level, ref).tidyMoves(), 1, "the overview counts it");
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		((ZoneAwareGolem) golem).wbcg$joinZoneAt(level, anchor);
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, anchor);
+			golem.discard();
+		});
+		helper.failIfEver(() -> helper.assertTrue(golem.getMainHandItem().isEmpty(), "a sorting visit carries nothing"));
+		helper.succeedWhen(() -> {
+			helper.assertTrue(io.github.lnasser11.waybettercoppergolem.sorting.SortingEngine.isTidy(chest), "chest sorted");
+			helper.assertTrue(chest.getItem(0).is(Items.COBBLESTONE) && chest.getItem(3).is(Items.DIRT) && chest.getItem(4).getCount() == 10,
+					"three cobblestone stacks, then dirt 64 and dirt 10");
+			helper.assertValueEqual(count(level, messy, Items.DIRT) + count(level, messy, Items.COBBLESTONE), 266, "nothing created or lost");
 		});
 	}
 

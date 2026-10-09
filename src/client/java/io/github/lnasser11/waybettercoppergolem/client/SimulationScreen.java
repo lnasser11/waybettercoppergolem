@@ -104,7 +104,9 @@ public class SimulationScreen extends Screen {
 
 	private ListRow row(int x, int y, Move move) {
 		Item item = BuiltInRegistries.ITEM.getOptional(move.item()).orElse(Items.BARRIER);
-		MutableComponent primary = move.tidy()
+		MutableComponent primary = move.sort()
+				? Component.translatable("waybettercoppergolem.simulation.sort_row", move.count())
+				: move.tidy()
 				? Component.translatable("waybettercoppergolem.simulation.tidy_row", move.count(), item.getName(item.getDefaultInstance()))
 				: move.reorganize()
 				? Component.translatable("waybettercoppergolem.simulation.reorganize_row", move.count(), item.getName(item.getDefaultInstance()))
@@ -124,7 +126,9 @@ public class SimulationScreen extends Screen {
 			row.secondary(detail, move.toLabels().isEmpty() ? Ui.TEXT_MUTED : Ui.AUTO);
 		}
 		BlockPos from = move.from();
-		return row.tooltip(Component.translatable(move.tidy()
+		return row.tooltip(Component.translatable(move.sort()
+						? "waybettercoppergolem.simulation.sort_row.tooltip"
+						: move.tidy()
 						? "waybettercoppergolem.simulation.tidy_row.tooltip"
 						: move.reorganize() ? "waybettercoppergolem.simulation.reorganize_row.tooltip"
 						: "waybettercoppergolem.simulation.row.tooltip",
@@ -148,7 +152,7 @@ public class SimulationScreen extends Screen {
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 		long stuck = this.simulation.moves().stream().filter(move -> move.to().isEmpty()).count();
-		long tidy = this.simulation.moves().stream().filter(Move::tidy).count();
+		long tidy = this.simulation.moves().stream().filter(move -> move.tidy() || move.sort()).count();
 		long reorganize = this.simulation.moves().stream().filter(Move::reorganize).count();
 		this.panel.header(graphics, this.font, this.title, Component.translatable("waybettercoppergolem.simulation.summary",
 				Ui.count(this.simulation.sourceChests(), "copper"), Ui.count((int) (this.simulation.moves().size() - tidy - reorganize), "moves"),

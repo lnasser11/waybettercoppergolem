@@ -230,6 +230,7 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	@Inject(method = "customServerAiStep", at = @At("TAIL"))
 	private void wbcg$walkBackInside(ServerLevel level, CallbackInfo ci) {
 		CopperGolem self = (CopperGolem) (Object) this;
+		wbcg$holdThePose(level, self);
 		if (self.tickCount % WBCG$WALK_BACK_EVERY_TICKS != 0) {
 			return;
 		}
@@ -250,6 +251,27 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 		}
 		brain.setMemory(MemoryModuleType.WALK_TARGET,
 				new WalkTarget(new BlockPosTracker(wbcg$nearestInside(box, here)), WBCG$WALK_BACK_SPEED, 0));
+	}
+
+	/**
+	 * Every tick while perched and idle (transport cooldown running): any
+	 * walk target that is not the transport behavior's own is dropped and
+	 * the navigation stopped, so nothing (a stroll, a partial step toward a
+	 * stale target) moves the statue. The behavior itself erases the
+	 * cooldown when there is work, and then this stays out of the way.
+	 */
+	@Unique
+	private void wbcg$holdThePose(ServerLevel level, CopperGolem self) {
+		Brain<CopperGolem> brain = self.getBrain();
+		if (!brain.hasMemoryValue(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS) || !wbcg$isPerched(level)) {
+			return;
+		}
+		if (brain.hasMemoryValue(MemoryModuleType.WALK_TARGET)) {
+			brain.eraseMemory(MemoryModuleType.WALK_TARGET);
+		}
+		if (!self.getNavigation().isDone()) {
+			self.getNavigation().stop();
+		}
 	}
 
 	@Unique
