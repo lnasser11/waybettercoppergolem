@@ -103,22 +103,40 @@ public final class ZonePayloads {
 	}
 
 	/**
-	 * One predicted move: {@code count} of {@code item} from a copper chest
-	 * to a chest, or nowhere; a {@code tidy} move goes from a labeled chest
-	 * to a sibling with the same labels instead.
+	 * One predicted move: {@code count} of {@code item} from a chest to a
+	 * chest, or nowhere. {@code kind} is {@link #DELIVER} (from a copper
+	 * chest), {@link #REORGANIZE} (a misplaced stack leaving a labeled
+	 * chest) or {@link #TIDY} (a stack joining its home among siblings).
 	 */
-	public record Move(Identifier item, int count, BlockPos from, Optional<BlockPos> to, List<ChestLabel> toLabels, boolean tidy) {
+	public record Move(Identifier item, int count, BlockPos from, Optional<BlockPos> to, List<ChestLabel> toLabels, String kind) {
+		public static final String DELIVER = "deliver";
+		public static final String REORGANIZE = "reorganize";
+		public static final String TIDY = "tidy";
+
 		public static final Codec<Move> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 				Identifier.CODEC.fieldOf("item").forGetter(Move::item),
 				Codec.INT.fieldOf("count").forGetter(Move::count),
 				BlockPos.CODEC.fieldOf("from").forGetter(Move::from),
 				BlockPos.CODEC.optionalFieldOf("to").forGetter(Move::to),
 				ChestLabel.CODEC.listOf().optionalFieldOf("to_labels", List.of()).forGetter(Move::toLabels),
-				Codec.BOOL.optionalFieldOf("tidy", false).forGetter(Move::tidy)
+				Codec.STRING.optionalFieldOf("kind", DELIVER).forGetter(Move::kind)
 		).apply(instance, Move::new));
 
 		public Move(Identifier item, int count, BlockPos from, Optional<BlockPos> to, List<ChestLabel> toLabels) {
-			this(item, count, from, to, toLabels, false);
+			this(item, count, from, to, toLabels, DELIVER);
+		}
+
+		public boolean tidy() {
+			return TIDY.equals(kind);
+		}
+
+		public boolean reorganize() {
+			return REORGANIZE.equals(kind);
+		}
+
+		/** Sort key: stuck deliveries first, then deliveries, reorganize moves, tidy moves. */
+		public int order() {
+			return to.isEmpty() ? 0 : tidy() ? 3 : reorganize() ? 2 : 1;
 		}
 	}
 

@@ -307,13 +307,18 @@ its labels: one stray stack can't redefine a chest.
 
 ### Reorganizing existing chests
 
-When the copper-chest dump queue is idle, golems slowly fix the room: they
-scan labeled chests for stacks that match none of that chest's labels,
-pick up exactly the misplaced stack, and deliver it through the normal
-flow. It is deliberately low-priority background work (one move per
-~30 s, a minute's pause when everything is tidy), it only ever touches
-**labeled** chests, and catch-all and off-limits chests are never
-considered misplaced. Toggleable per zone.
+When the copper-chest dump queue is idle, golems fix the room: they scan
+labeled chests for stacks that match none of that chest's labels (a cake
+in the *Stone & Dirt* chest, dirt in the *Iron Ingot* chest), pick up
+exactly the misplaced stack, and deliver it through the normal flow to
+the chest labeled for it. It is background work that only runs when
+there is nothing to deliver (one stack per trip, about one every ten
+seconds, a minute's pause when everything is in place), and a golem that
+has just delivered into a chest and noticed a misplaced stack there goes
+for it right away. It only ever touches **labeled** chests, and catch-all
+and off-limits chests are never considered misplaced. Toggleable per
+zone. **Simulate…** lists every pending move as *reorganize: 3× Cake →
+[x y z]* and **Overview…** flags the chests.
 
 ### Tidy sibling chests
 
