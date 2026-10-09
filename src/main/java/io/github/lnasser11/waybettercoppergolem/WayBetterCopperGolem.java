@@ -157,6 +157,9 @@ public class WayBetterCopperGolem implements ModInitializer {
 				(payload, context) -> ChestEditor.open(context.player(), payload.pos()));
 		ServerPlayNetworking.registerGlobalReceiver(EditorPayloads.SetChestLabels.TYPE,
 				(payload, context) -> ChestEditor.apply(context.player(), payload.pos(), payload.labels()));
+		PayloadTypeRegistry.serverboundPlay().register(EditorPayloads.PasteClipboard.TYPE, EditorPayloads.PasteClipboard.STREAM_CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(EditorPayloads.PasteClipboard.TYPE,
+				(payload, context) -> ChestEditor.pasteClipboard(context.player(), payload.pos()));
 		PayloadTypeRegistry.serverboundPlay().register(EditorPayloads.SetChestFrames.TYPE, EditorPayloads.SetChestFrames.STREAM_CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(EditorPayloads.SetChestFrames.TYPE,
 				(payload, context) -> ChestEditor.setGolemFrames(context.player(), payload.pos(), payload.allowed()));

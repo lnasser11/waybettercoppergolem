@@ -148,7 +148,11 @@ sneak:
 | **sneak-right-click the air** | open the [picker](#the-picker-choose-any-label-from-a-list) | |
 
 The actionbar confirms each copy and paste and the chest sparkles. Pasted
-labels are explicit. The clipboard has two independent slots (labels and
+labels are explicit. A chest's **no golem frames** switch (the chip in its
+editor) is copied and pasted together with its labels, so a wall pasted
+from a chest that forbids frames forbids them too; labels picked from the
+picker paste with frames allowed, and the *Remove labels* marker leaves
+the switch alone. The clipboard has two independent slots (labels and
 zone settings), survives death and relogging, and lives on the player,
 not on the item — the feather stays an ordinary feather. Labeling a wall
 of chests is: copy once (or pick once), then sneak-right-click along the
@@ -238,7 +242,7 @@ unless you may change it, see [Who may change a zone](#who-may-change-a-zone)):
 - **Overview…** lists every chest in the zone, problems first: unlabeled
   chests, chests holding stacks that match none of their labels, chests
   sharing a label set. Each row can be found (sparkles), edited, or given
-  the clipboard's labels, and one button pastes the clipboard onto every
+  the clipboard's labels (and frame switch), and one button pastes the clipboard onto every
   unlabeled chest. Inside your own zone the editor reaches any chest, not
   just the ones near you.
 - **Simulate…** shows where each stack in the zone's copper chests would

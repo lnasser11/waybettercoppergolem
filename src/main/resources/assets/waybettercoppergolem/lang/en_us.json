@@ -53,6 +53,7 @@
   "waybettercoppergolem.tool.clipboard_zone": "Clipboard: zone settings (%s)",
   "waybettercoppergolem.tool.clipboard_both": "Clipboard: %s · zone settings (%s)",
   "waybettercoppergolem.tool.clipboard_clear_marker": "clear labels",
+  "waybettercoppergolem.tool.labels_no_frames": "%s · no golem frames",
   "waybettercoppergolem.tool.clipboard_empty": "Clipboard empty. Sneak-left-click a chest to copy its labels",
   "waybettercoppergolem.zone.summary": "reorganize %s · tidy %s · dry run %s · reach %s",
   "waybettercoppergolem.settings.learn": "Learn…",

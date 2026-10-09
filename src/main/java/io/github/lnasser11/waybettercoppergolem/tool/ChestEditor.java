@@ -90,6 +90,22 @@ public final class ChestEditor {
 	}
 
 	/**
+	 * The overview's Paste: the player's clipboard onto this chest, labels
+	 * and frame switch alike, exactly like a sneak-right-click with the
+	 * feather. The overview refreshes itself afterwards.
+	 */
+	public static void pasteClipboard(ServerPlayer player, BlockPos pos) {
+		if (!(player.level() instanceof ServerLevel level) || !inReach(player, level, pos)) {
+			return;
+		}
+		BlockState state = level.getBlockState(pos);
+		if (!ChestLabels.isLabelableChest(state)) {
+			return;
+		}
+		LabelTool.pasteClipboard(player, level, pos, state);
+	}
+
+	/**
 	 * The zone screen for the zone this copper chest belongs to. A missing
 	 * zone is created and owned by the player (when they may create one);
 	 * a zone nobody owns is claimed. Players who may not change the zone

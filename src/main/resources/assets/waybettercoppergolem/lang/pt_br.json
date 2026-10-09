@@ -53,6 +53,7 @@
   "waybettercoppergolem.tool.clipboard_zone": "Área de transferência: configurações de zona (%s)",
   "waybettercoppergolem.tool.clipboard_both": "Área de transferência: %s · configurações de zona (%s)",
   "waybettercoppergolem.tool.clipboard_clear_marker": "remover rótulos",
+  "waybettercoppergolem.tool.labels_no_frames": "%s · sem molduras de golem",
   "waybettercoppergolem.tool.clipboard_empty": "Área de transferência vazia. Agache e clique com o botão esquerdo em um baú para copiar os rótulos",
   "waybettercoppergolem.zone.summary": "reorganizar %s · arrumar %s · simulação %s · alcance %s",
   "waybettercoppergolem.settings.learn": "Aprender…",

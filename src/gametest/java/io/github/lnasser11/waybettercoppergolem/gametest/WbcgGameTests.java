@@ -239,6 +239,46 @@ public final class WbcgGameTests {
 		helper.succeed();
 	}
 
+	/** The copied chest's "no golem frames" switch rides along with its labels, by feather and by the overview's Paste. */
+	@GameTest
+	public void toolCopiesAndPastesTheFrameSwitch(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		BlockPos source = chest(helper, new BlockPos(1, 1, 1));
+		BlockPos target = chest(helper, new BlockPos(4, 1, 1));
+		BlockPos viaOverview = chest(helper, new BlockPos(6, 1, 1));
+		BlockPos plain = chest(helper, new BlockPos(1, 1, 4));
+		List<ChestLabel> labels = List.of(ChestLabel.exact(id(Items.IRON_INGOT)));
+		ChestLabels.setExplicit(level, source, level.getBlockState(source), labels);
+		ChestLabels.setGolemFramesAllowed(level, source, level.getBlockState(source), false);
+		ChestLabels.setExplicit(level, plain, level.getBlockState(plain), labels);
+
+		ServerPlayer player = toolPlayer(helper);
+		player.setPos(Vec3.atCenterOf(helper.absolutePos(new BlockPos(3, 1, 3))));
+		AttackBlockCallback.EVENT.invoker().interact(player, level, InteractionHand.MAIN_HAND, source, Direction.UP);
+		helper.assertValueEqual(Clipboard.of(player).labels(), Optional.of(labels), "labels copied");
+		helper.assertTrue(Clipboard.of(player).noGolemFrames(), "the frame switch was copied");
+
+		UseBlockCallback.EVENT.invoker().interact(player, level, InteractionHand.MAIN_HAND, hit(target));
+		helper.assertValueEqual(ChestLabels.effectiveLabelSet(level, target, level.getBlockState(target)).labels(), labels, "labels pasted");
+		helper.assertFalse(ChestLabels.golemFramesAllowed(level, target, level.getBlockState(target)), "frame switch pasted by the feather");
+
+		ChestEditor.pasteClipboard(player, viaOverview);
+		helper.assertValueEqual(ChestLabels.effectiveLabelSet(level, viaOverview, level.getBlockState(viaOverview)).labels(), labels, "labels pasted from the overview");
+		helper.assertFalse(ChestLabels.golemFramesAllowed(level, viaOverview, level.getBlockState(viaOverview)), "frame switch pasted from the overview");
+
+		// Copying a chest that allows frames, then pasting, allows them again on the target.
+		AttackBlockCallback.EVENT.invoker().interact(player, level, InteractionHand.MAIN_HAND, plain, Direction.UP);
+		helper.assertFalse(Clipboard.of(player).noGolemFrames(), "frames allowed on the clipboard");
+		UseBlockCallback.EVENT.invoker().interact(player, level, InteractionHand.MAIN_HAND, hit(target));
+		helper.assertTrue(ChestLabels.golemFramesAllowed(level, target, level.getBlockState(target)), "frames allowed again after pasting");
+
+		// The picker never carries the switch: labels from it paste with frames allowed.
+		Clipboard.set(player, Clipboard.of(player).withLabels(Optional.of(labels), true));
+		LabelTool.applyPickerChoice(player, Optional.of(labels));
+		helper.assertFalse(Clipboard.of(player).noGolemFrames(), "the picker resets the frame switch");
+		helper.succeed();
+	}
+
 	@GameTest
 	public void toolClearMarkerRemovesExplicitLabels(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
