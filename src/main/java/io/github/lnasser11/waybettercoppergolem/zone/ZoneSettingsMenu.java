@@ -8,6 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.NameAndId;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -19,12 +20,19 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.Optional;
+
 /**
  * Settings panel for a sorting zone, opened from any copper chest inside
  * it. No slots; the values sync to the client through vanilla data slots
  * and edits come back through vanilla menu-button clicks, so no custom
  * networking is involved. Edits are written to the zone's anchor, which
  * may be a different copper chest than the one that was clicked.
+ *
+ * <p>Every edit is checked against the zone's {@link ZoneAccess} on the
+ * server; the {@link #DATA_FLAGS} slot tells the client whether this
+ * player may edit (and whether they are an operator) so the screen can
+ * disable what would be refused.
  */
 public class ZoneSettingsMenu extends AbstractContainerMenu {
 	public static final int DATA_REORGANIZE = 0;
@@ -42,7 +50,12 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	public static final int DATA_REACH = 12;
 	public static final int DATA_STAY_INSIDE = 13;
 	public static final int DATA_HANG_FRAMES = 14;
-	public static final int DATA_COUNT = 15;
+	/** Bit field: {@link #FLAG_CAN_EDIT}, {@link #FLAG_OPERATOR}. */
+	public static final int DATA_FLAGS = 15;
+	public static final int DATA_COUNT = 16;
+
+	public static final int FLAG_CAN_EDIT = 1;
+	public static final int FLAG_OPERATOR = 2;
 
 	public static final int BUTTON_TOGGLE_REORGANIZE = 0;
 	public static final int BUTTON_TOGGLE_TIDY = 1;
@@ -68,6 +81,8 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	public static final int BUTTON_REACH_UP = 12;
 	public static final int BUTTON_TOGGLE_STAY_INSIDE = 13;
 	public static final int BUTTON_TOGGLE_HANG_FRAMES = 14;
+	/** Become the zone's owner (operators). */
+	public static final int BUTTON_TAKE_OVER = 15;
 
 	private final ContainerLevelAccess access;
 	private final ContainerData data;
@@ -76,7 +91,7 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	/** Client-side constructor; real values arrive via data-slot sync. */
 	public ZoneSettingsMenu(int containerId, Inventory inventory) {
 		this(containerId, ContainerLevelAccess.NULL, BlockPos.ZERO,
-				dataFor(new Zones.ZoneRef(BlockPos.ZERO, Zone.defaultAround(BlockPos.ZERO))));
+				dataFor(new Zones.ZoneRef(BlockPos.ZERO, Zone.defaultAround(BlockPos.ZERO)), 0));
 	}
 
 	public ZoneSettingsMenu(int containerId, ContainerLevelAccess access, BlockPos anchor, ContainerData data) {
@@ -87,10 +102,28 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 		this.addDataSlots(data);
 	}
 
+	/** Data for a player who may edit everything (tests and tools). */
 	public static ContainerData dataFor(Zones.ZoneRef ref) {
+		return dataFor(ref, FLAG_CAN_EDIT | FLAG_OPERATOR);
+	}
+
+	public static ContainerData dataFor(Zones.ZoneRef ref, int flags) {
 		SimpleContainerData data = new SimpleContainerData(DATA_COUNT);
 		write(data, ref);
+		data.set(DATA_FLAGS, flags);
 		return data;
+	}
+
+	/** The flags for this player on this zone. */
+	public static int flagsFor(Zones.ZoneRef ref, ServerPlayer player) {
+		int flags = 0;
+		if (ZoneAccess.canEdit(ref, player)) {
+			flags |= FLAG_CAN_EDIT;
+		}
+		if (ZoneAccess.isOperator(player)) {
+			flags |= FLAG_OPERATOR;
+		}
+		return flags;
 	}
 
 	private static void write(ContainerData data, Zones.ZoneRef ref) {
@@ -132,6 +165,15 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 				this.data.get(DATA_MAX_X), this.data.get(DATA_MAX_Y), this.data.get(DATA_MAX_Z));
 	}
 
+	/** Whether the viewing player may change this zone (as the server decided when the menu opened). */
+	public boolean canEdit() {
+		return (this.data.get(DATA_FLAGS) & FLAG_CAN_EDIT) != 0;
+	}
+
+	public boolean isOperator() {
+		return (this.data.get(DATA_FLAGS) & FLAG_OPERATOR) != 0;
+	}
+
 	@Override
 	public boolean clickMenuButton(Player player, int buttonId) {
 		if (!(player instanceof ServerPlayer serverPlayer)) {
@@ -141,33 +183,17 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 			if (!(level instanceof ServerLevel serverLevel)) {
 				return false;
 			}
-			Zones.ZoneRef ref = Zones.zoneAt(serverLevel, clicked)
-					.orElseGet(() -> Zones.zoneForCopperChest(serverLevel, clicked));
+			// Creates the zone if the chest has none, and claims a zone nobody owns yet.
+			Optional<Zones.ZoneRef> found = Zones.zoneForCopperChest(serverLevel, clicked, serverPlayer);
+			if (found.isEmpty()) {
+				return true;
+			}
+			Zones.ZoneRef ref = found.get();
 			Zone zone = ref.zone();
 			ZoneSettings current = zone.settings();
+			boolean editor = ZoneAccess.canEdit(ref, serverPlayer);
+			boolean operator = ZoneAccess.isOperator(serverPlayer);
 			switch (buttonId) {
-				case BUTTON_TOGGLE_REORGANIZE -> zone = zone.withSettings(current.withReorganize(!current.reorganize()));
-				case BUTTON_TOGGLE_TIDY -> zone = zone.withSettings(current.withTidyInside(!current.tidyInside()));
-				case BUTTON_TOGGLE_DRY_RUN -> zone = zone.withSettings(current.withDryRun(!current.dryRun()));
-				case BUTTON_TOGGLE_STAY_INSIDE -> zone = zone.withSettings(current.withStayInside(!current.stayInside()));
-				case BUTTON_TOGGLE_HANG_FRAMES -> zone = zone.withSettings(current.withHangFrames(!current.hangFrames()));
-				case BUTTON_REACH_DOWN -> zone = zone.withSettings(current.withVerticalReach(current.verticalReach() - 1));
-				case BUTTON_REACH_UP -> zone = zone.withSettings(current.withVerticalReach(current.verticalReach() + 1));
-				case BUTTON_RESET_AREA -> zone = zone.withArea(Zone.defaultArea(ref.anchor()));
-				case BUTTON_LEARN -> {
-					if (!LearnSession.allowed(serverPlayer)) {
-						serverPlayer.sendSystemMessage(Component.translatable("waybettercoppergolem.learn.not_allowed"));
-					} else {
-						LearnSession.preview(serverPlayer, serverLevel, zone.area(),
-								Component.translatable("waybettercoppergolem.learn.scope.zone", Zones.describeArea(zone.area())),
-								false);
-					}
-					return true;
-				}
-				case BUTTON_SET_AREA -> {
-					LabelTool.beginAreaSelection(serverPlayer, serverLevel, ref.anchor());
-					return true;
-				}
 				case BUTTON_SHOW_AREA -> {
 					Zones.showOutline(serverPlayer, serverLevel, zone.area());
 					return true;
@@ -181,23 +207,67 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 					return true;
 				}
 				case BUTTON_SAVE_DEFAULTS -> {
-					if (!net.minecraft.commands.Commands.LEVEL_GAMEMASTERS.check(serverPlayer.permissions())) {
+					if (!operator) {
 						serverPlayer.sendSystemMessage(Component.translatable("waybettercoppergolem.defaults.not_allowed"));
 						return true;
 					}
 					Zones.setDefaults(serverLevel, current);
 					serverPlayer.sendSystemMessage(Component.translatable("waybettercoppergolem.defaults.saved",
 							Zones.describe(current)));
+					WayBetterCopperGolem.LOGGER.info("[zone] {} saved the world default zone settings: {}",
+							ZoneAccess.nameOf(serverPlayer), Zones.describe(current).getString());
 					return true;
 				}
 				case BUTTON_APPLY_ALL -> {
-					if (!net.minecraft.commands.Commands.LEVEL_GAMEMASTERS.check(serverPlayer.permissions())) {
+					if (!operator) {
 						serverPlayer.sendSystemMessage(Component.translatable("waybettercoppergolem.defaults.not_allowed"));
 						return true;
 					}
 					int changed = Zones.applyToAll(serverLevel, current);
 					serverPlayer.sendSystemMessage(Component.translatable("waybettercoppergolem.defaults.applied",
 							changed, Zones.describe(current)));
+					WayBetterCopperGolem.LOGGER.info("[zone] {} applied {} to all {} zones of {}",
+							ZoneAccess.nameOf(serverPlayer), Zones.describe(current).getString(), changed,
+							serverLevel.dimension().identifier());
+					return true;
+				}
+				case BUTTON_TAKE_OVER -> {
+					if (!operator) {
+						serverPlayer.sendSystemMessage(Component.translatable("waybettercoppergolem.access.denied"));
+						return true;
+					}
+					zone = zone.withAccess(zone.access().withOwner(new NameAndId(serverPlayer.getGameProfile())));
+					Zones.put(serverLevel, ref.anchor(), zone);
+					write(this.data, new Zones.ZoneRef(ref.anchor(), zone));
+					this.data.set(DATA_FLAGS, flagsFor(new Zones.ZoneRef(ref.anchor(), zone), serverPlayer));
+					serverPlayer.sendSystemMessage(Component.translatable("waybettercoppergolem.access.took_over"));
+					WayBetterCopperGolem.LOGGER.info("[zone] {} took over the zone at {}", ZoneAccess.nameOf(serverPlayer), ref.anchor());
+					return true;
+				}
+				default -> {
+				}
+			}
+			if (!editor) {
+				serverPlayer.sendSystemMessage(Component.translatable("waybettercoppergolem.access.denied"));
+				return true;
+			}
+			switch (buttonId) {
+				case BUTTON_TOGGLE_REORGANIZE -> zone = zone.withSettings(current.withReorganize(!current.reorganize()));
+				case BUTTON_TOGGLE_TIDY -> zone = zone.withSettings(current.withTidyInside(!current.tidyInside()));
+				case BUTTON_TOGGLE_DRY_RUN -> zone = zone.withSettings(current.withDryRun(!current.dryRun()));
+				case BUTTON_TOGGLE_STAY_INSIDE -> zone = zone.withSettings(current.withStayInside(!current.stayInside()));
+				case BUTTON_TOGGLE_HANG_FRAMES -> zone = zone.withSettings(current.withHangFrames(!current.hangFrames()));
+				case BUTTON_REACH_DOWN -> zone = zone.withSettings(current.withVerticalReach(current.verticalReach() - 1));
+				case BUTTON_REACH_UP -> zone = zone.withSettings(current.withVerticalReach(current.verticalReach() + 1));
+				case BUTTON_RESET_AREA -> zone = zone.withArea(Zone.defaultArea(ref.anchor()));
+				case BUTTON_LEARN -> {
+					LearnSession.preview(serverPlayer, serverLevel, zone.area(),
+							Component.translatable("waybettercoppergolem.learn.scope.zone", Zones.describeArea(zone.area())),
+							false);
+					return true;
+				}
+				case BUTTON_SET_AREA -> {
+					LabelTool.beginAreaSelection(serverPlayer, serverLevel, ref.anchor());
 					return true;
 				}
 				default -> {
@@ -206,11 +276,88 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 			}
 			Zones.put(serverLevel, ref.anchor(), zone);
 			write(this.data, new Zones.ZoneRef(ref.anchor(), zone));
+			WayBetterCopperGolem.LOGGER.info("[zone] {} changed the zone at {}: {} · area {}",
+					ZoneAccess.nameOf(serverPlayer), ref.anchor(), Zones.describe(zone.settings()).getString(),
+					Zones.describeArea(zone.area()).getString());
 			if (buttonId == BUTTON_RESET_AREA) {
 				Zones.showOutline(serverPlayer, serverLevel, zone.area());
 			}
 			return true;
 		}, false);
+	}
+
+	/**
+	 * The "Trust…" payload: adds or removes a trusted player by name. Only
+	 * the zone's editors may; the name must be an online player or one the
+	 * server has seen before.
+	 */
+	public static void trust(ServerPlayer player, BlockPos anchor, String name, boolean add) {
+		if (!(player.level() instanceof ServerLevel level)) {
+			return;
+		}
+		Zone zone = Zones.all(level).get(anchor);
+		if (zone == null) {
+			return;
+		}
+		Zones.ZoneRef ref = new Zones.ZoneRef(anchor, zone);
+		if (!ZoneAccess.canEdit(ref, player)) {
+			player.sendSystemMessage(Component.translatable("waybettercoppergolem.access.denied"));
+			return;
+		}
+		String trimmed = name.trim();
+		if (trimmed.isEmpty() || trimmed.length() > 16 || !trimmed.matches("[A-Za-z0-9_]+")) {
+			player.sendSystemMessage(Component.translatable("waybettercoppergolem.access.unknown_player", name));
+			return;
+		}
+		Optional<NameAndId> target = resolve(level, trimmed);
+		if (target.isEmpty()) {
+			player.sendSystemMessage(Component.translatable("waybettercoppergolem.access.unknown_player", trimmed));
+			return;
+		}
+		trust(player, anchor, target.get(), add);
+	}
+
+	/** Trusts or untrusts a resolved player; the permission check is here too (tests call this directly). */
+	public static void trust(ServerPlayer player, BlockPos anchor, NameAndId target, boolean add) {
+		if (!(player.level() instanceof ServerLevel level)) {
+			return;
+		}
+		Zone zone = Zones.all(level).get(anchor);
+		if (zone == null || !ZoneAccess.canEdit(new Zones.ZoneRef(anchor, zone), player)) {
+			player.sendSystemMessage(Component.translatable("waybettercoppergolem.access.denied"));
+			return;
+		}
+		ZoneAccess access = zone.access();
+		if (add) {
+			if (access.isOwner(target.id())) {
+				return;
+			}
+			if (access.trusted().size() >= ZoneAccess.MAX_TRUSTED) {
+				player.sendSystemMessage(Component.translatable("waybettercoppergolem.access.trust_full", ZoneAccess.MAX_TRUSTED));
+				return;
+			}
+			access = access.withTrusted(target);
+		} else {
+			access = access.withoutTrusted(target.id());
+		}
+		Zones.put(level, anchor, zone.withAccess(access));
+		player.sendSystemMessage(Component.translatable(add
+				? "waybettercoppergolem.access.trusted" : "waybettercoppergolem.access.untrusted", target.name()));
+		WayBetterCopperGolem.LOGGER.info("[zone] {} {} {} on the zone at {}", ZoneAccess.nameOf(player),
+				add ? "trusted" : "no longer trusts", target.name(), anchor);
+	}
+
+	/** An online player by name, else the server's name cache (players it has seen). */
+	private static Optional<NameAndId> resolve(ServerLevel level, String name) {
+		ServerPlayer online = level.getServer().getPlayerList().getPlayerByName(name);
+		if (online != null) {
+			return Optional.of(new NameAndId(online.getGameProfile()));
+		}
+		try {
+			return level.getServer().services().nameToIdCache().get(name);
+		} catch (RuntimeException e) {
+			return Optional.empty();
+		}
 	}
 
 	@Override

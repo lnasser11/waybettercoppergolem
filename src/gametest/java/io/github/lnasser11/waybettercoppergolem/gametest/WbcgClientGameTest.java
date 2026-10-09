@@ -6,6 +6,7 @@ import io.github.lnasser11.waybettercoppergolem.client.LabelPickerScreen;
 import io.github.lnasser11.waybettercoppergolem.client.ListRow;
 import io.github.lnasser11.waybettercoppergolem.client.SimulationScreen;
 import io.github.lnasser11.waybettercoppergolem.client.WayBetterCopperGolemClient;
+import io.github.lnasser11.waybettercoppergolem.client.ZoneAccessScreen;
 import io.github.lnasser11.waybettercoppergolem.client.ZoneOverviewScreen;
 import io.github.lnasser11.waybettercoppergolem.client.ZoneSettingsScreen;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabel;
@@ -102,6 +103,7 @@ public final class WbcgClientGameTest implements FabricClientGameTest {
 			context.waitTicks(2);
 			assertGuiSize(context, 427, 240);
 			openZoneScreen(context, server, "427x240");
+			accessScreen(context, "427x240");
 			pressEscape(context);
 			openChestPicker(context, server, "427x240");
 			pressEscape(context);
@@ -226,6 +228,23 @@ public final class WbcgClientGameTest implements FabricClientGameTest {
 		context.waitTicks(10);
 		context.takeScreenshot("area_3_done_" + size);
 
+		// Reset area asks for a second click: the first only arms the button.
+		openZoneScreen(context, server, size + "_before_reset");
+		accessScreen(context, size);
+		context.clickScreenButton("waybettercoppergolem.settings.reset_area");
+		context.waitTicks(5);
+		assertTrue(sameBox(actual, server.computeOnServer(s -> Zones.all(player(s).level()).get(this.anchor).area())),
+				"one click on Reset area must not reset the area");
+		assertTrue(context.computeOnClient(mc -> mc.gui.screen() != null && mc.gui.screen().children().stream()
+						.anyMatch(w -> w instanceof AbstractWidget widget && widget.getMessage().getString().equals("Confirm"))),
+				"the button reads Confirm after the first click");
+		context.takeScreenshot("area_4_confirm_" + size);
+		context.clickScreenButton("waybettercoppergolem.confirm");
+		context.waitTicks(5);
+		assertTrue(sameBox(Zone.defaultArea(this.anchor), server.computeOnServer(s -> Zones.all(player(s).level()).get(this.anchor).area())),
+				"the second click resets the area");
+		pressEscape(context);
+
 		// Sneak-right-clicking the air outside area mode shows the clipboard, and does not open a screen
 		// on a block. Clicking the air with nothing selected opens the picker (tested in pickers()).
 	}
@@ -236,6 +255,18 @@ public final class WbcgClientGameTest implements FabricClientGameTest {
 		context.waitTicks(5);
 		context.takeScreenshot("zone_settings_" + size);
 		assertWidgetsOnScreen(context, "zone settings " + size);
+	}
+
+	/** The access screen opens over the zone screen and Back returns to it. */
+	private void accessScreen(ClientGameTestContext context, String size) {
+		context.clickScreenButton("waybettercoppergolem.settings.access");
+		context.waitForScreen(ZoneAccessScreen.class);
+		context.waitTicks(5);
+		context.takeScreenshot("access_" + size);
+		assertWidgetsOnScreen(context, "access " + size);
+		context.clickScreenButton("gui.back");
+		context.waitForScreen(ZoneSettingsScreen.class);
+		context.waitTicks(2);
 	}
 
 	/**

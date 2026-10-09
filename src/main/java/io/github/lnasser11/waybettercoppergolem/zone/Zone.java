@@ -11,9 +11,10 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
  * obey inside it. Anchored at one copper chest (the key in
  * {@link Zones}); every copper chest inside the box shares the zone, and
  * golems working for the zone only take from copper chests inside the box
- * and only deposit or reorganize inside it.
+ * and only deposit or reorganize inside it. {@link ZoneAccess} says who may
+ * change it.
  */
-public record Zone(BoundingBox area, ZoneSettings settings) {
+public record Zone(BoundingBox area, ZoneSettings settings, ZoneAccess access) {
 	/** Default box around a new anchor, matching the vanilla search volume. */
 	public static final int DEFAULT_HALF_HORIZONTAL = 32;
 	public static final int DEFAULT_HALF_VERTICAL = 8;
@@ -22,8 +23,14 @@ public record Zone(BoundingBox area, ZoneSettings settings) {
 
 	public static final Codec<Zone> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			BoundingBox.CODEC.fieldOf("area").forGetter(Zone::area),
-			ZoneSettings.CODEC.optionalFieldOf("settings", ZoneSettings.DEFAULT).forGetter(Zone::settings)
+			ZoneSettings.CODEC.optionalFieldOf("settings", ZoneSettings.DEFAULT).forGetter(Zone::settings),
+			ZoneAccess.CODEC.optionalFieldOf("access", ZoneAccess.NONE).forGetter(Zone::access)
 	).apply(instance, Zone::new));
+
+	/** A zone nobody owns yet (claimed by the first player who opens its screen). */
+	public Zone(BoundingBox area, ZoneSettings settings) {
+		this(area, settings, ZoneAccess.NONE);
+	}
 
 	public static Zone defaultAround(BlockPos anchor) {
 		return new Zone(defaultArea(anchor), ZoneSettings.DEFAULT);
@@ -52,11 +59,15 @@ public record Zone(BoundingBox area, ZoneSettings settings) {
 	}
 
 	public Zone withSettings(ZoneSettings settings) {
-		return new Zone(area, settings);
+		return new Zone(area, settings, access);
 	}
 
 	public Zone withArea(BoundingBox area) {
-		return new Zone(area, settings);
+		return new Zone(area, settings, access);
+	}
+
+	public Zone withAccess(ZoneAccess access) {
+		return new Zone(area, settings, access);
 	}
 
 	public boolean contains(BlockPos pos) {

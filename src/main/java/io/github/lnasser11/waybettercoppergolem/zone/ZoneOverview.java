@@ -46,11 +46,16 @@ public final class ZoneOverview {
 
 	public static void send(ServerPlayer player, ServerLevel level, Zones.ZoneRef zone) {
 		if (ServerPlayNetworking.canSend(player, ZonePayloads.Overview.TYPE)) {
-			ServerPlayNetworking.send(player, build(level, zone));
+			ServerPlayNetworking.send(player, build(level, zone, ZoneAccess.canEdit(zone, player)
+					|| !io.github.lnasser11.waybettercoppergolem.config.WbcgConfig.get().labelsRequireZoneOwnership()));
 		}
 	}
 
 	public static ZonePayloads.Overview build(ServerLevel level, Zones.ZoneRef zone) {
+		return build(level, zone, true);
+	}
+
+	public static ZonePayloads.Overview build(ServerLevel level, Zones.ZoneRef zone, boolean canEdit) {
 		Chests chests = chestsIn(level, zone.area());
 		List<Entry> entries = new ArrayList<>();
 		Map<List<ChestLabel>, Integer> labelUses = new HashMap<>();
@@ -103,7 +108,7 @@ public final class ZoneOverview {
 		if (entries.size() > MAX_ENTRIES) {
 			entries = new ArrayList<>(entries.subList(0, MAX_ENTRIES));
 		}
-		return new ZonePayloads.Overview(anchor, zone.area(), chests.copper(), entries);
+		return new ZonePayloads.Overview(anchor, zone.area(), chests.copper(), entries, canEdit);
 	}
 
 	private static int priority(Entry entry) {

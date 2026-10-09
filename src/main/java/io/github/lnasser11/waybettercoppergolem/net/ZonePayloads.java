@@ -62,17 +62,38 @@ public final class ZonePayloads {
 		}
 	}
 
-	/** Server → client: the zone's chests, problems first. */
-	public record Overview(BlockPos anchor, BoundingBox area, int copperChests, List<Entry> entries)
+	/** Server → client: the zone's chests, problems first; {@code canEdit} is false for a read-only look. */
+	public record Overview(BlockPos anchor, BoundingBox area, int copperChests, List<Entry> entries, boolean canEdit)
 			implements CustomPacketPayload {
 		public static final Type<Overview> TYPE = new Type<>(WayBetterCopperGolem.id("zone_overview"));
 		private static final Codec<Overview> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 				BlockPos.CODEC.fieldOf("anchor").forGetter(Overview::anchor),
 				BoundingBox.CODEC.fieldOf("area").forGetter(Overview::area),
 				Codec.INT.fieldOf("copper_chests").forGetter(Overview::copperChests),
-				Entry.CODEC.listOf().fieldOf("entries").forGetter(Overview::entries)
+				Entry.CODEC.listOf().fieldOf("entries").forGetter(Overview::entries),
+				Codec.BOOL.optionalFieldOf("can_edit", true).forGetter(Overview::canEdit)
 		).apply(instance, Overview::new));
 		public static final StreamCodec<ByteBuf, Overview> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
+	/**
+	 * Client → server: trust ({@code add}) or stop trusting a player, by
+	 * name, on the zone anchored here. Only the zone's editors may; the
+	 * server resolves the name.
+	 */
+	public record Trust(BlockPos anchor, String name, boolean add) implements CustomPacketPayload {
+		public static final Type<Trust> TYPE = new Type<>(WayBetterCopperGolem.id("zone_trust"));
+		private static final Codec<Trust> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+				BlockPos.CODEC.fieldOf("anchor").forGetter(Trust::anchor),
+				Codec.string(0, 64).fieldOf("name").forGetter(Trust::name),
+				Codec.BOOL.fieldOf("add").forGetter(Trust::add)
+		).apply(instance, Trust::new));
+		public static final StreamCodec<ByteBuf, Trust> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
 
 		@Override
 		public Type<? extends CustomPacketPayload> type() {

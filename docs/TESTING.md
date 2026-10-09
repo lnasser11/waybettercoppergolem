@@ -63,6 +63,38 @@ only work in loaded chunks, and note their rhythm: ~3 s at each chest,
    are opened. Place the anchor back and set a small area around your
    test room for the rest of this plan.
 
+## 1b. Ownership (needs a second account, or a friend)
+
+1. You created the zone in step 1, so the zone screen's *Access* line
+   reads `owner <you> · 0 trusted`. Press **Who may change this zone…** →
+   the access screen shows the same, an empty trusted list and a name box.
+2. Log in with the second account (no op). Open the same zone screen →
+   everything is visible, the toggles, the reach stepper, *Set area*,
+   *Reset area*, *Learn…*, *Save default* and *Apply to all* are greyed
+   out, and hovering one says who may change the zone. Open a chest inside
+   the zone, press **Golem** → the editor is read-only (`· read-only` in
+   the header, every choice disabled). Sneak-right-click a chest inside the
+   zone with the feather → `This chest is in a zone you may not change`.
+   A chest *outside* the zone can still be labeled.
+3. Back on the owner: type the second account's name in the access
+   screen, press **Trust** → chat confirms and the list shows the name
+   (with a `✕` to untrust). The second account can now toggle settings
+   and label chests inside the zone. Press `✕` → refused again.
+4. As an operator, open someone else's zone → everything is enabled, and
+   **Take over** (two clicks) makes you the owner. Check the server log:
+   every change is an INFO line with the player's name.
+5. **Confirmations.** Press **Reset area** once → the button turns into
+   **Confirm** and nothing happens; wait six seconds → it reverts. Press
+   it twice within five seconds → the area resets. Same for **Apply to
+   all** and the editor's **Remove labels**.
+6. **Limits.** `/wbcg learn` twice in a row → the second answers with
+   `try again in N s`. Set `max_zones_per_player` to 1 in the config,
+   restart, place a copper chest far outside your zone and sneak-right-
+   click it → `You already own as many zones as this server allows`. Set
+   `zones_require_op_to_create` to true → a non-op gets `Creating zones
+   needs operator permission`. Set `golems_require_zone` to true → a golem
+   outside every zone stands still, inside a zone it works.
+
 ## 2. The feather and the picker
 
 1. Hold the feather, **sneak-right-click the air** → the picker opens:

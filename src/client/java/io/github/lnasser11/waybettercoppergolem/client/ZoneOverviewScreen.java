@@ -81,7 +81,11 @@ public class ZoneOverviewScreen extends Screen {
 		int top = this.panel.contentTop();
 		Optional<List<ChestLabel>> clipboard = this.minecraft != null && this.minecraft.player != null
 				? Clipboard.of(this.minecraft.player).labels() : Optional.empty();
-		boolean canPaste = clipboard.isPresent() && !clipboard.get().isEmpty();
+		boolean canPaste = clipboard.isPresent() && !clipboard.get().isEmpty() && this.overview.canEdit();
+		Component pasteTooltip = Component.translatable(this.overview.canEdit()
+				? "waybettercoppergolem.overview.paste.tooltip" : "waybettercoppergolem.access.read_only");
+		Component pasteAllTooltip = Component.translatable(this.overview.canEdit()
+				? "waybettercoppergolem.overview.paste_all.tooltip" : "waybettercoppergolem.access.read_only");
 
 		// ---- header actions
 		long unlabeled = this.overview.entries().stream().filter(e -> e.labels().isEmpty()).count();
@@ -94,7 +98,7 @@ public class ZoneOverviewScreen extends Screen {
 							}
 							refresh();
 						})
-				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.overview.paste_all.tooltip")))
+				.tooltip(Tooltip.create(pasteAllTooltip))
 				.bounds(left, top, Ui.COLUMN_WIDTH + 60, Ui.BUTTON_HEIGHT).build());
 		pasteAll.active = canPaste && unlabeled > 0;
 		this.addRenderableWidget(Button.builder(Component.translatable("waybettercoppergolem.overview.refresh"),
@@ -126,7 +130,7 @@ public class ZoneOverviewScreen extends Screen {
 								ClientPlayNetworking.send(new EditorPayloads.SetChestLabels(pos, clipboard.orElseThrow()));
 								refresh();
 							})
-					.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.overview.paste.tooltip")))
+					.tooltip(Tooltip.create(pasteTooltip))
 					.bounds(x, y, ACTION_WIDTH, Ui.BUTTON_HEIGHT).build());
 			paste.active = canPaste;
 			y += Ui.ROW;

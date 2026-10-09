@@ -17,6 +17,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
@@ -225,10 +226,9 @@ public class LabelPickerScreen extends Screen {
 				}
 				y += Ui.ROW;
 			}
-			this.addRenderableWidget(Button.builder(Component.translatable("waybettercoppergolem.picker.remove_labels"),
-							button -> sendLabels(List.of()))
-					.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.editor.remove_labels.tooltip")))
-					.bounds(this.specialX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
+			this.addRenderableWidget(new ConfirmButton(this.specialX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT,
+					Component.translatable("waybettercoppergolem.picker.remove_labels"), () -> sendLabels(List.of()))
+					.withTooltip(Component.translatable("waybettercoppergolem.editor.remove_labels.tooltip")));
 			y += Ui.ROW + Ui.GAP;
 		}
 		this.specialLabelY = y;
@@ -274,6 +274,25 @@ public class LabelPickerScreen extends Screen {
 		this.resultsLabelY = top + Ui.SECTION_LABEL + Ui.ROW + chipsHeight;
 		this.resultsTop = this.resultsLabelY + Ui.SECTION_LABEL;
 		rebuildResults();
+		if (readOnly()) {
+			lockForReadOnly();
+		}
+	}
+
+	/** Chest mode for a chest in a zone this player may not change: the server would refuse every edit. */
+	private boolean readOnly() {
+		return this.context != null && !this.context.canEdit();
+	}
+
+	/** Everything that would change the chest is disabled, with the reason as its tooltip; searching still works. */
+	private void lockForReadOnly() {
+		for (GuiEventListener child : this.children()) {
+			if (child instanceof AbstractWidget widget && !(child instanceof EditBox)
+					&& !widget.getMessage().getString().equals("✕")) {
+				widget.active = false;
+				widget.setTooltip(Tooltip.create(Component.translatable("waybettercoppergolem.access.read_only")));
+			}
+		}
 	}
 
 	/** Replaces the results list: suggestions / carried items, item matches, or the selected item's stops. */
@@ -356,6 +375,10 @@ public class LabelPickerScreen extends Screen {
 	}
 
 	private <T extends AbstractWidget> T add(T widget) {
+		if (readOnly()) {
+			widget.active = false;
+			widget.setTooltip(Tooltip.create(Component.translatable("waybettercoppergolem.access.read_only")));
+		}
 		this.dynamic.add(widget);
 		this.addRenderableWidget(widget);
 		return widget;
@@ -510,7 +533,8 @@ public class LabelPickerScreen extends Screen {
 		}
 		String key = ctx.current().explicit()
 				? "waybettercoppergolem.editor.current" : "waybettercoppergolem.editor.current_auto";
-		return Component.translatable(key, LabelResolver.listNames(ctx.current().labels()));
+		Component line = Component.translatable(key, LabelResolver.listNames(ctx.current().labels()));
+		return ctx.canEdit() ? line : line.copy().append(" · ").append(Component.translatable("waybettercoppergolem.access.read_only_short"));
 	}
 
 	@Override

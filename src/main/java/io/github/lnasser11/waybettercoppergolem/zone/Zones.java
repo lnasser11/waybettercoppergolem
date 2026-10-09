@@ -127,6 +127,40 @@ public final class Zones {
 		});
 	}
 
+	/**
+	 * Like {@link #zoneForCopperChest(ServerLevel, BlockPos)} for a player:
+	 * a zone that has to be created is owned by the player, and an existing
+	 * zone without an owner is claimed. Empty when the chest is in no zone
+	 * and the player may not create one ({@link ZoneAccess#mayCreate}); the
+	 * player is told why.
+	 */
+	public static Optional<ZoneRef> zoneForCopperChest(ServerLevel level, BlockPos copperChest, ServerPlayer player) {
+		Optional<ZoneRef> existing = zoneAt(level, copperChest);
+		if (existing.isPresent()) {
+			return Optional.of(ZoneAccess.claimIfUnowned(level, existing.get(), player));
+		}
+		if (!ZoneAccess.mayCreate(level, player)) {
+			player.sendSystemMessage(Component.translatable(ZoneAccess.isOperator(player)
+					|| !io.github.lnasser11.waybettercoppergolem.config.WbcgConfig.get().zonesRequireOpToCreate()
+					? "waybettercoppergolem.access.zone_limit" : "waybettercoppergolem.access.create_needs_op"));
+			return Optional.empty();
+		}
+		Zone zone = new Zone(Zone.defaultArea(copperChest), defaults(level),
+				ZoneAccess.NONE.withOwner(new net.minecraft.server.players.NameAndId(player.getGameProfile())));
+		put(level, copperChest, zone);
+		WayBetterCopperGolem.LOGGER.info("[zone] {} created the zone at {} ({})",
+				ZoneAccess.nameOf(player), copperChest, level.dimension().identifier());
+		return Optional.of(new ZoneRef(copperChest, zone));
+	}
+
+	/** "owner Steve · 2 trusted", or "no owner". */
+	public static Component describeAccess(ZoneAccess access) {
+		if (access.owner().isEmpty()) {
+			return Component.translatable("waybettercoppergolem.access.no_owner");
+		}
+		return Component.translatable("waybettercoppergolem.access.summary", access.owner().get().name(), access.trusted().size());
+	}
+
 	/** The settings new zones start from in this world (stored on the overworld). */
 	public static ZoneSettings defaults(ServerLevel level) {
 		ZoneSettings stored = level.getServer().overworld().getAttached(WayBetterCopperGolem.ZONE_DEFAULTS);
