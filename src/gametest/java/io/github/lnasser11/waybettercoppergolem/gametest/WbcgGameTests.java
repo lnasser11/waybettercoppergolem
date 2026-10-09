@@ -1026,6 +1026,113 @@ public final class WbcgGameTests {
 		});
 	}
 
+	// ---------------------------------------------------------------- golems stay inside their zone
+	//
+	// The 8x8 room gets an inner glass wall at x=5 with a two-wide doorway, and
+	// the zone's box is the part west of it (x 0..4). A golem joins the zone by
+	// taking from its copper chest; from then on "golems stay inside" decides
+	// whether the doorway is a way out.
+
+	/** The zone box is the west part of the room; the east part is outside it but still has a floor. */
+	private static BoundingBox westBox(GameTestHelper helper) {
+		return BoundingBox.fromCorners(helper.absolutePos(BlockPos.ZERO), helper.absolutePos(new BlockPos(4, 7, 7)));
+	}
+
+	/** {@link #buildRoom} plus an inner glass wall at x=5 with an open doorway at z=3..4. */
+	private static void buildRoomWithDoorway(GameTestHelper helper) {
+		buildRoom(helper);
+		for (int z = 1; z <= 6; z++) {
+			if (z == 3 || z == 4) {
+				continue;
+			}
+			for (int y = 1; y <= 2; y++) {
+				helper.setBlock(new BlockPos(5, y, z), Blocks.GLASS);
+			}
+		}
+	}
+
+	/** A copper chest with iron for the golem to take (so it joins the zone) and an iron chest to deliver into. */
+	private static CopperGolem golemInWestZone(GameTestHelper helper, boolean stayInside) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoomWithDoorway(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 1));
+		fill(helper, source, Items.IRON_INGOT, 16);
+		BlockPos ingots = chest(helper, new BlockPos(1, 1, 6));
+		label(level, ingots, ChestLabel.exact(id(Items.IRON_INGOT)));
+		Zones.put(level, source, new Zone(westBox(helper), ZoneSettings.DEFAULT.withStayInside(stayInside)));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		return golem;
+	}
+
+	/** Every 100 ticks after joining, tempt the golem with a walk target on the far side of the doorway. */
+	private static void temptOutside(GameTestHelper helper, CopperGolem golem) {
+		BlockPos outside = helper.absolutePos(new BlockPos(6, 1, 3));
+		helper.onEachTick(() -> {
+			if (((ZoneAwareGolem) golem).wbcg$homeZoneAnchor() != null && helper.getTick() % 100 == 0) {
+				golem.getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.WALK_TARGET,
+						new net.minecraft.world.entity.ai.memory.WalkTarget(outside, 1.0F, 0));
+			}
+		});
+	}
+
+	/** With the setting on, a golem that joined the zone never crosses the doorway in 1200 ticks, even when sent there. */
+	@GameTest(maxTicks = 1600)
+	public void confinedGolemNeverLeavesItsZone(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		CopperGolem golem = golemInWestZone(helper, true);
+		ZoneAwareGolem aware = (ZoneAwareGolem) golem;
+		BlockPos anchor = helper.absolutePos(new BlockPos(1, 1, 1));
+		BoundingBox box = westBox(helper);
+		temptOutside(helper, golem);
+		helper.failIfEver(() -> {
+			if (aware.wbcg$homeZoneAnchor() != null) {
+				helper.assertTrue(box.isInside(golem.blockPosition()), "golem left its zone at " + golem.blockPosition());
+			}
+		});
+		helper.runAfterDelay(1200, () -> {
+			helper.assertValueEqual(aware.wbcg$homeZoneAnchor(), anchor, "golem joined the zone when it took from the copper chest");
+			helper.assertTrue(golem.getAttached(WayBetterCopperGolem.GOLEM_ZONE) != null, "membership is stored on the golem");
+			helper.assertValueEqual(aware.wbcg$confinement(level).map(BoundingBox::toString), Optional.of(box.toString()),
+					"confined to the zone box");
+			helper.succeed();
+		});
+	}
+
+	/** With the setting off, the same golem walks through the doorway when sent there. */
+	@GameTest(maxTicks = 1600)
+	public void unconfinedGolemLeavesItsZone(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		CopperGolem golem = golemInWestZone(helper, false);
+		ZoneAwareGolem aware = (ZoneAwareGolem) golem;
+		temptOutside(helper, golem);
+		helper.succeedWhen(() -> {
+			helper.assertTrue(aware.wbcg$homeZoneAnchor() != null, "joined");
+			helper.assertTrue(aware.wbcg$confinement(level).isEmpty(), "not confined with the setting off");
+			helper.assertTrue(golem.blockPosition().getX() >= 5, "golem still inside the zone box at " + golem.blockPosition());
+		});
+	}
+
+	/** A confined golem teleported two blocks outside the box walks back through the doorway. */
+	@GameTest(maxTicks = 1600)
+	public void confinedGolemTeleportedOutsideWalksBack(GameTestHelper helper) {
+		CopperGolem golem = golemInWestZone(helper, true);
+		ZoneAwareGolem aware = (ZoneAwareGolem) golem;
+		BoundingBox box = westBox(helper);
+		net.minecraft.world.phys.Vec3 outside = helper.absoluteVec(new net.minecraft.world.phys.Vec3(6.5, 1.0, 3.5));
+		helper.startSequence()
+				.thenWaitUntil(() -> helper.assertTrue(aware.wbcg$homeZoneAnchor() != null, "golem has not joined the zone yet"))
+				.thenExecute(() -> golem.teleportTo(outside.x, outside.y, outside.z))
+				.thenExecuteAfter(1, () -> helper.assertFalse(box.isInside(golem.blockPosition()), "golem is outside after the teleport"))
+				.thenWaitUntil(() -> helper.assertTrue(box.isInside(golem.blockPosition()),
+						"golem still outside its zone at " + golem.blockPosition()))
+				.thenSucceed();
+	}
+
 	// ---------------------------------------------------------------- the golem button
 
 	/** Opening the editor from a chest's screen must close that chest's menu, or the server keeps syncing it. */

@@ -19,8 +19,9 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 /**
  * Settings panel for a sorting zone, opened by sneak-right-clicking any
  * copper chest inside it or from the Golem button in its inventory. Two
- * columns so it fits a 480 × 270 GUI: behavior toggles and the operator
- * defaults on the left, the area and the tools on the right. Widgets act
+ * columns so it fits a 480 × 270 GUI (and the 427 × 240 default window):
+ * behavior toggles on the left, the area and the tools on the right, the
+ * operator defaults in the bottom row beside Done. Widgets act
  * through vanilla menu-button clicks; values re-sync from the server
  * through the menu's data slots, so what you see is what got saved.
  */
@@ -33,7 +34,6 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 	private int leftX;
 	private int rightX;
 	private int behaviorLabelY;
-	private int defaultsLabelY;
 	private int areaLabelY;
 	private int toolsLabelY;
 
@@ -60,8 +60,8 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 		this.shownAnchor = this.menu.anchorPos();
 		this.shownArea = this.menu.area();
 
-		int leftHeight = Ui.SECTION_LABEL + 3 * Ui.ROW + Ui.GAP + Ui.SECTION_LABEL + 2 * Ui.ROW;
-		int rightHeight = Ui.SECTION_LABEL + 3 * Ui.ROW + Ui.GAP + Ui.SECTION_LABEL + 2 * Ui.ROW;
+		int leftHeight = Ui.SECTION_LABEL + 4 * Ui.ROW;
+		int rightHeight = Ui.SECTION_LABEL + 2 * Ui.ROW + Ui.GAP + Ui.SECTION_LABEL + 2 * Ui.ROW;
 		int contentHeight = Math.max(leftHeight, rightHeight) + Ui.GAP + Ui.ROW;
 		this.panel = Panel.centered(this.width, this.height, Ui.PANEL_WIDTH, contentHeight);
 		this.leftX = this.panel.contentX();
@@ -90,22 +90,12 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 						Component.translatable("waybettercoppergolem.settings.dry_run"),
 						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_DRY_RUN)))
 				.setTooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.dry_run.tooltip")));
-		y += Ui.ROW + Ui.GAP;
-
-		// ---- left: defaults (operators)
-		this.defaultsLabelY = y;
-		y += Ui.SECTION_LABEL;
-		this.addRenderableWidget(Button.builder(
-						Component.translatable("waybettercoppergolem.settings.save_defaults"),
-						button -> click(ZoneSettingsMenu.BUTTON_SAVE_DEFAULTS))
-				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.save_defaults.tooltip")))
-				.bounds(this.leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
 		y += Ui.ROW;
-		this.addRenderableWidget(Button.builder(
-						Component.translatable("waybettercoppergolem.settings.apply_all"),
-						button -> click(ZoneSettingsMenu.BUTTON_APPLY_ALL))
-				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.apply_all.tooltip")))
-				.bounds(this.leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
+		this.addRenderableWidget(toggle(this.shown.stayInside())
+				.create(this.leftX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT,
+						Component.translatable("waybettercoppergolem.settings.stay_inside"),
+						(button, value) -> click(ZoneSettingsMenu.BUTTON_TOGGLE_STAY_INSIDE)))
+				.setTooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.stay_inside.tooltip")));
 
 		// ---- right: area
 		y = top;
@@ -124,13 +114,6 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 						button -> click(ZoneSettingsMenu.BUTTON_RESET_AREA))
 				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.reset_area.tooltip")))
 				.bounds(this.rightX + half + Ui.GAP, y, half, Ui.BUTTON_HEIGHT).build());
-		y += Ui.ROW;
-		this.addRenderableWidget(Button.builder(
-						Component.translatable("waybettercoppergolem.settings.show_area"), button -> {
-							click(ZoneSettingsMenu.BUTTON_SHOW_AREA);
-							this.onClose();
-						})
-				.bounds(this.rightX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
 		y += Ui.ROW;
 		// ---- right: vertical reach stepper
 		Button down = Button.builder(Component.translatable("waybettercoppergolem.settings.reach_down"),
@@ -176,10 +159,30 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 							this.onClose();
 						})
 				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.learn.tooltip")))
-				.bounds(this.rightX, y, Ui.COLUMN_WIDTH, Ui.BUTTON_HEIGHT).build());
+				.bounds(this.rightX, y, half, Ui.BUTTON_HEIGHT).build());
+		this.addRenderableWidget(Button.builder(
+						Component.translatable("waybettercoppergolem.settings.show_area"), button -> {
+							click(ZoneSettingsMenu.BUTTON_SHOW_AREA);
+							this.onClose();
+						})
+				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.show_area.tooltip")))
+				.bounds(this.rightX + half + Ui.GAP, y, half, Ui.BUTTON_HEIGHT).build());
 
+		// ---- bottom row: the operator defaults and Done
+		int bottomY = this.panel.bottom() - Ui.PADDING - Ui.BUTTON_HEIGHT;
+		int third = (Ui.PANEL_WIDTH - 2 * Ui.GAP) / 3;
+		this.addRenderableWidget(Button.builder(
+						Component.translatable("waybettercoppergolem.settings.save_defaults"),
+						button -> click(ZoneSettingsMenu.BUTTON_SAVE_DEFAULTS))
+				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.save_defaults.tooltip")))
+				.bounds(this.leftX, bottomY, third, Ui.BUTTON_HEIGHT).build());
+		this.addRenderableWidget(Button.builder(
+						Component.translatable("waybettercoppergolem.settings.apply_all"),
+						button -> click(ZoneSettingsMenu.BUTTON_APPLY_ALL))
+				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.apply_all.tooltip")))
+				.bounds(this.leftX + third + Ui.GAP, bottomY, third, Ui.BUTTON_HEIGHT).build());
 		this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
-				.bounds(this.panel.centerX() - 100, this.panel.bottom() - Ui.PADDING - Ui.BUTTON_HEIGHT, 200, Ui.BUTTON_HEIGHT)
+				.bounds(this.leftX + 2 * (third + Ui.GAP), bottomY, Ui.PANEL_WIDTH - 2 * (third + Ui.GAP), Ui.BUTTON_HEIGHT)
 				.build());
 	}
 
@@ -215,7 +218,6 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 						this.shownAnchor.getX() + ", " + this.shownAnchor.getY() + ", " + this.shownAnchor.getZ(),
 						Zones.describeArea(this.shownArea)));
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.settings.section.behavior"), this.leftX, this.behaviorLabelY);
-		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.settings.section.defaults"), this.leftX, this.defaultsLabelY);
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.settings.section.area"), this.rightX, this.areaLabelY);
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.settings.section.tools"), this.rightX, this.toolsLabelY);
 	}

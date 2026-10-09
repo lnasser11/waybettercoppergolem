@@ -278,6 +278,14 @@ scale your monitor allows, and check:
 3. Walk the golem (or summon one) outside every zone → it behaves as
    vanilla there: nearest copper chest, label-aware deposits within the
    vanilla 32 × 8 volume.
+4. **Staying inside.** Leave the room's door open and **Golems stay
+   inside** ON (the default). After the golem has taken from the copper
+   chest once (it has joined the zone), watch it idle for a few minutes:
+   it strolls inside the box and never steps through the door. Push it
+   out of the door with your body, or `/tp` it two blocks outside → it
+   turns around and walks back in. Toggle the setting OFF → sooner or
+   later it wanders out and starts serving whatever room it ends up in.
+   The HUD's zone line shows `stay inside on/off`.
 
 ## 10. Vertical reach (the tall-wall feature)
 

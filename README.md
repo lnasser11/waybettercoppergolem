@@ -204,10 +204,12 @@ A zone is a box with settings, anchored at a copper chest. Every copper
 chest inside the box belongs to the same zone, so one storage room is one
 zone however many copper chests it has. Golems working for a zone **only
 take from copper chests inside the box and only deposit or reorganize
-inside it**. A golem that wanders into another room starts serving that
-room's zone; one carrying items still delivers to the room it took them
-from. Outside every zone, golems behave as in vanilla with default
-settings.
+inside it**. The first time a golem takes from a copper chest inside a
+zone it **joins** that zone and keeps working for it wherever it stands,
+until the zone is removed (the membership is saved with the golem). A
+golem that has not joined any zone serves the room it is standing in; one
+carrying items still delivers to the room it took them from. Outside every
+zone, golems behave as in vanilla with default settings.
 
 **Sneak-right-click any copper chest with an empty hand**, or press the
 **Golem** button in its inventory, to open its zone, creating a default
@@ -219,6 +221,7 @@ outline is drawn with particles for a moment.
 | Reorganize existing chests | on | background cleanup on/off |
 | Tidy inside chests | off | merge partial stacks + close gaps in chests the golem visits |
 | Dry run | off | log intended moves, touch nothing |
+| Golems stay inside | on | the zone's golems never path out of its box; see [Golems stay inside](#golems-stay-inside-their-zone) |
 
 Buttons on the same screen:
 
@@ -293,6 +296,19 @@ considered misplaced. Toggleable per zone.
 Off by default. When on, after a golem picks up from or deposits into a
 chest it merges partial stacks of the same item and closes gaps, within
 one server tick. Nothing is created or lost.
+
+### Golems stay inside their zone
+
+On by default. Vanilla golems stroll a couple of blocks between trips and,
+given an open door, eventually wander off and start serving some other
+room. A golem that has joined a zone with this setting on never paths
+outside the zone's box: its strolls are redrawn until they land inside,
+any walk whose path would leave the box is cut at the last step still
+inside (so a chest only reachable from outside counts as unreachable),
+and a golem that is pushed, falls or is teleported out walks back to the
+nearest spot inside. The box is the zone's area, not a radius, so an
+L-shaped or long room works as drawn. Turn it off for golems that are
+meant to roam.
 
 ### Dry run
 
