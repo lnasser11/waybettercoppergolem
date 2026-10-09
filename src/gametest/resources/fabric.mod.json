@@ -1,14 +1,15 @@
 {
 	"schemaVersion": 1,
 	"id": "waybettercoppergolem_tests",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"name": "Way Better Copper Golem — game tests",
 	"environment": "*",
 	"license": "CC0-1.0",
 	"entrypoints": {
 		"fabric-gametest": [
 			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgGameTests",
-			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgPresetCoverageTests"
+			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgPresetCoverageTests",
+			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgBugHuntTests"
 		],
 		"fabric-client-gametest": [
 			"io.github.lnasser11.waybettercoppergolem.gametest.WbcgClientGameTest"

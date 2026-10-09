@@ -26,7 +26,7 @@ public record ZoneSettings(int verticalReach, boolean reorganize, boolean tidyIn
 	public static final int MIN_VERTICAL_REACH = 1;
 	public static final int MAX_VERTICAL_REACH = 16;
 	public static final int DEFAULT_VERTICAL_REACH = 6;
-	public static final ZoneSettings DEFAULT = new ZoneSettings(DEFAULT_VERTICAL_REACH, true, false, false, true, false, false);
+	public static final ZoneSettings DEFAULT = new ZoneSettings(DEFAULT_VERTICAL_REACH, true, true, false, true, false, false);
 
 	public static final Codec<ZoneSettings> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			Codec.INT.optionalFieldOf("vertical_reach", DEFAULT.verticalReach()).forGetter(ZoneSettings::verticalReach),

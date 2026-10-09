@@ -142,14 +142,26 @@ public final class SortingEngine {
 	 * The copper chest to take from next: the vanilla rule (nearest chest of
 	 * the source type that is not visited, unreachable or locked), with two
 	 * refinements: a chest no other golem is heading to is preferred over a
-	 * nearer one that is, and a chest holding nothing but item frames is
-	 * skipped while the zone's golems hang frames ({@code skipFrameOnly}).
-	 * Empty when there is no candidate at all.
+	 * nearer one that is, a chest holding nothing but item frames is
+	 * skipped while the zone's golems hang frames ({@code skipFrameOnly}),
+	 * and an empty chest is skipped when it is close enough that
+	 * {@link GolemWake} will wake the golem the moment something lands in
+	 * it (vanilla walks over to look every cooldown; here the walk is
+	 * saved, which also keeps a perched golem on its perch). Empty when
+	 * there is no candidate at all.
 	 */
 	public static Optional<TransportItemTarget> findSource(
 			ServerLevel level, Vec3 from, Predicate<BlockState> sourceBlockType,
 			Set<GlobalPos> visited, Set<GlobalPos> unreachable, AABB searchArea,
 			Set<BlockPos> claimed, boolean skipFrameOnly) {
+		return findSource(level, from, sourceBlockType, visited, unreachable, searchArea, claimed, skipFrameOnly, pos -> false);
+	}
+
+	/** As above; {@code skip} rejects chests the golem found nothing deliverable in lately (either half of a double chest). */
+	public static Optional<TransportItemTarget> findSource(
+			ServerLevel level, Vec3 from, Predicate<BlockState> sourceBlockType,
+			Set<GlobalPos> visited, Set<GlobalPos> unreachable, AABB searchArea,
+			Set<BlockPos> claimed, boolean skipFrameOnly, Predicate<BlockPos> skip) {
 		TransportItemTarget best = null;
 		boolean bestClaimed = true;
 		double bestDistSq = Double.MAX_VALUE;
@@ -166,7 +178,14 @@ public final class SortingEngine {
 				if (candidate == null) {
 					continue;
 				}
-				if (skipFrameOnly && !candidate.container().isEmpty() && onlyFrames(candidate.container())) {
+				if (candidate.container().isEmpty()) {
+					if (GolemWake.covers(from, candidate.pos())) {
+						continue; // nothing to take, and the golem is woken when that changes
+					}
+				} else if (skipFrameOnly && onlyFrames(candidate.container())) {
+					continue;
+				}
+				if (ChestLabels.halves(candidate.pos(), candidate.state()).stream().anyMatch(skip)) {
 					continue;
 				}
 				boolean isClaimed = isClaimed(candidate, claimed);
@@ -179,6 +198,25 @@ public final class SortingEngine {
 			}
 		}
 		return Optional.ofNullable(best);
+	}
+
+	/**
+	 * The copper-chest pickup: takes up to {@code carrySize} of the first
+	 * stack that {@code deliverable} accepts (frames excluded while the
+	 * zone's golems hang them). Empty when no stack qualifies, so a stack
+	 * with nowhere to go stays in the chest instead of in the golem's hand.
+	 */
+	public static ItemStack takeFirstDeliverable(Container container, int carrySize, boolean skipFrames, Predicate<ItemStack> deliverable) {
+		for (int slot = 0; slot < container.getContainerSize(); slot++) {
+			ItemStack stack = container.getItem(slot);
+			if (stack.isEmpty() || (skipFrames && FrameHanger.isFrame(stack)) || !deliverable.test(stack)) {
+				continue;
+			}
+			ItemStack taken = container.removeItem(slot, Math.min(stack.getCount(), carrySize));
+			container.setChanged();
+			return taken;
+		}
+		return ItemStack.EMPTY;
 	}
 
 	private static boolean onlyFrames(Container container) {
@@ -429,15 +467,21 @@ public final class SortingEngine {
 	}
 
 	/**
-	 * Every pending consolidation in the area: for each group of chests
-	 * sharing the same label set, each item is given a home (the sibling
-	 * holding the most of it) and every other sibling's stacks of that item
-	 * become moves into the home while it has room. Stacks that match none
-	 * of the group's labels are reorganize's business and are left out;
-	 * off-limits, unlabeled and copper chests take no part. Read-only.
+	 * Every pending consolidation in the area. For each item, every labeled
+	 * chest gets a rank: its narrowest label matching the item, catch-all
+	 * behind every real label, none when nothing matches. The item's
+	 * <em>home</em> is the chest with the best rank that holds some of it or
+	 * has room, and among equals the one holding the most of it; every other
+	 * chest's stacks of that item become moves into the home while it has
+	 * room. So a stray stack of dirt leaves a "Stone & Dirt" chest for the
+	 * chest labeled *Dirt* (narrower), and twin chests consolidate on the
+	 * one holding more. Stacks that match none of their chest's labels are
+	 * reorganize's business and are left out; a chest ranked better than
+	 * the home (narrower, but full) keeps its stacks; off-limits, unlabeled
+	 * and copper chests take no part. Read-only.
 	 */
 	public static List<TidyMove> planTidy(ServerLevel level, Set<GlobalPos> unreachable, AABB searchArea, int carrySize) {
-		Map<String, List<LabeledChest>> groups = new java.util.TreeMap<>();
+		List<LabeledChest> chests = new java.util.ArrayList<>();
 		for (ChunkPos chunkPos : chunksCovering(searchArea)) {
 			LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
 			if (chunk == null) {
@@ -460,68 +504,62 @@ public final class SortingEngine {
 				if (labels.isEmpty() || labels.stream().anyMatch(ChestLabel::isOffLimits)) {
 					continue;
 				}
-				String key = labels.stream().map(ChestLabel::toString).sorted().collect(java.util.stream.Collectors.joining("|"));
-				groups.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(new LabeledChest(target, labels));
+				chests.add(new LabeledChest(target, labels));
+			}
+		}
+		chests.sort(java.util.Comparator.comparing(chest -> chest.target().pos()));
+		Map<net.minecraft.world.item.Item, int[]> counts = new java.util.LinkedHashMap<>();
+		for (int i = 0; i < chests.size(); i++) {
+			for (ItemStack stack : chests.get(i).target().container()) {
+				if (!stack.isEmpty()) {
+					counts.computeIfAbsent(stack.getItem(), item -> new int[chests.size()])[i] += stack.getCount();
+				}
 			}
 		}
 		List<TidyMove> moves = new java.util.ArrayList<>();
-		for (List<LabeledChest> group : groups.values()) {
-			if (group.size() < 2) {
+		for (Map.Entry<net.minecraft.world.item.Item, int[]> entry : counts.entrySet()) {
+			int[] perChest = entry.getValue();
+			ItemStack sample = new ItemStack(entry.getKey());
+			int[] ranks = new int[chests.size()];
+			int home = -1;
+			for (int i = 0; i < chests.size(); i++) {
+				ranks[i] = rankFor(level, chests.get(i).labels(), sample);
+				if (ranks[i] == LabelResolver.NO_MATCH || (perChest[i] == 0 && room(chests.get(i).target().container(), sample) <= 0)) {
+					continue;
+				}
+				if (home < 0 || ranks[i] < ranks[home] || (ranks[i] == ranks[home] && perChest[i] > perChest[home])) {
+					home = i;
+				}
+			}
+			if (home < 0) {
 				continue;
 			}
-			group.sort(java.util.Comparator.comparing(chest -> chest.target().pos()));
-			planGroup(level, group, carrySize, moves);
+			LabeledChest homeChest = chests.get(home);
+			for (int j = 0; j < chests.size(); j++) {
+				if (j == home || perChest[j] == 0 || ranks[j] == LabelResolver.NO_MATCH || ranks[j] < ranks[home]) {
+					continue;
+				}
+				for (ItemStack stack : chests.get(j).target().container()) {
+					if (stack.isEmpty() || stack.getItem() != entry.getKey()) {
+						continue;
+					}
+					int fits = Math.min(Math.min(stack.getCount(), carrySize), room(homeChest.target().container(), stack));
+					if (fits > 0) {
+						moves.add(new TidyMove(chests.get(j).target(), stack.copyWithCount(fits), homeChest.target()));
+					}
+				}
+			}
 		}
 		return moves;
 	}
 
-	private static void planGroup(ServerLevel level, List<LabeledChest> group, int carrySize, List<TidyMove> out) {
-		List<ChestLabel> labels = group.getFirst().labels();
-		Map<net.minecraft.world.item.Item, int[]> counts = new java.util.LinkedHashMap<>();
-		for (int i = 0; i < group.size(); i++) {
-			for (ItemStack stack : group.get(i).target().container()) {
-				if (stack.isEmpty()) {
-					continue;
-				}
-				counts.computeIfAbsent(stack.getItem(), item -> new int[group.size()])[i] += stack.getCount();
-			}
+	/** The chest's rank for the item: its narrowest matching label, catch-all behind every real label, {@link LabelResolver#NO_MATCH} otherwise. */
+	private static int rankFor(ServerLevel level, List<ChestLabel> labels, ItemStack stack) {
+		int rank = LabelResolver.NO_MATCH;
+		for (ChestLabel label : labels) {
+			rank = Math.min(rank, LabelResolver.specificity(level, label, stack));
 		}
-		for (Map.Entry<net.minecraft.world.item.Item, int[]> entry : counts.entrySet()) {
-			int[] perChest = entry.getValue();
-			int home = -1;
-			int holders = 0;
-			for (int i = 0; i < perChest.length; i++) {
-				if (perChest[i] > 0) {
-					holders++;
-					if (home < 0 || perChest[i] > perChest[home]) {
-						home = i;
-					}
-				}
-			}
-			if (holders < 2) {
-				continue;
-			}
-			LabeledChest homeChest = group.get(home);
-			for (int i = 0; i < perChest.length; i++) {
-				if (i == home || perChest[i] == 0) {
-					continue;
-				}
-				for (ItemStack stack : group.get(i).target().container()) {
-					if (stack.isEmpty() || stack.getItem() != entry.getKey()) {
-						continue;
-					}
-					boolean matchesLabels = labels.stream().anyMatch(label -> label.isCatchAll() || LabelResolver.matches(level, label, stack));
-					if (!matchesLabels) {
-						continue; // misplaced: reorganize moves it out of the group instead
-					}
-					int fits = Math.min(Math.min(stack.getCount(), carrySize), room(homeChest.target().container(), stack));
-					if (fits <= 0) {
-						continue;
-					}
-					out.add(new TidyMove(group.get(i).target(), stack.copyWithCount(fits), homeChest.target()));
-				}
-			}
-		}
+		return rank;
 	}
 
 	/** How many of {@code stack} the container can still take: empty slots plus space in matching partial stacks. */

@@ -5,7 +5,9 @@ import io.github.lnasser11.waybettercoppergolem.learn.LearnSession;
 import io.github.lnasser11.waybettercoppergolem.tool.LabelTool;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.util.Util;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.NameAndId;
@@ -21,6 +23,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Settings panel for a sorting zone, opened from any copper chest inside
@@ -57,6 +60,8 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 
 	public static final int FLAG_CAN_EDIT = 1;
 	public static final int FLAG_OPERATOR = 2;
+	/** May run the learn pass from this screen: an editor who also passes {@code learn_requires_op}. */
+	public static final int FLAG_CAN_LEARN = 4;
 
 	public static final int BUTTON_TOGGLE_REORGANIZE = 0;
 	public static final int BUTTON_TOGGLE_TIDY = 1;
@@ -106,7 +111,7 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 
 	/** Data for a player who may edit everything (tests and tools). */
 	public static ContainerData dataFor(Zones.ZoneRef ref) {
-		return dataFor(ref, FLAG_CAN_EDIT | FLAG_OPERATOR);
+		return dataFor(ref, FLAG_CAN_EDIT | FLAG_OPERATOR | FLAG_CAN_LEARN);
 	}
 
 	public static ContainerData dataFor(Zones.ZoneRef ref, int flags) {
@@ -124,6 +129,9 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 		}
 		if (ZoneAccess.isOperator(player)) {
 			flags |= FLAG_OPERATOR;
+		}
+		if ((flags & FLAG_CAN_EDIT) != 0 && LearnSession.allowed(player)) {
+			flags |= FLAG_CAN_LEARN;
 		}
 		return flags;
 	}
@@ -176,6 +184,11 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 
 	public boolean isOperator() {
 		return (this.data.get(DATA_FLAGS) & FLAG_OPERATOR) != 0;
+	}
+
+	/** Whether the viewing player may run the learn pass from this screen. */
+	public boolean canLearn() {
+		return (this.data.get(DATA_FLAGS) & FLAG_CAN_LEARN) != 0;
 	}
 
 	@Override
@@ -266,6 +279,10 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 				case BUTTON_REACH_UP -> zone = zone.withSettings(current.withVerticalReach(current.verticalReach() + 1));
 				case BUTTON_RESET_AREA -> zone = zone.withArea(Zone.defaultArea(ref.anchor()));
 				case BUTTON_LEARN -> {
+					if (!LearnSession.allowed(serverPlayer)) {
+						serverPlayer.sendSystemMessage(Component.translatable("waybettercoppergolem.learn.not_allowed"));
+						return true;
+					}
 					LearnSession.preview(serverPlayer, serverLevel, zone.area(),
 							Component.translatable("waybettercoppergolem.learn.scope.zone", Zones.describeArea(zone.area())),
 							false);
@@ -314,12 +331,25 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 			player.sendSystemMessage(Component.translatable("waybettercoppergolem.access.unknown_player", name));
 			return;
 		}
-		Optional<NameAndId> target = resolve(level, trimmed);
-		if (target.isEmpty()) {
-			player.sendSystemMessage(Component.translatable("waybettercoppergolem.access.unknown_player", trimmed));
+		ServerPlayer online = level.getServer().getPlayerList().getPlayerByName(trimmed);
+		if (online != null) {
+			trust(player, anchor, new NameAndId(online.getGameProfile()), add);
 			return;
 		}
-		trust(player, anchor, target.get(), add);
+		// A name the server may not know: the profile lookup can go to Mojang's servers, so it runs off the
+		// server thread and the result comes back onto it (where the permission check is repeated).
+		MinecraftServer server = level.getServer();
+		CompletableFuture.supplyAsync(() -> resolveOffline(server, trimmed), Util.backgroundExecutor())
+				.thenAcceptAsync(target -> {
+					if (player.hasDisconnected()) {
+						return;
+					}
+					if (target.isEmpty()) {
+						player.sendSystemMessage(Component.translatable("waybettercoppergolem.access.unknown_player", trimmed));
+						return;
+					}
+					trust(player, anchor, target.get(), add);
+				}, server);
 	}
 
 	/** Trusts or untrusts a resolved player; the permission check is here too (tests call this directly). */
@@ -352,14 +382,10 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 				add ? "trusted" : "no longer trusts", target.name(), anchor);
 	}
 
-	/** An online player by name, else the server's name cache (players it has seen). */
-	private static Optional<NameAndId> resolve(ServerLevel level, String name) {
-		ServerPlayer online = level.getServer().getPlayerList().getPlayerByName(name);
-		if (online != null) {
-			return Optional.of(new NameAndId(online.getGameProfile()));
-		}
+	/** The server's name cache (players it has seen), falling back to a profile lookup; may block, so never on the server thread. */
+	private static Optional<NameAndId> resolveOffline(MinecraftServer server, String name) {
 		try {
-			return level.getServer().services().nameToIdCache().get(name);
+			return server.services().nameToIdCache().get(name);
 		} catch (RuntimeException e) {
 			return Optional.empty();
 		}

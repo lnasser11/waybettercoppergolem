@@ -37,6 +37,8 @@ public class ZoneAccessScreen extends Screen {
 	private final boolean operator;
 	private ZoneAccess shown = ZoneAccess.NONE;
 	private String name = "";
+	private int page;
+	private int pages = 1;
 	private Panel panel = new Panel(0, 0, 0, 0);
 	private int trustedLabelY;
 
@@ -60,7 +62,10 @@ public class ZoneAccessScreen extends Screen {
 	protected void init() {
 		super.init();
 		this.shown = currentAccess();
-		int rows = Math.clamp(this.shown.trusted().size(), 1, MAX_ROWS);
+		List<NameAndId> trusted = this.shown.trusted();
+		this.pages = Math.max(1, (trusted.size() + MAX_ROWS - 1) / MAX_ROWS);
+		this.page = Math.clamp(this.page, 0, this.pages - 1);
+		int rows = Math.clamp(trusted.size(), 1, MAX_ROWS);
 		int contentHeight = Ui.ROW + Ui.GAP + Ui.SECTION_LABEL + rows * Ui.ROW + Ui.GAP + Ui.ROW;
 		this.panel = Panel.centered(this.width, this.height, Ui.PANEL_WIDTH, contentHeight);
 		int left = this.panel.contentX();
@@ -91,8 +96,7 @@ public class ZoneAccessScreen extends Screen {
 		// ---- the trusted list
 		this.trustedLabelY = y;
 		y += Ui.SECTION_LABEL;
-		List<NameAndId> trusted = this.shown.trusted();
-		for (int i = 0; i < Math.min(trusted.size(), MAX_ROWS); i++) {
+		for (int i = this.page * MAX_ROWS; i < Math.min(trusted.size(), (this.page + 1) * MAX_ROWS); i++) {
 			NameAndId entry = trusted.get(i);
 			this.addRenderableWidget(new ListRow(left, y, Ui.PANEL_WIDTH - Ui.BUTTON_HEIGHT - Ui.GAP,
 					Component.literal(entry.name()), () -> {}));
@@ -109,13 +113,23 @@ public class ZoneAccessScreen extends Screen {
 		// ---- bottom: take over (operators) and back
 		int bottomY = this.panel.bottom() - Ui.PADDING - Ui.BUTTON_HEIGHT;
 		int half = (Ui.PANEL_WIDTH - Ui.GAP) / 2;
-		Button takeOver = new ConfirmButton(left, bottomY, half, Ui.BUTTON_HEIGHT,
+		int pagerWidth = 2 * (Ui.BUTTON_HEIGHT + Ui.GAP);
+		Button takeOver = new ConfirmButton(left, bottomY, half - pagerWidth, Ui.BUTTON_HEIGHT,
 				Component.translatable("waybettercoppergolem.access.take_over"),
 				() -> this.parent.clickFromChild(ZoneSettingsMenu.BUTTON_TAKE_OVER))
 				.withTooltip(Component.translatable(this.operator
 						? "waybettercoppergolem.access.take_over.tooltip" : "waybettercoppergolem.access.operators_only"));
 		takeOver.active = this.operator;
 		this.addRenderableWidget(takeOver);
+		// The trusted list is paged, MAX_ROWS names at a time.
+		this.addRenderableWidget(Button.builder(Component.literal("<"), button -> {
+			this.page--;
+			this.rebuildWidgets();
+		}).bounds(left + half - pagerWidth + Ui.GAP, bottomY, Ui.BUTTON_HEIGHT, Ui.BUTTON_HEIGHT).build()).active = this.page > 0;
+		this.addRenderableWidget(Button.builder(Component.literal(">"), button -> {
+			this.page++;
+			this.rebuildWidgets();
+		}).bounds(left + half - Ui.BUTTON_HEIGHT, bottomY, Ui.BUTTON_HEIGHT, Ui.BUTTON_HEIGHT).build()).active = this.page < this.pages - 1;
 		this.addRenderableWidget(Button.builder(CommonComponents.GUI_BACK, button -> this.onClose())
 				.bounds(left + half + Ui.GAP, bottomY, half, Ui.BUTTON_HEIGHT).build());
 	}
@@ -138,8 +152,12 @@ public class ZoneAccessScreen extends Screen {
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 		this.panel.header(graphics, this.font, this.title, Zones.describeAccess(this.shown));
-		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.access.trusted_header",
-				this.shown.trusted().size()), this.panel.contentX(), this.trustedLabelY, this.panel.contentWidth());
+		net.minecraft.network.chat.MutableComponent header = Component.translatable("waybettercoppergolem.access.trusted_header",
+				this.shown.trusted().size());
+		if (this.pages > 1) {
+			header.append(" · " + (this.page + 1) + "/" + this.pages);
+		}
+		Panel.sectionLabel(graphics, this.font, header, this.panel.contentX(), this.trustedLabelY, this.panel.contentWidth());
 		if (this.shown.trusted().isEmpty()) {
 			graphics.centeredText(this.font, Component.translatable("waybettercoppergolem.access.nobody_trusted"),
 					this.panel.centerX(), this.trustedLabelY + Ui.SECTION_LABEL + 6, Ui.TEXT_HINT);

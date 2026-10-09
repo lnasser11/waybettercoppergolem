@@ -32,6 +32,7 @@ import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -196,6 +197,14 @@ public class WayBetterCopperGolem implements ModInitializer {
 		LabelTool.register();
 		UseBlockCallback.EVENT.register(WayBetterCopperGolem::onUseBlock);
 		ServerEntityEvents.ENTITY_LOAD.register(WayBetterCopperGolem::onEntityLoad);
+		// The runtime-only state lives in static maps (keyed by positions and game time) that would otherwise
+		// carry over into the next world opened in the same session.
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+			io.github.lnasser11.waybettercoppergolem.sorting.GolemWake.clear();
+			io.github.lnasser11.waybettercoppergolem.sorting.GolemClaims.clear();
+			LabelTool.clear();
+			io.github.lnasser11.waybettercoppergolem.learn.LearnSession.clear();
+		});
 		CommandRegistrationCallback.EVENT.register(
 				(dispatcher, registryAccess, environment) -> WbcgCommand.register(dispatcher, registryAccess));
 		if (net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment()) {

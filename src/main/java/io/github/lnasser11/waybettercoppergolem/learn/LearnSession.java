@@ -69,6 +69,12 @@ public final class LearnSession {
 		return false;
 	}
 
+	/** Forgets every pending proposal and scan time (server stop). */
+	public static void clear() {
+		PENDING.clear();
+		LAST_SCAN.clear();
+	}
+
 	/** Forgets the player's last scan time (tests). */
 	public static void resetRateLimit(ServerPlayer player) {
 		LAST_SCAN.remove(player.getUUID());

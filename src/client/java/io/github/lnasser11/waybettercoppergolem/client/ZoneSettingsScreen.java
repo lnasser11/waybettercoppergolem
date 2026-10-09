@@ -168,14 +168,21 @@ public class ZoneSettingsScreen extends Screen implements MenuAccess<ZoneSetting
 				.tooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.simulate.tooltip")))
 				.bounds(this.rightX + half + Ui.GAP, y, half, Ui.BUTTON_HEIGHT).build());
 		y += Ui.ROW;
-		editable(this.addRenderableWidget(Button.builder(
+		Button learn = this.addRenderableWidget(Button.builder(
 						Component.translatable("waybettercoppergolem.settings.learn"), button -> {
 							// The proposal arrives in chat, so close the screen to read it.
 							click(ZoneSettingsMenu.BUTTON_LEARN);
 							this.onClose();
 						})
-				.bounds(this.rightX, y, half, Ui.BUTTON_HEIGHT).build()),
-				"waybettercoppergolem.settings.learn.tooltip", canEdit);
+				.bounds(this.rightX, y, half, Ui.BUTTON_HEIGHT).build());
+		if (this.menu.canLearn()) {
+			learn.setTooltip(Tooltip.create(Component.translatable("waybettercoppergolem.settings.learn.tooltip")));
+		} else {
+			// Editors who are not operators are refused by learn_requires_op; everyone else by the zone's access rule.
+			learn.active = false;
+			learn.setTooltip(Tooltip.create(Component.translatable(canEdit
+					? "waybettercoppergolem.learn.not_allowed" : "waybettercoppergolem.access.read_only")));
+		}
 		this.addRenderableWidget(Button.builder(
 						Component.translatable("waybettercoppergolem.settings.show_area"), button -> {
 							click(ZoneSettingsMenu.BUTTON_SHOW_AREA);

@@ -41,8 +41,10 @@ import java.util.Set;
  * hang frames", off by default).
  *
  * <p>After a golem delivers into an explicitly labeled chest whose front
- * face is bare, the chest is remembered on the golem. On its next trip the
- * golem fetches one item frame (glow frames count too) from a copper chest
+ * face is bare, the chest is remembered on the golem; and a golem with
+ * nothing to deliver looks for such a chest itself ({@link #findBareChest},
+ * background work like reorganize). On its next trip the golem fetches one
+ * item frame (glow frames count too) from a copper chest
  * in the zone, carries it in hand like any item, and hangs it on the
  * chest's front face showing one of the chest's own items: the first stack
  * matching an exact-item label, otherwise the most common item inside. One
@@ -184,6 +186,39 @@ public final class FrameHanger {
 		return Optional.ofNullable(best);
 	}
 
+	/**
+	 * The nearest chest in the area that wants a frame ({@link #wantsFrame}),
+	 * one entry per double chest, skipping chests the golem found
+	 * unreachable and those {@code skip} rejects (the golem's own longer
+	 * memory of failed frame trips): the target of a background frame trip
+	 * when the golem has nothing to deliver.
+	 */
+	public static Optional<BlockPos> findBareChest(ServerLevel level, Vec3 from, Set<GlobalPos> unreachable, AABB searchArea,
+			java.util.function.Predicate<BlockPos> skip) {
+		BlockPos best = null;
+		double bestDistSq = Double.MAX_VALUE;
+		for (ChunkPos chunkPos : SortingEngine.chunksCovering(searchArea)) {
+			LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
+			if (chunk == null) {
+				continue;
+			}
+			for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+				BlockPos pos = blockEntity.getBlockPos();
+				if (!(blockEntity instanceof ChestBlockEntity) || !ChestLabels.isLabelableChest(blockEntity.getBlockState())
+						|| !searchArea.contains(pos.getX(), pos.getY(), pos.getZ())
+						|| unreachable.contains(new GlobalPos(level.dimension(), pos)) || skip.test(pos)) {
+					continue;
+				}
+				double distSq = pos.distToCenterSqr(from);
+				if (distSq < bestDistSq && wantsFrame(level, pos)) {
+					best = pos.immutable();
+					bestDistSq = distSq;
+				}
+			}
+		}
+		return Optional.ofNullable(best);
+	}
+
 	public static boolean holdsFrame(Container container) {
 		for (ItemStack stack : container) {
 			if (isFrame(stack)) {
@@ -198,23 +233,6 @@ public final class FrameHanger {
 		for (int slot = 0; slot < container.getContainerSize(); slot++) {
 			if (isFrame(container.getItem(slot))) {
 				ItemStack taken = container.removeItem(slot, 1);
-				container.setChanged();
-				return taken;
-			}
-		}
-		return ItemStack.EMPTY;
-	}
-
-	/**
-	 * The vanilla pickup, frames excluded: takes up to {@code carrySize} of
-	 * the first stack that is not an item frame (empty if only frames are
-	 * left).
-	 */
-	public static ItemStack takeFirstNonFrame(Container container, int carrySize) {
-		for (int slot = 0; slot < container.getContainerSize(); slot++) {
-			ItemStack stack = container.getItem(slot);
-			if (!stack.isEmpty() && !isFrame(stack)) {
-				ItemStack taken = container.removeItem(slot, Math.min(stack.getCount(), carrySize));
 				container.setChanged();
 				return taken;
 			}
@@ -258,7 +276,8 @@ public final class FrameHanger {
 		level.addFreshEntity(frame);
 		frame.setItem(shown);
 		frame.playPlacementSound();
-		golem.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+		held.shrink(1); // exactly one frame leaves the hand; a bigger stack keeps the rest as ordinary cargo
+		golem.setItemSlot(EquipmentSlot.MAINHAND, held.isEmpty() ? ItemStack.EMPTY : held);
 		WayBetterCopperGolem.LOGGER.debug("[WBCG-DEBUG] golem hung a frame showing {} on {}", shown.getItem(), chest.pos());
 		return true;
 	}

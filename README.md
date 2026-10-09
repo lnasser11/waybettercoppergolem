@@ -192,7 +192,7 @@ exactly like vanilla, with or without a click-through mod.
 
 ### The HUD: see labels and zones without opening anything
 
-While the feather is in either hand, a small panel above the hotbar shows
+While the feather is in either hand, a small panel at the top of the screen shows
 what you are looking at: a chest's labels (marked *auto, from the frame*
 when derived) or *Unlabeled chest — vanilla behavior*; a copper chest's
 zone and settings, while the zone's outline is drawn around you; and
@@ -223,7 +223,7 @@ outline is drawn with particles for a moment.
 | Setting | Default | |
 |---|---|---|
 | Reorganize existing chests | on | background cleanup on/off |
-| Tidy sibling chests | off | consolidate chests that share a label set, one stack per trip; see [Tidy](#tidy-sibling-chests) |
+| Tidy chests | on | move each stack to the chest that fits it best and keep stacks in order, one chest or stack per trip; see [Tidy](#tidy-chests) |
 | Dry run | off | log intended moves, touch nothing |
 | Golems stay inside | on | the zone's golems never path out of its box; see [Golems stay inside](#golems-stay-inside-their-zone) |
 | Golems hang frames | off | golems decorate bare labeled chests with an item frame; see [Golems hang frames](#golems-hang-frames) |
@@ -235,7 +235,8 @@ unless you may change it, see [Who may change a zone](#who-may-change-a-zone)):
 - **Set area with the tool…** closes the screen; the next two
   sneak-right-clicks with the feather on any blocks are the opposite
   corners of the zone (up to 128 blocks per side; the anchor chest is
-  always included). Sneak-right-click the air to cancel.
+  always included). Sneak-right-click the air to cancel; area mode also
+  ends on its own after five minutes of play without a corner click.
 - **Reset area** goes back to the default box; **Show area outline**
   draws it again; **Learn this zone's chests…** runs the learn pass over
   the area.
@@ -289,6 +290,14 @@ Golems carry a whole stack per trip (configurable) and notice new items at
 once: whenever a copper chest's contents change, every golem nearby drops
 its idle cooldown and forgets that chest's "already visited" mark, so it
 searches again on the next tick. Vanilla would wait up to five minutes.
+Because of that wake-up, a golem does not walk over to an empty copper
+chest just to look inside (vanilla does, every seven seconds); it waits
+where it is until something lands in one. A golem only picks up a stack
+that has somewhere to go right now; a stack with no matching chest and no
+catch-all stays in the copper chest (**Simulate…** lists it as *nowhere
+to go*) instead of being carried around for good, and a golem whose cargo
+loses its destination on the way (the chest filled up, a label changed)
+brings it back to the copper chest.
 
 ### Where an item goes
 
@@ -324,19 +333,21 @@ and off-limits chests are never considered misplaced. Toggleable per
 zone. **Simulate…** lists every pending move as *reorganize: 3× Cake →
 [x y z]* and **Overview…** flags the chests.
 
-### Tidy sibling chests
+### Tidy chests
 
-Off by default. When on, the same low-priority background job that
-reorganizes the room also consolidates **sibling chests**: chests in the
-zone that share exactly the same label set. For each item that sits in
-more than one sibling, the sibling already holding the most of it is its
-**home**, and the golem moves the stray stacks of that item from the other
-siblings into the home while it has room, one stack per trip, like every
-other move. So a chest labeled *Stone & Dirt* holding 26 stacks of stone
-and one stack of dirt, next to a sibling that holds dirt, loses its dirt
-to the sibling, and the next stone goes into the freed slot instead of
-starting a new one: each chest trends toward one kind of content and
-twin chests stop interleaving.
+On by default. The same low-priority background job that reorganizes the
+room also moves stacks to where they fit best. For each item, every
+labeled chest in the zone gets a rank: its narrowest label matching the
+item (catch-all behind every real label). The item's **home** is the chest
+with the best rank, and among equals the one already holding the most of
+it; the golem moves that item's stray stacks from the other chests into
+the home while it has room, one stack per trip, like every other move. So
+a chest labeled *Stone & Dirt* holding 26 stacks of stone and one stack
+of dirt loses its dirt to the chest labeled *Dirt* (narrower), or to a
+twin *Stone & Dirt* chest that holds more dirt, and the next stone goes
+into the freed slot instead of starting a new one: each chest trends
+toward one kind of content and twin chests stop interleaving. A full
+narrower chest keeps what it has; nothing is pulled out of it.
 
 Inside each chest the stacks are kept **in order**: grouped by item,
 the item with the most stacks first (five stacks of cobblestone, then
@@ -371,6 +382,8 @@ meant to roam.
 Off by default. When on, keep a stack of item frames (glow frames work
 too) in any copper chest of the zone. After a golem delivers into an
 **explicitly labeled** chest whose front face is bare, its next trip is a
+frame trip; and a golem with nothing to deliver goes looking for such
+chests on its own, one per trip, as background work like reorganize. A
 frame trip: it fetches one frame from a copper chest, carries it in hand
 like any item, and hangs it on the chest's front face showing one of the
 chest's own items, which leaves the chest: the first stack matching an
@@ -392,8 +405,11 @@ Simulate leaves them out.
 
 Off by default. When on, a golem with nothing to do (empty hands, no
 copper chest worth visiting) walks to the nearest chest top in its zone
-that is free (two blocks of air above it, no other golem on it) and
-stands there like a statue: no strolling, no wandering. The moment a
+that is free (two blocks of air above it, no other golem on it) and that
+it can actually climb onto (a chest on the floor, or one step up; the top
+of a two-high chest wall is out of its reach) and stands there like a
+statue: no strolling, no wandering. With no such chest top around it
+stands still where it is instead. The moment a
 copper chest in the zone changes, the golem is woken as usual and climbs
 down to work. Chests with a golem on top still open normally.
 

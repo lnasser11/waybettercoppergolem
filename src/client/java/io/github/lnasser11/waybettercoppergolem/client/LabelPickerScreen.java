@@ -67,7 +67,9 @@ public class LabelPickerScreen extends Screen {
 	private static final int MIN_RESULT_ROWS_NARROW = 3;
 	private static final int CHIPS_PER_ROW = 7;
 	private static final int MAX_RESULT_ROWS = 12;
-	private static final int MAX_CHIPS = 2;
+	/** Chips for the chest's own labels: as many as fit, never fewer than two; beyond that the last chip pages. */
+	private static final int MIN_CHIPS = 2;
+	private static final int MAX_CHIPS = 8;
 
 	/** The editor currently on screen in chest mode, if any (tracked here; see {@link #removed()}). */
 	private static @Nullable LabelPickerScreen openEditor;
@@ -89,6 +91,9 @@ public class LabelPickerScreen extends Screen {
 	private int searchLabelY;
 	private int resultsLabelY;
 	private int resultsTop;
+	private int chipRows = MIN_CHIPS;
+	/** First of the chest's labels shown as a chip when there are more labels than chip rows. */
+	private int chipOffset;
 
 	private LabelPickerScreen(@Nullable EditorContext context) {
 		super(Component.translatable(context == null
@@ -135,8 +140,10 @@ public class LabelPickerScreen extends Screen {
 		int chipRows = (presets.size() + CHIPS_PER_ROW - 1) / CHIPS_PER_ROW;
 
 		int categoriesHeight = wide ? Ui.SECTION_LABEL + ((presets.size() + 1) / 2) * Ui.ROW : 0;
+		int specialFixed = Ui.SECTION_LABEL + 2 * Ui.ROW + Ui.GAP + Ui.SECTION_LABEL + 2 * Ui.ROW;
+		this.chipRows = chestMode() ? Ui.rowsThatFit(this.height, specialFixed, MIN_CHIPS, MAX_CHIPS) : 0;
 		int specialHeight = chestMode()
-				? Ui.SECTION_LABEL + (2 + MAX_CHIPS) * Ui.ROW + Ui.GAP + Ui.SECTION_LABEL + 2 * Ui.ROW
+				? specialFixed + this.chipRows * Ui.ROW
 				: Ui.SECTION_LABEL + 4 * Ui.ROW;
 		int chipsHeight = wide ? 0 : Ui.SECTION_LABEL + chipRows * Ui.ROW;
 		int searchFixed = Ui.SECTION_LABEL + Ui.ROW + chipsHeight + Ui.SECTION_LABEL;
@@ -224,9 +231,21 @@ public class LabelPickerScreen extends Screen {
 			y += Ui.ROW;
 			List<ChestLabel> current = this.context.current().labels();
 			this.noLabelsY = current.isEmpty() ? y : -1;
-			for (int i = 0; i < MAX_CHIPS; i++) {
-				if (i < current.size()) {
-					ChestLabel label = current.get(i);
+			// Every label gets a chip when they fit; otherwise the last chip stands for the rest and pages through them.
+			int visible = current.size() <= this.chipRows ? current.size() : this.chipRows - 1;
+			this.chipOffset = current.isEmpty() ? 0 : Math.floorMod(this.chipOffset, current.size());
+			for (int i = 0; i < this.chipRows; i++) {
+				if (i == visible && current.size() > this.chipRows) {
+					int hidden = current.size() - visible;
+					this.addRenderableWidget(new ListRow(this.specialX, y, Ui.COLUMN_WIDTH,
+							Component.translatable("waybettercoppergolem.editor.more_labels", hidden), () -> {
+								this.chipOffset += visible;
+								this.rebuildWidgets();
+							})
+							.primaryColor(Ui.TEXT_MUTED)
+							.tooltip(Component.translatable("waybettercoppergolem.editor.more_labels.tooltip")));
+				} else if (i < visible) {
+					ChestLabel label = current.get((this.chipOffset + i) % current.size());
 					List<ChestLabel> remaining = new ArrayList<>(current);
 					remaining.remove(label);
 					this.addRenderableWidget(new ListRow(this.specialX, y, Ui.COLUMN_WIDTH,

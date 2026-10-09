@@ -46,6 +46,8 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.BlockHitResult;
 
 import org.lwjgl.glfw.GLFW;
+import net.minecraft.network.chat.Component;
+import io.github.lnasser11.waybettercoppergolem.tool.Clipboard;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -95,6 +97,7 @@ public final class WbcgClientGameTest implements FabricClientGameTest {
 
 			assertGuiSize(context, 480, 270);
 			zoneScreenAndAreaMode(context, server, "480x270");
+			frameSwitchRoundTrip(context, server);
 			pickers(context, server, "480x270");
 			otherScreens(context, server, "480x270");
 
@@ -177,6 +180,73 @@ public final class WbcgClientGameTest implements FabricClientGameTest {
 
 	private static ServerPlayer player(net.minecraft.server.MinecraftServer server) {
 		return server.getPlayerList().getPlayers().getFirst();
+	}
+
+
+	// ---------------------------------------------------------------- the editor's frame switch, copied and pasted with the feather
+
+	/**
+	 * The exact in-game sequence: flip the frame chip in the ingot chest's
+	 * editor with a real click, copy that chest with a real sneak-left-click
+	 * of the feather, paste onto the cobblestone chest with a real
+	 * sneak-right-click, and read the chip in the cobblestone chest's editor.
+	 */
+	private void frameSwitchRoundTrip(ClientGameTestContext context, TestServerContext server) {
+		server.runOnServer(s -> {
+			ServerLevel level = player(s).level();
+			ChestLabels.setExplicit(level, this.ingotChest, level.getBlockState(this.ingotChest),
+					List.of(ChestLabel.exact(BuiltInRegistries.ITEM.getKey(Items.IRON_INGOT))));
+		});
+		openChestPicker(context, server, "frame_switch_before");
+		// The chip is a ListRow, which clickScreenButton does not see; send what its click sends.
+		context.runOnClient(mc -> net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
+				new io.github.lnasser11.waybettercoppergolem.net.EditorPayloads.SetChestFrames(this.ingotChest, false)));
+		context.waitTicks(10);
+		assertTrue(context.computeOnClient(mc -> mc.gui.screen() != null && mc.gui.screen().children().stream()
+						.anyMatch(w -> w instanceof AbstractWidget widget
+								&& widget.getMessage().getString().equals(Component.translatable("waybettercoppergolem.editor.frames.blocked").getString()))),
+				"the chip reads 'blocked' after one click");
+		assertTrue(server.computeOnServer(s -> !ChestLabels.golemFramesAllowed(player(s).level(), this.ingotChest, player(s).level().getBlockState(this.ingotChest))),
+				"the server stored the frame switch");
+		context.takeScreenshot("frame_switch_red");
+		pressEscape(context);
+
+		// Copy: sneak-left-click the ingot chest with the feather.
+		TestInput input = context.getInput();
+		input.lookAt(this.ingotChest);
+		context.waitTicks(2);
+		input.holdShift();
+		context.waitTicks(2);
+		input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		context.waitTicks(10);
+		input.releaseShift();
+		context.waitTicks(5);
+		assertTrue(server.computeOnServer(s -> player(s).level().getBlockState(this.ingotChest).is(Blocks.CHEST)), "the copy click must not break the chest");
+		assertTrue(server.computeOnServer(s -> Clipboard.of(player(s)).labels().isPresent()), "labels on the clipboard after the copy");
+		assertTrue(server.computeOnServer(s -> Clipboard.of(player(s)).noGolemFrames()), "the frame switch on the clipboard after the copy");
+
+		// Paste: sneak-right-click the cobblestone chest.
+		sneakRightClick(context, this.cobbleChest);
+		assertTrue(server.computeOnServer(s -> !ChestLabels.golemFramesAllowed(player(s).level(), this.cobbleChest, player(s).level().getBlockState(this.cobbleChest))),
+				"the frame switch was pasted onto the second chest");
+
+		server.runOnServer(s -> ChestEditor.open(player(s), this.cobbleChest));
+		context.waitForScreen(LabelPickerScreen.class);
+		context.waitTicks(5);
+		assertTrue(context.computeOnClient(mc -> mc.gui.screen() != null && mc.gui.screen().children().stream()
+						.anyMatch(w -> w instanceof AbstractWidget widget
+								&& widget.getMessage().getString().equals(Component.translatable("waybettercoppergolem.editor.frames.blocked").getString()))),
+				"the second chest's editor shows the chip red");
+		context.takeScreenshot("frame_switch_pasted");
+		pressEscape(context);
+		// Leave both chests as the rest of the run expects them.
+		server.runOnServer(s -> {
+			ServerLevel level = player(s).level();
+			ChestLabels.setGolemFramesAllowed(level, this.ingotChest, level.getBlockState(this.ingotChest), true);
+			ChestLabels.setGolemFramesAllowed(level, this.cobbleChest, level.getBlockState(this.cobbleChest), true);
+			ChestLabels.clear(level, this.ingotChest, level.getBlockState(this.ingotChest));
+			Clipboard.set(player(s), Clipboard.EMPTY);
+		});
 	}
 
 	// ---------------------------------------------------------------- zone screen + area mode

@@ -37,17 +37,28 @@ public final class GolemWake {
 	private GolemWake() {
 	}
 
+	/** Whether a change of the copper chest at {@code chest} would wake a golem standing at {@code golem}. */
+	public static boolean covers(net.minecraft.world.phys.Vec3 golem, BlockPos chest) {
+		return new AABB(chest).inflate(HORIZONTAL_RANGE, VERTICAL_RANGE, HORIZONTAL_RANGE).contains(golem);
+	}
+
+	/** Forgets every throttle entry (server stop; the map is static and would otherwise outlive the world). */
+	public static void clear() {
+		LAST_WAKE.clear();
+	}
+
 	/** Called when the contents of the copper chest at {@code pos} changed. */
 	public static void copperChestChanged(ServerLevel level, BlockPos pos, BlockState state) {
 		GlobalPos key = new GlobalPos(level.dimension(), pos.immutable());
 		long now = level.getGameTime();
 		Long last = LAST_WAKE.get(key);
-		if (last != null && now - last < THROTTLE_TICKS) {
+		// (now >= last: an entry from another world of this session may lie in this world's future.)
+		if (last != null && now >= last && now - last < THROTTLE_TICKS) {
 			return;
 		}
 		LAST_WAKE.put(key, now);
 		if (LAST_WAKE.size() > 4096) {
-			LAST_WAKE.entrySet().removeIf(entry -> now - entry.getValue() > THROTTLE_TICKS);
+			LAST_WAKE.entrySet().removeIf(entry -> Math.abs(now - entry.getValue()) > THROTTLE_TICKS);
 		}
 		Set<GlobalPos> halves = new HashSet<>();
 		halves.add(key);
@@ -55,8 +66,10 @@ public final class GolemWake {
 			halves.add(new GlobalPos(level.dimension(), ChestBlock.getConnectedBlockPos(pos, state)));
 		}
 		AABB around = new AABB(pos).inflate(HORIZONTAL_RANGE, VERTICAL_RANGE, HORIZONTAL_RANGE);
+		java.util.List<BlockPos> halfPositions = halves.stream().map(GlobalPos::pos).toList();
 		for (CopperGolem golem : level.getEntitiesOfClass(CopperGolem.class, around)) {
 			wake(golem.getBrain(), halves);
+			((ZoneAwareGolem) golem).wbcg$forgetSkippedSources(halfPositions);
 		}
 	}
 
