@@ -34,7 +34,8 @@ import java.util.Set;
  * physically reach either chest, and whether earlier moves fill a chest
  * up, so it is a preview, not a promise. With reorganize on, the misplaced
  * stacks and where they would go are listed too; with tidy on, the pending
- * consolidations across sibling chests. While the zone's golems hang
+ * consolidations across sibling chests and the chests whose stacks are out
+ * of order. While the zone's golems hang
  * frames, item frames in the copper chests are supplies, not cargo, and
  * are left out.
  */
@@ -108,7 +109,23 @@ public final class ZoneSimulation {
 						ChestLabels.effectiveLabels(level, tidy.home().pos(), tidy.home().state()), Move.TIDY));
 			}
 		}
-		// Moves with nowhere to go first: those are the ones the player needs to act on; then deliveries, reorganize, tidy.
+		if (zone.settings().tidyInside()) {
+			for (TransportItemTarget untidy : SortingEngine.untidyChests(level, Set.of(), area)) {
+				if (moves.size() >= MAX_MOVES) {
+					break;
+				}
+				int stacks = 0;
+				for (ItemStack stack : untidy.container()) {
+					if (!stack.isEmpty()) {
+						stacks++;
+					}
+				}
+				ItemStack sample = io.github.lnasser11.waybettercoppergolem.sorting.FrameHanger.sampleFor(level, untidy.container(), List.of());
+				moves.add(new Move(BuiltInRegistries.ITEM.getKey(sample.getItem()), stacks, untidy.pos(), Optional.of(untidy.pos()),
+						ChestLabels.effectiveLabels(level, untidy.pos(), untidy.state()), Move.SORT));
+			}
+		}
+		// Moves with nowhere to go first: those are the ones the player needs to act on; then deliveries, reorganize, tidy, sorting.
 		moves.sort(java.util.Comparator.comparingInt(Move::order));
 		return new ZonePayloads.Simulation(zone.anchor(), sources.size(), moves);
 	}

@@ -520,9 +520,13 @@ public final class SortingEngine {
 	}
 
 	/**
-	 * Merges partial stacks (same item and components) and closes slot gaps
-	 * within one container. Runs entirely inside one server tick and only
-	 * moves counts between existing stacks, so nothing is created or lost.
+	 * Tidies one container in place, within one server tick: partial stacks
+	 * of the same item are merged, then the stacks are laid out from slot 0
+	 * grouped by item, the item with the most stacks first (ties: more items
+	 * first, then by id), full stacks before partial ones within a group,
+	 * and the free slots at the end. So five stacks of cobblestone come
+	 * first, then three of the next block, then two of the next. Only moves
+	 * counts between existing stacks, so nothing is created or lost.
 	 */
 	public static void tidyContainer(Container container) {
 		int size = container.getContainerSize();
@@ -546,22 +550,125 @@ public final class SortingEngine {
 				changed = true;
 			}
 		}
-		int write = 0;
-		for (int read = 0; read < size; read++) {
-			ItemStack stack = container.getItem(read);
-			if (stack.isEmpty()) {
-				continue;
-			}
-			if (read != write) {
-				container.setItem(write, stack);
-				container.setItem(read, ItemStack.EMPTY);
+		List<ItemStack> sorted = sortedLayout(container);
+		for (int slot = 0; slot < size; slot++) {
+			ItemStack wanted = slot < sorted.size() ? sorted.get(slot) : ItemStack.EMPTY;
+			ItemStack current = container.getItem(slot);
+			if (current != wanted && !(current.isEmpty() && wanted.isEmpty())) {
+				container.setItem(slot, wanted);
 				changed = true;
 			}
-			write++;
 		}
 		if (changed) {
 			container.setChanged();
 		}
+	}
+
+	/** The container's stacks in tidy order (the live stack objects, not copies). */
+	private static List<ItemStack> sortedLayout(Container container) {
+		record Group(ItemStack sample, List<ItemStack> stacks, int total) {
+		}
+		Map<String, Group> groups = new java.util.LinkedHashMap<>();
+		for (int slot = 0; slot < container.getContainerSize(); slot++) {
+			ItemStack stack = container.getItem(slot);
+			if (stack.isEmpty()) {
+				continue;
+			}
+			String key = BuiltInRegistries.ITEM.getKey(stack.getItem()) + "|" + stack.getComponentsPatch().hashCode();
+			Group group = groups.get(key);
+			if (group != null && !ItemStack.isSameItemSameComponents(group.sample(), stack)) {
+				key = key + "#" + slot; // a hash clash: keep it apart
+				group = groups.get(key);
+			}
+			if (group == null) {
+				group = new Group(stack, new java.util.ArrayList<>(), 0);
+				groups.put(key, group);
+			}
+			group.stacks().add(stack);
+			groups.put(key, new Group(group.sample(), group.stacks(), group.total() + stack.getCount()));
+		}
+		List<Group> ordered = new java.util.ArrayList<>(groups.values());
+		ordered.sort(java.util.Comparator.<Group>comparingInt(group -> -group.stacks().size())
+				.thenComparingInt(group -> -group.total())
+				.thenComparing(group -> BuiltInRegistries.ITEM.getKey(group.sample().getItem()).toString()));
+		List<ItemStack> layout = new java.util.ArrayList<>();
+		for (Group group : ordered) {
+			List<ItemStack> stacks = new java.util.ArrayList<>(group.stacks());
+			stacks.sort(java.util.Comparator.comparingInt(stack -> -stack.getCount()));
+			layout.addAll(stacks);
+		}
+		return layout;
+	}
+
+	/** Whether {@link #tidyContainer} would leave this container as it is. */
+	public static boolean isTidy(Container container) {
+		int size = container.getContainerSize();
+		for (int i = 0; i < size; i++) {
+			ItemStack stack = container.getItem(i);
+			if (stack.isEmpty() || stack.getCount() >= stack.getMaxStackSize()) {
+				continue;
+			}
+			for (int j = i + 1; j < size; j++) {
+				ItemStack other = container.getItem(j);
+				if (!other.isEmpty() && ItemStack.isSameItemSameComponents(stack, other)) {
+					return false; // two partial stacks (or a partial before a stack) of the same item
+				}
+			}
+		}
+		List<ItemStack> sorted = sortedLayout(container);
+		for (int slot = 0; slot < size; slot++) {
+			ItemStack wanted = slot < sorted.size() ? sorted.get(slot) : ItemStack.EMPTY;
+			if (container.getItem(slot) != wanted && !(container.getItem(slot).isEmpty() && wanted.isEmpty())) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * The nearest labeled chest in the area whose contents are not in tidy
+	 * order, for a sorting visit (the golem walks there and sorts it in
+	 * place). Off-limits and copper chests are never touched.
+	 */
+	public static Optional<TransportItemTarget> findUntidyChest(ServerLevel level, Vec3 from,
+			Set<GlobalPos> unreachable, AABB searchArea) {
+		return untidyChests(level, unreachable, searchArea).stream()
+				.min(java.util.Comparator.comparingDouble(target -> target.pos().distToCenterSqr(from)));
+	}
+
+	/** Every labeled chest in the area whose contents are not in tidy order (one entry per double chest). */
+	public static List<TransportItemTarget> untidyChests(ServerLevel level, Set<GlobalPos> unreachable, AABB searchArea) {
+		List<TransportItemTarget> result = new java.util.ArrayList<>();
+		for (ChunkPos chunkPos : chunksCovering(searchArea)) {
+			LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
+			if (chunk == null) {
+				continue;
+			}
+			for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+				if (!(blockEntity instanceof ChestBlockEntity) || !ChestLabels.isLabelableChest(blockEntity.getBlockState())) {
+					continue;
+				}
+				BlockPos canonical = io.github.lnasser11.waybettercoppergolem.learn.RoomLearner.canonicalHalf(
+						blockEntity.getBlockPos(), blockEntity.getBlockState());
+				if (!canonical.equals(blockEntity.getBlockPos())) {
+					continue;
+				}
+				TransportItemTarget target = validCandidate(level, blockEntity, ChestLabels::isLabelableChest, Set.of(), unreachable, searchArea);
+				if (target == null) {
+					continue;
+				}
+				List<ChestLabel> labels = ChestLabels.effectiveLabels(level, target.pos(), target.state());
+				if (labels.isEmpty() || labels.stream().anyMatch(ChestLabel::isOffLimits) || isTidy(target.container())) {
+					continue;
+				}
+				result.add(target);
+			}
+		}
+		return result;
+	}
+
+	public static void logWouldSort(PathfinderMob golem, BlockPos chest) {
+		WayBetterCopperGolem.LOGGER.info("[DRY-RUN] would sort the stacks inside {}", posString(golem.level(), chest));
 	}
 
 	public static void logWouldMove(PathfinderMob golem, ItemStack stack, BlockPos from, @Nullable BlockPos to) {

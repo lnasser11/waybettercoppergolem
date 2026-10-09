@@ -213,7 +213,7 @@
   "waybettercoppergolem.tuning.tag_add": "adicionar",
   "waybettercoppergolem.overview.section": "Baús, problemas primeiro · página %s / %s",
   "waybettercoppergolem.settings.reorganize.tooltip": "Quando os baús de cobre estão vazios, os golens movem pilhas que não combinam com os rótulos do seu baú para o baú rotulado para elas, uma pilha por viagem, cerca de uma a cada dez segundos. Simular mostra o que iria mover.",
-  "waybettercoppergolem.settings.tidy.tooltip": "Entre entregas, os golens consolidam baús com os mesmos rótulos: cada item ganha uma casa (o irmão que tem mais dele) e as pilhas soltas vão para lá, uma pilha por viagem, para que cada baú tenda a um só tipo de conteúdo. Pilhas parciais são juntadas antes. Nada é criado nem perdido.",
+  "waybettercoppergolem.settings.tidy.tooltip": "Entre entregas, os golens mantêm os baús em ordem: pilhas agrupadas por item (o item com mais pilhas primeiro, pilhas cheias antes das parciais), pilhas parciais juntadas, e baús com os mesmos rótulos consolidados para que cada um tenda a um só tipo de conteúdo. Um baú ou uma pilha por viagem. Nada é criado nem perdido.",
   "waybettercoppergolem.settings.dry_run.tooltip": "Os golens registram no log do servidor o que moveriam e não tocam em nada. Para uma resposta rápida use Simular.",
   "waybettercoppergolem.settings.save_defaults": "Salvar padrão",
   "waybettercoppergolem.settings.save_defaults.tooltip": "Operadores: novas zonas neste mundo começam com estas configurações.",
@@ -285,5 +285,7 @@
   "waybettercoppergolem.simulation.reorganize_row": "reorganizar: %s× %s",
   "waybettercoppergolem.simulation.reorganize_row.tooltip": "Reorganizar: esta pilha não combina com nenhum rótulo do baú em %s e iria para o baú rotulado para ela. Clique para fazer o destino brilhar.",
   "waybettercoppergolem.count.reorganize.one": "%s pilha fora do lugar a mover",
-  "waybettercoppergolem.count.reorganize.many": "%s pilhas fora do lugar a mover"
+  "waybettercoppergolem.count.reorganize.many": "%s pilhas fora do lugar a mover",
+  "waybettercoppergolem.simulation.sort_row": "ordenar: %s pilhas fora de ordem",
+  "waybettercoppergolem.simulation.sort_row.tooltip": "Ordenar: um golem vai visitar o baú em %s e dispor as pilhas por item, o item com mais pilhas primeiro. Clique para fazê-lo brilhar."
 }

@@ -112,6 +112,8 @@ public final class ZonePayloads {
 		public static final String DELIVER = "deliver";
 		public static final String REORGANIZE = "reorganize";
 		public static final String TIDY = "tidy";
+		/** A chest whose stacks are out of order: {@code count} stacks, {@code item} the most common one, from = to = the chest. */
+		public static final String SORT = "sort";
 
 		public static final Codec<Move> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 				Identifier.CODEC.fieldOf("item").forGetter(Move::item),
@@ -134,9 +136,13 @@ public final class ZonePayloads {
 			return REORGANIZE.equals(kind);
 		}
 
-		/** Sort key: stuck deliveries first, then deliveries, reorganize moves, tidy moves. */
+		public boolean sort() {
+			return SORT.equals(kind);
+		}
+
+		/** Sort key: stuck deliveries first, then deliveries, reorganize moves, tidy moves, sorting visits. */
 		public int order() {
-			return to.isEmpty() ? 0 : tidy() ? 3 : reorganize() ? 2 : 1;
+			return to.isEmpty() ? 0 : sort() ? 4 : tidy() ? 3 : reorganize() ? 2 : 1;
 		}
 	}
 
