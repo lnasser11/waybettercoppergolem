@@ -1,11 +1,13 @@
 package io.github.lnasser11.waybettercoppergolem.tool;
 
+import io.github.lnasser11.waybettercoppergolem.WayBetterCopperGolem;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabel;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabelSet;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabels;
 import io.github.lnasser11.waybettercoppergolem.label.LabelResolver;
 import io.github.lnasser11.waybettercoppergolem.label.LabelSuggestions;
 import io.github.lnasser11.waybettercoppergolem.net.EditorPayloads;
+import io.github.lnasser11.waybettercoppergolem.zone.ZoneAccess;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettingsMenu;
 import io.github.lnasser11.waybettercoppergolem.zone.Zones;
 
@@ -61,15 +63,25 @@ public final class ChestEditor {
 		}
 		ChestLabelSet current = ChestLabels.effectiveLabelSet(level, pos, state);
 		ServerPlayNetworking.send(player, new EditorPayloads.EditorContext(
-				pos, current, LabelSuggestions.forChest(level, pos)));
+				pos, current, LabelSuggestions.forChest(level, pos), ZoneAccess.canEditLabelsAt(level, player, pos)));
 	}
 
-	/** The zone screen for the zone this copper chest belongs to (creating a default one if needed). */
+	/**
+	 * The zone screen for the zone this copper chest belongs to. A missing
+	 * zone is created and owned by the player (when they may create one);
+	 * a zone nobody owns is claimed. Players who may not change the zone
+	 * still get the screen, read-only.
+	 */
 	public static void openZoneScreen(ServerPlayer player, ServerLevel level, BlockPos pos) {
-		Zones.ZoneRef zone = Zones.zoneForCopperChest(level, pos);
+		Optional<Zones.ZoneRef> found = Zones.zoneForCopperChest(level, pos, player);
+		if (found.isEmpty()) {
+			return;
+		}
+		Zones.ZoneRef zone = found.get();
+		int flags = ZoneSettingsMenu.flagsFor(zone, player);
 		player.openMenu(new SimpleMenuProvider(
 				(containerId, inventory, p) -> new ZoneSettingsMenu(
-						containerId, ContainerLevelAccess.create(level, pos), zone.anchor(), ZoneSettingsMenu.dataFor(zone)),
+						containerId, ContainerLevelAccess.create(level, pos), zone.anchor(), ZoneSettingsMenu.dataFor(zone, flags)),
 				Component.translatable("waybettercoppergolem.settings.title")));
 		Zones.showOutline(player, level, zone.area());
 	}
@@ -87,6 +99,11 @@ public final class ChestEditor {
 		if (!ChestLabels.isLabelableChest(state) || labels.size() > 8 || !labels.stream().allMatch(LabelResolver::isValid)) {
 			return;
 		}
+		if (!ZoneAccess.canEditLabelsAt(level, player, pos)) {
+			player.sendOverlayMessage(Component.translatable("waybettercoppergolem.access.labels_denied"));
+			sendContext(player, level, pos, state);
+			return;
+		}
 		Vec3 center = Vec3.atCenterOf(pos);
 		if (labels.isEmpty()) {
 			ChestLabelSet now = ChestLabels.clear(level, pos, state);
@@ -94,8 +111,11 @@ public final class ChestEditor {
 					? "waybettercoppergolem.tool.cleared_chest" : "waybettercoppergolem.tool.cleared_chest_frames";
 			player.sendOverlayMessage(Component.translatable(key, LabelResolver.listNames(now.labels())));
 			level.sendParticles(ParticleTypes.WAX_OFF, center.x, center.y, center.z, 12, 0.4, 0.4, 0.4, 0.0);
+			WayBetterCopperGolem.LOGGER.info("[labels] {} cleared the labels of the chest at {} (editor)", ZoneAccess.nameOf(player), pos);
 		} else {
 			ChestLabels.setExplicit(level, pos, state, labels);
+			WayBetterCopperGolem.LOGGER.info("[labels] {} labeled the chest at {} as {} (editor)",
+					ZoneAccess.nameOf(player), pos, LabelResolver.listNames(labels).getString());
 			player.sendOverlayMessage(Component.translatable("waybettercoppergolem.tool.pasted",
 					LabelResolver.listNames(labels)));
 			level.sendParticles(ParticleTypes.HAPPY_VILLAGER, center.x, center.y, center.z, 12, 0.4, 0.4, 0.4, 0.0);

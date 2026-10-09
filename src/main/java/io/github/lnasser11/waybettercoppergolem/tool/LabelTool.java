@@ -6,6 +6,7 @@ import io.github.lnasser11.waybettercoppergolem.label.ChestLabelSet;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabels;
 import io.github.lnasser11.waybettercoppergolem.label.LabelResolver;
 import io.github.lnasser11.waybettercoppergolem.zone.Zone;
+import io.github.lnasser11.waybettercoppergolem.zone.ZoneAccess;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings;
 import io.github.lnasser11.waybettercoppergolem.zone.Zones;
 
@@ -158,7 +159,15 @@ public final class LabelTool {
 			area = area.encapsulate(selection.anchor());
 		}
 		Zone zone = Zones.all(level).getOrDefault(selection.anchor(), Zone.defaultAround(selection.anchor()));
+		// Setting the area of a zone nobody owns yet makes it yours (when you may create zones).
+		zone = ZoneAccess.claimIfUnowned(level, new Zones.ZoneRef(selection.anchor(), zone), player).zone();
+		if (!ZoneAccess.canEdit(new Zones.ZoneRef(selection.anchor(), zone), player)) {
+			player.sendSystemMessage(Component.translatable("waybettercoppergolem.access.denied"));
+			return true;
+		}
 		Zones.put(level, selection.anchor(), zone.withArea(area));
+		io.github.lnasser11.waybettercoppergolem.WayBetterCopperGolem.LOGGER.info("[zone] {} set the area of the zone at {} to {}",
+				ZoneAccess.nameOf(player), selection.anchor(), Zones.describeArea(area).getString());
 		cornerParticles(level, player, pos);
 		Zones.showOutline(player, level, area);
 		player.sendSystemMessage(Component.translatable(
@@ -286,9 +295,15 @@ public final class LabelTool {
 			player.sendOverlayMessage(Component.translatable("waybettercoppergolem.tool.nothing_to_paste"));
 			return;
 		}
+		if (!ZoneAccess.canEditLabelsAt(level, player, pos)) {
+			player.sendOverlayMessage(Component.translatable("waybettercoppergolem.access.labels_denied"));
+			return;
+		}
 		List<ChestLabel> labels = clipboard.labels().get();
 		if (labels.isEmpty()) {
 			ChestLabelSet now = ChestLabels.clear(level, pos, state);
+			io.github.lnasser11.waybettercoppergolem.WayBetterCopperGolem.LOGGER.info("[labels] {} cleared the labels of the chest at {} (tool)",
+					ZoneAccess.nameOf(player), pos);
 			String key = now.isEmpty()
 					? "waybettercoppergolem.tool.cleared_chest"
 					: "waybettercoppergolem.tool.cleared_chest_frames";
@@ -297,6 +312,8 @@ public final class LabelTool {
 			return;
 		}
 		ChestLabels.setExplicit(level, pos, state, labels);
+		io.github.lnasser11.waybettercoppergolem.WayBetterCopperGolem.LOGGER.info("[labels] {} labeled the chest at {} as {} (tool)",
+				ZoneAccess.nameOf(player), pos, LabelResolver.listNames(labels).getString());
 		player.sendOverlayMessage(Component.translatable("waybettercoppergolem.tool.pasted",
 				LabelResolver.listNames(labels)));
 		particles(level, pos, ParticleTypes.HAPPY_VILLAGER);
@@ -320,8 +337,18 @@ public final class LabelTool {
 			return;
 		}
 		ZoneSettings settings = clipboard.zone().get();
-		Zones.ZoneRef ref = Zones.zoneForCopperChest(level, pos);
+		Optional<Zones.ZoneRef> found = Zones.zoneForCopperChest(level, pos, player);
+		if (found.isEmpty()) {
+			return;
+		}
+		Zones.ZoneRef ref = found.get();
+		if (!ZoneAccess.canEdit(ref, player)) {
+			player.sendOverlayMessage(Component.translatable("waybettercoppergolem.access.denied"));
+			return;
+		}
 		Zones.put(level, ref.anchor(), ref.zone().withSettings(settings));
+		io.github.lnasser11.waybettercoppergolem.WayBetterCopperGolem.LOGGER.info("[zone] {} pasted settings onto the zone at {}: {}",
+				ZoneAccess.nameOf(player), ref.anchor(), Zones.describe(settings).getString());
 		player.sendOverlayMessage(Component.translatable("waybettercoppergolem.tool.pasted_zone",
 				Zones.describe(settings)));
 		particles(level, pos, ParticleTypes.HAPPY_VILLAGER);

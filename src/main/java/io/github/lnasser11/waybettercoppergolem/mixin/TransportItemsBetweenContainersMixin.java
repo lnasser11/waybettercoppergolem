@@ -113,6 +113,11 @@ public abstract class TransportItemsBetweenContainersMixin {
 			return;
 		}
 		ZoneAwareGolem golem = (ZoneAwareGolem) body;
+		if (io.github.lnasser11.waybettercoppergolem.config.WbcgConfig.get().golemsRequireZone()
+				&& golem.wbcg$zone(level).isEmpty()) {
+			cir.setReturnValue(Optional.empty()); // golems outside every zone do nothing on this server
+			return;
+		}
 		ItemStack held = body.getMainHandItem();
 		BlockPos pending = golem.wbcg$pendingFrameChest();
 		if (held.isEmpty()) {

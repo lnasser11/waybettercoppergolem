@@ -42,14 +42,15 @@ public final class EditorPayloads {
 		).apply(instance, Suggestion::new));
 	}
 
-	/** Server → client: everything the editor shows for one chest. */
-	public record EditorContext(BlockPos pos, ChestLabelSet current, List<Suggestion> suggestions)
+	/** Server → client: everything the editor shows for one chest; {@code canEdit} is false for a read-only look. */
+	public record EditorContext(BlockPos pos, ChestLabelSet current, List<Suggestion> suggestions, boolean canEdit)
 			implements CustomPacketPayload {
 		public static final Type<EditorContext> TYPE = new Type<>(WayBetterCopperGolem.id("editor_context"));
 		private static final Codec<EditorContext> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 				BlockPos.CODEC.fieldOf("pos").forGetter(EditorContext::pos),
 				ChestLabelSet.CODEC.fieldOf("current").forGetter(EditorContext::current),
-				Suggestion.CODEC.listOf().fieldOf("suggestions").forGetter(EditorContext::suggestions)
+				Suggestion.CODEC.listOf().fieldOf("suggestions").forGetter(EditorContext::suggestions),
+				Codec.BOOL.optionalFieldOf("can_edit", true).forGetter(EditorContext::canEdit)
 		).apply(instance, EditorContext::new));
 		public static final StreamCodec<ByteBuf, EditorContext> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
 

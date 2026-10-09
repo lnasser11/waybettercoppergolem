@@ -224,7 +224,8 @@ outline is drawn with particles for a moment.
 | Golems stay inside | on | the zone's golems never path out of its box; see [Golems stay inside](#golems-stay-inside-their-zone) |
 | Golems hang frames | off | golems decorate bare labeled chests with an item frame; see [Golems hang frames](#golems-hang-frames) |
 
-Buttons on the same screen:
+Buttons on the same screen (the ones that change the zone are disabled
+unless you may change it, see [Who may change a zone](#who-may-change-a-zone)):
 
 - **Set area with the tool…** closes the screen; the next two
   sneak-right-clicks with the feather on any blocks are the opposite
@@ -244,6 +245,27 @@ Buttons on the same screen:
   nowhere to go first. No golem needed, nothing is moved. It ignores
   whether a golem could physically reach the chests.
 - `/wbcg zone` tells you which zone you are standing in and draws it.
+
+### Who may change a zone
+
+On a shared server every zone has an **owner**: the player who created it
+(opened its screen first, pasted settings into it, or set its area). The
+owner can **trust** other players by name from the zone screen's *Who may
+change this zone…* button, and operators (permission level 2) can change
+or **take over** any zone. Settings, area, learn and label edits inside
+the zone's box need the owner, a trusted player or an operator; everyone
+else still opens the screens and sees everything, with the buttons that
+would be refused disabled and a tooltip saying why, and the HUD works for
+all. Labels on chests outside every zone follow the old rule (anyone), and
+so do chests in a zone nobody has claimed yet (from before ownership
+existed; the first player who opens its screen claims it). Every label and
+zone change is logged with the player's name.
+
+A few guard rails: *Reset area*, *Apply to all* and *Remove labels* want a
+second click within five seconds (the button turns into **Confirm**), one
+player can own at most 16 zones (`max_zones_per_player`), the learn pass
+runs at most once per ten seconds per player, and the trusted list holds
+at most 32 names.
 
 The feather copies and pastes zone **settings** between zones; the area
 stays with the place. Operators also get a **Defaults** section on the
@@ -419,7 +441,11 @@ The server writes `config/waybettercoppergolem.json` on first start:
   "tool_item": "minecraft:feather",
   "learn_radius": 32,
   "learn_requires_op": true,
-  "golem_carry_size": 64
+  "golem_carry_size": 64,
+  "zones_require_op_to_create": false,
+  "labels_require_zone_ownership": true,
+  "golems_require_zone": false,
+  "max_zones_per_player": 16
 }
 ```
 
@@ -429,6 +455,10 @@ The server writes `config/waybettercoppergolem.json` on first start:
 | `learn_radius` | 32 | default radius of `/wbcg learn` around the player (4–64) |
 | `learn_requires_op` | true | whether the learn pass needs permission level 2 |
 | `golem_carry_size` | 64 | items a golem carries per trip (1–64). Vanilla carries 16. |
+| `zones_require_op_to_create` | false | only operators may create zones (or claim ones without an owner) |
+| `labels_require_zone_ownership` | true | label edits inside an owned zone need the owner, a trusted player or an operator; off = anyone, as before |
+| `golems_require_zone` | false | golems outside every zone do nothing instead of behaving like vanilla |
+| `max_zones_per_player` | 16 | how many zones one player may own (operators are not limited) |
 
 Clients learn the tool item from the server on join, so only the server
 file matters.

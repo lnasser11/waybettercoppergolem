@@ -1,6 +1,7 @@
 package io.github.lnasser11.waybettercoppergolem.gametest;
 
 import io.github.lnasser11.waybettercoppergolem.WayBetterCopperGolem;
+import io.github.lnasser11.waybettercoppergolem.config.WbcgConfig;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabel;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabelSet;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabels;
@@ -19,6 +20,7 @@ import io.github.lnasser11.waybettercoppergolem.tuning.TuningNet;
 import io.github.lnasser11.waybettercoppergolem.tool.Clipboard;
 import io.github.lnasser11.waybettercoppergolem.tool.LabelTool;
 import io.github.lnasser11.waybettercoppergolem.zone.Zone;
+import io.github.lnasser11.waybettercoppergolem.zone.ZoneAccess;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneOverview;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettings;
 import io.github.lnasser11.waybettercoppergolem.zone.ZoneSettingsMenu;
@@ -1246,6 +1248,176 @@ public final class WbcgGameTests {
 			helper.assertTrue(frames.getFirst().getItem().is(Items.DIAMOND), "the existing frame still shows a diamond");
 			helper.assertValueEqual(count(level, iron, Items.IRON_INGOT), 26, "iron delivered, none framed");
 			helper.assertValueEqual(count(level, source, Items.ITEM_FRAME), 2, "the copper chest's frames were not taken");
+			helper.succeed();
+		});
+	}
+
+	// ---------------------------------------------------------------- ownership and guard rails
+
+	/** Settings and label edits inside an owned zone need the owner, a trusted player or an operator. */
+	@GameTest
+	public void zoneEditsNeedTheOwnerATrustedPlayerOrAnOperator(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		BlockPos anchor = copperChest(helper, new BlockPos(1, 1, 1));
+		ServerPlayer owner = mockPlayer(helper);
+		ServerPlayer other = mockPlayer(helper);
+		Zones.ZoneRef ref = Zones.zoneForCopperChest(level, anchor, owner).orElseThrow();
+		Zones.put(level, anchor, ref.zone().withArea(structureBox(helper)));
+		helper.assertTrue(ref.zone().access().isOwner(owner.getUUID()), "the creator owns the zone");
+		helper.assertTrue(Zones.zoneForCopperChest(level, anchor, other).orElseThrow().zone().access().isOwner(owner.getUUID()),
+				"another player opening the zone does not take it");
+		BlockPos chest = chest(helper, new BlockPos(3, 1, 1), Items.IRON_INGOT, 5);
+		List<ChestLabel> iron = List.of(ChestLabel.exact(id(Items.IRON_INGOT)));
+		owner.setPos(Vec3.atCenterOf(chest.above()));
+		other.setPos(Vec3.atCenterOf(chest.above()));
+		ZoneSettingsMenu menu = new ZoneSettingsMenu(1, net.minecraft.world.inventory.ContainerLevelAccess.create(level, anchor),
+				anchor, ZoneSettingsMenu.dataFor(ref, 0));
+
+		// A stranger: refused through the menu, the editor packet and the tool; nothing changes.
+		menu.clickMenuButton(other, ZoneSettingsMenu.BUTTON_TOGGLE_DRY_RUN);
+		helper.assertFalse(Zones.settingsAt(level, anchor).dryRun(), "a stranger's toggle is rejected");
+		menu.clickMenuButton(other, ZoneSettingsMenu.BUTTON_RESET_AREA);
+		helper.assertValueEqual(Zones.all(level).get(anchor).area(), structureBox(helper), "a stranger's area reset is rejected");
+		ChestEditor.apply(other, chest, iron);
+		helper.assertTrue(ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest)).isEmpty(),
+				"a stranger's label edit through the editor packet is rejected");
+		other.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.FEATHER));
+		other.setShiftKeyDown(true);
+		Clipboard.set(other, Clipboard.EMPTY.withLabels(Optional.of(iron)));
+		UseBlockCallback.EVENT.invoker().interact(other, level, InteractionHand.MAIN_HAND, hit(chest));
+		helper.assertTrue(ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest)).isEmpty(),
+				"a stranger's paste with the tool is rejected");
+		ZoneSettingsMenu.trust(other, anchor, new net.minecraft.server.players.NameAndId(other.getGameProfile()), true);
+		helper.assertFalse(Zones.all(level).get(anchor).access().isTrusted(other.getUUID()), "a stranger cannot trust themselves");
+
+		// The owner: everything works.
+		menu.clickMenuButton(owner, ZoneSettingsMenu.BUTTON_TOGGLE_DRY_RUN);
+		helper.assertTrue(Zones.settingsAt(level, anchor).dryRun(), "the owner's toggle is applied");
+		ChestEditor.apply(owner, chest, iron);
+		helper.assertValueEqual(ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest)).labels(), iron,
+				"the owner's label edit is applied");
+
+		// A trusted player: like the owner, until untrusted.
+		ZoneSettingsMenu.trust(owner, anchor, new net.minecraft.server.players.NameAndId(other.getGameProfile()), true);
+		helper.assertTrue(Zones.all(level).get(anchor).access().isTrusted(other.getUUID()), "trusted by the owner");
+		menu.clickMenuButton(other, ZoneSettingsMenu.BUTTON_TOGGLE_TIDY);
+		helper.assertTrue(Zones.settingsAt(level, anchor).tidyInside(), "a trusted player's toggle is applied");
+		ChestEditor.apply(other, chest, List.of());
+		helper.assertTrue(ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest)).isEmpty(),
+				"a trusted player's label edit is applied");
+		ZoneSettingsMenu.trust(owner, anchor, new net.minecraft.server.players.NameAndId(other.getGameProfile()), false);
+		helper.assertFalse(Zones.all(level).get(anchor).access().isTrusted(other.getUUID()), "untrusted again");
+		menu.clickMenuButton(other, ZoneSettingsMenu.BUTTON_TOGGLE_TIDY);
+		helper.assertTrue(Zones.settingsAt(level, anchor).tidyInside(), "refused again once untrusted");
+
+		// Operators: the rule itself lets them through whatever the lists say.
+		ZoneAccess access = Zones.all(level).get(anchor).access();
+		helper.assertTrue(access.canEdit(other.getUUID(), true), "an operator may edit any zone");
+		helper.assertFalse(access.canEdit(other.getUUID(), false), "without operator permission a stranger may not");
+		helper.assertTrue(access.withOwner(new net.minecraft.server.players.NameAndId(other.getGameProfile())).isOwner(other.getUUID()),
+				"a takeover makes the operator the owner");
+		Zones.remove(level, anchor);
+		helper.succeed();
+	}
+
+	/** Chests outside every zone, and inside zones nobody has claimed, follow the old rule: anyone may label them. */
+	@GameTest
+	public void labelsOutsideOwnedZonesStayOpen(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		ServerPlayer player = mockPlayer(helper);
+		BlockPos chest = chest(helper, new BlockPos(3, 1, 3), Items.IRON_INGOT, 5);
+		player.setPos(Vec3.atCenterOf(chest.above()));
+		List<ChestLabel> iron = List.of(ChestLabel.exact(id(Items.IRON_INGOT)));
+		ChestEditor.apply(player, chest, iron);
+		helper.assertValueEqual(ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest)).labels(), iron,
+				"outside every zone anyone may label");
+		BlockPos anchor = copperChest(helper, new BlockPos(1, 1, 1));
+		Zones.put(level, anchor, new Zone(structureBox(helper), ZoneSettings.DEFAULT));
+		ChestEditor.apply(player, chest, List.of());
+		helper.assertTrue(ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest)).isEmpty(),
+				"inside a zone nobody owns yet, anyone may label");
+		Zones.remove(level, anchor);
+		helper.succeed();
+	}
+
+	/** The config switches: zones need an op to create, labels ignore ownership, one zone per player. */
+	@GameTest
+	public void configGuardsZoneCreationAndLabelOwnership(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		WbcgConfig before = WbcgConfig.get();
+		helper.runBeforeTestEnd(() -> WbcgConfig.override(before));
+		ServerPlayer player = mockPlayer(helper);
+		ServerPlayer other = mockPlayer(helper);
+		BlockPos first = copperChest(helper, new BlockPos(1, 1, 1));
+		BlockPos second = copperChest(helper, new BlockPos(6, 1, 6));
+
+		WbcgConfig.override(before.withZonesRequireOpToCreate(true));
+		helper.assertTrue(Zones.zoneForCopperChest(level, first, player).isEmpty(), "zones need an operator to create");
+		helper.assertTrue(Zones.all(level).isEmpty() || !Zones.all(level).containsKey(first), "nothing was created");
+
+		WbcgConfig.override(before.withMaxZonesPerPlayer(1));
+		Zones.ZoneRef one = Zones.zoneForCopperChest(level, first, player).orElseThrow();
+		Zones.put(level, first, one.zone().withArea(BoundingBox.fromCorners(helper.absolutePos(BlockPos.ZERO), helper.absolutePos(new BlockPos(3, 7, 3)))));
+		helper.assertTrue(Zones.zoneForCopperChest(level, second, player).isEmpty(), "the second zone is over the player's limit");
+		helper.assertTrue(Zones.zoneForCopperChest(level, second, other).isPresent(), "another player may still create one");
+
+		BlockPos chest = chest(helper, new BlockPos(2, 1, 2), Items.IRON_INGOT, 5);
+		other.setPos(Vec3.atCenterOf(chest.above()));
+		List<ChestLabel> iron = List.of(ChestLabel.exact(id(Items.IRON_INGOT)));
+		ChestEditor.apply(other, chest, iron);
+		helper.assertTrue(ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest)).isEmpty(),
+				"with labels_require_zone_ownership the stranger is refused");
+		WbcgConfig.override(before.withLabelsRequireZoneOwnership(false));
+		ChestEditor.apply(other, chest, iron);
+		helper.assertValueEqual(ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest)).labels(), iron,
+				"without it the old rule applies");
+		Zones.remove(level, first);
+		Zones.remove(level, second);
+		helper.succeed();
+	}
+
+	/** The learn pass runs at most once per ten seconds per player. */
+	@GameTest
+	public void learnIsRateLimitedPerPlayer(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		chest(helper, new BlockPos(1, 1, 1), Items.DIAMOND, 5);
+		BlockPos center = helper.absolutePos(new BlockPos(3, 1, 3));
+		ServerPlayer player = mockPlayer(helper);
+		LearnSession.resetRateLimit(player);
+		LearnSession.preview(player, level, center, 4, false);
+		helper.assertTrue(LearnSession.apply(player) == 1, "the first scan proposes and applies the diamond chest");
+		chest(helper, new BlockPos(5, 1, 1), Items.CAKE, 5);
+		LearnSession.preview(player, level, center, 4, false);
+		helper.assertTrue(LearnSession.apply(player) < 0, "the second scan within ten seconds is refused, so there is nothing to apply");
+		LearnSession.resetRateLimit(player);
+		LearnSession.preview(player, level, center, 4, false);
+		helper.assertTrue(LearnSession.apply(player) == 1, "after the wait the scan runs again");
+		helper.succeed();
+	}
+
+	/** With golems_require_zone, a golem outside every zone does nothing. */
+	@GameTest(maxTicks = 1200)
+	public void golemsOutsideZonesIdleWhenTheConfigSaysSo(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		WbcgConfig before = WbcgConfig.get();
+		WbcgConfig.override(before.withGolemsRequireZone(true));
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 3));
+		fill(helper, source, Items.IRON_INGOT, 16);
+		BlockPos target = chest(helper, new BlockPos(6, 1, 3));
+		label(level, target, ChestLabel.exact(id(Items.IRON_INGOT)));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		helper.runBeforeTestEnd(() -> {
+			WbcgConfig.override(before);
+			golem.discard();
+		});
+		helper.runAfterDelay(600, () -> {
+			helper.assertValueEqual(count(level, source, Items.IRON_INGOT), 16, "the copper chest is untouched outside every zone");
+			helper.assertTrue(golem.getMainHandItem().isEmpty(), "the golem carries nothing");
 			helper.succeed();
 		});
 	}

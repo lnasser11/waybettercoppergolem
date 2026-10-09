@@ -1,11 +1,13 @@
 package io.github.lnasser11.waybettercoppergolem.learn;
 
+import io.github.lnasser11.waybettercoppergolem.WayBetterCopperGolem;
 import io.github.lnasser11.waybettercoppergolem.config.WbcgConfig;
 import io.github.lnasser11.waybettercoppergolem.label.ChestLabels;
 import io.github.lnasser11.waybettercoppergolem.label.LabelResolver;
 import io.github.lnasser11.waybettercoppergolem.learn.RoomLearner.Proposal;
 import io.github.lnasser11.waybettercoppergolem.learn.RoomLearner.Report;
 import io.github.lnasser11.waybettercoppergolem.learn.RoomLearner.Skipped;
+import io.github.lnasser11.waybettercoppergolem.zone.ZoneAccess;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.Commands;
@@ -43,12 +45,33 @@ public final class LearnSession {
 	}
 
 	private static final Map<UUID, Pending> PENDING = new ConcurrentHashMap<>();
+	/** A scan is heavy; one per player per this many milliseconds. */
+	public static final long RATE_LIMIT_MILLIS = 10 * 1000;
+	private static final Map<UUID, Long> LAST_SCAN = new ConcurrentHashMap<>();
 
 	private LearnSession() {
 	}
 
 	public static boolean allowed(ServerPlayer player) {
 		return !WbcgConfig.get().learnRequiresOp() || Commands.LEVEL_GAMEMASTERS.check(player.permissions());
+	}
+
+	/** Whether this player may scan now; when not, they are told how long to wait. */
+	private static boolean rateLimited(ServerPlayer player) {
+		long now = System.currentTimeMillis();
+		Long last = LAST_SCAN.get(player.getUUID());
+		if (last != null && now - last < RATE_LIMIT_MILLIS) {
+			player.sendSystemMessage(Component.translatable("waybettercoppergolem.learn.rate_limited",
+					(RATE_LIMIT_MILLIS - (now - last) + 999) / 1000).withStyle(ChatFormatting.RED));
+			return true;
+		}
+		LAST_SCAN.put(player.getUUID(), now);
+		return false;
+	}
+
+	/** Forgets the player's last scan time (tests). */
+	public static void resetRateLimit(ServerPlayer player) {
+		LAST_SCAN.remove(player.getUUID());
 	}
 
 	/** Scans a cube around the player, stores the proposal, and prints the preview. */
@@ -60,6 +83,9 @@ public final class LearnSession {
 	/** Scans {@code area}, stores the proposal for the player, and prints the preview. */
 	public static void preview(ServerPlayer player, ServerLevel level, BoundingBox area, Component scope,
 			boolean overwrite) {
+		if (rateLimited(player)) {
+			return;
+		}
 		Report report = RoomLearner.scan(level, area, overwrite);
 		if (report.isEmpty()) {
 			PENDING.remove(player.getUUID());
@@ -122,9 +148,14 @@ public final class LearnSession {
 		}
 		int applied = 0;
 		int stale = 0;
+		int denied = 0;
 		for (Proposal proposal : pending.report().proposals()) {
 			if (!RoomLearner.stillApplicable(level, proposal.pos(), pending.overwrite())) {
 				stale++;
+				continue;
+			}
+			if (!ZoneAccess.canEditLabelsAt(level, player, proposal.pos())) {
+				denied++;
 				continue;
 			}
 			ChestLabels.setExplicit(level, proposal.pos(), level.getBlockState(proposal.pos()), List.of(proposal.label()));
@@ -136,6 +167,12 @@ public final class LearnSession {
 			player.sendSystemMessage(Component.translatable("waybettercoppergolem.learn.stale", stale)
 					.withStyle(ChatFormatting.GRAY));
 		}
+		if (denied > 0) {
+			player.sendSystemMessage(Component.translatable("waybettercoppergolem.learn.denied", denied)
+					.withStyle(ChatFormatting.RED));
+		}
+		WayBetterCopperGolem.LOGGER.info("[labels] {} applied a learn pass: {} chests labeled, {} stale, {} not allowed",
+				ZoneAccess.nameOf(player), applied, stale, denied);
 		return applied;
 	}
 

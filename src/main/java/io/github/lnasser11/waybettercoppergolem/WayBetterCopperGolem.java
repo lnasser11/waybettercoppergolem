@@ -158,6 +158,9 @@ public class WayBetterCopperGolem implements ModInitializer {
 		PayloadTypeRegistry.clientboundPlay().register(ZonePayloads.Simulation.TYPE, ZonePayloads.Simulation.STREAM_CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(ZonePayloads.OpenOverview.TYPE, ZonePayloads.OpenOverview.STREAM_CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(ZonePayloads.RunSimulation.TYPE, ZonePayloads.RunSimulation.STREAM_CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(ZonePayloads.Trust.TYPE, ZonePayloads.Trust.STREAM_CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(ZonePayloads.Trust.TYPE,
+				(payload, context) -> ZoneSettingsMenu.trust(context.player(), payload.anchor(), payload.name(), payload.add()));
 		ServerPlayNetworking.registerGlobalReceiver(ZonePayloads.OpenOverview.TYPE, (payload, context) -> {
 			if (context.player().level() instanceof ServerLevel level) {
 				Zones.zoneAt(level, payload.anchor()).ifPresent(zone -> ZoneOverview.send(context.player(), level, zone));
