@@ -265,6 +265,99 @@ public final class WbcgBugHuntTests {
 		});
 	}
 
+	/**
+	 * README, Idle golems perch: a perched golem "stands there like a statue:
+	 * no strolling, no wandering" until a copper chest changes. Vanilla
+	 * re-checks every copper chest after each 7 s cooldown, empty or not, so
+	 * without a rule of its own the golem climbs down every few seconds to
+	 * look into the empty copper chest and comes back.
+	 */
+	@GameTest(maxTicks = 1600)
+	public void perchedGolemStaysPutNextToAnEmptyCopperChest(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 3)); // empty, in plain reach
+		BlockPos target = chest(helper, new BlockPos(6, 1, 3));
+		label(level, target, ChestLabel.exact(id(Items.IRON_INGOT)));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT.withPerchIdle(true)));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		ZoneAwareGolem aware = (ZoneAwareGolem) golem;
+		aware.wbcg$joinZoneAt(level, source);
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		helper.startSequence()
+				.thenWaitUntil(() -> helper.assertTrue(aware.wbcg$isPerched(level), "golem not on a chest yet, at " + golem.blockPosition()))
+				.thenExecuteFor(700, () -> helper.assertTrue(aware.wbcg$isPerched(level), "golem left its perch, at " + golem.blockPosition()))
+				.thenSucceed();
+	}
+
+	/** A perch the golem cannot climb onto (a chest two blocks up) must not be chosen, or the golem paces under it for good. */
+	@GameTest(maxTicks = 1200)
+	public void idleGolemIsNotSentTowardAPerchItCannotReach(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 1));
+		helper.setBlock(new BlockPos(6, 1, 6), Blocks.GLASS);
+		helper.setBlock(new BlockPos(6, 2, 6), Blocks.GLASS);
+		BlockPos high = chest(helper, new BlockPos(6, 3, 6)); // free top, two blocks of air above, no way up
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT.withPerchIdle(true)));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		((ZoneAwareGolem) golem).wbcg$joinZoneAt(level, source);
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		helper.failIfEver(() -> helper.assertFalse(golem.getBrain().getMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.WALK_TARGET)
+				.map(walk -> walk.getTarget().currentBlockPosition().equals(high.above())).orElse(false),
+				"the golem was sent toward the perch it cannot reach"));
+		helper.runAfterDelay(800, helper::succeed);
+	}
+
+	/**
+	 * Frames in a lived-in room: a double chest facing east, labeled by the
+	 * learn pass (explicit), frames mixed with ordinary items in the copper
+	 * chest, perch on. The golem delivers, fetches a frame and hangs it on
+	 * the half it delivered into.
+	 */
+	@GameTest(maxTicks = GOLEM_TIMEOUT)
+	public void golemHangsAFrameOnADoubleChestInARealisticRoom(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 3));
+		fill(helper, source, Items.ITEM_FRAME, 4, Items.IRON_INGOT, 16);
+		net.minecraft.world.level.block.state.BlockState east = Blocks.CHEST.defaultBlockState()
+				.setValue(net.minecraft.world.level.block.ChestBlock.FACING, Direction.EAST);
+		helper.setBlock(new BlockPos(5, 1, 2), east.setValue(net.minecraft.world.level.block.ChestBlock.TYPE,
+				net.minecraft.world.level.block.state.properties.ChestType.LEFT));
+		helper.setBlock(new BlockPos(5, 1, 3), east.setValue(net.minecraft.world.level.block.ChestBlock.TYPE,
+				net.minecraft.world.level.block.state.properties.ChestType.RIGHT));
+		BlockPos lower = helper.absolutePos(new BlockPos(5, 1, 2));
+		BlockPos upper = helper.absolutePos(new BlockPos(5, 1, 3));
+		helper.getBlockEntity(new BlockPos(5, 1, 2), ChestBlockEntity.class).setItem(0, new ItemStack(Items.IRON_INGOT, 10));
+		LearnSession.resetRateLimit(mockPlayer(helper));
+		label(level, lower, ChestLabel.exact(id(Items.IRON_INGOT)));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT.withHangFrames(true).withPerchIdle(true)));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 5));
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			framesInRoom(helper).forEach(ItemFrame::discard);
+			golem.discard();
+		});
+		helper.succeedWhen(() -> {
+			List<ItemFrame> frames = framesInRoom(helper).stream().filter(frame -> frame.getDirection() == Direction.EAST).toList();
+			helper.assertValueEqual(frames.size(), 1, "frames hung on the double chest's front");
+			helper.assertTrue(frames.getFirst().getItem().is(Items.IRON_INGOT), "the frame shows an iron ingot");
+			BlockPos support = ChestLabels.supportPos(frames.getFirst());
+			helper.assertTrue(support.equals(lower) || support.equals(upper), "the frame hangs on the chest, not at " + support);
+			helper.assertValueEqual(count(level, source, Items.ITEM_FRAME), 3, "one frame taken from the copper chest");
+		});
+	}
+
 	// ---------------------------------------------------------------- helpers (copies of WbcgGameTests')
 
 	private static int framesEverywhere(GameTestHelper helper, CopperGolem golem, BlockPos chest) {

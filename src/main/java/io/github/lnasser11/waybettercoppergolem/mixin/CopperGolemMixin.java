@@ -217,6 +217,15 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 		return wbcg$isChest(level.getBlockState(feet)) || wbcg$isChest(level.getBlockState(feet.below()));
 	}
 
+	@Override
+	public boolean wbcg$isIdleStatue(ServerLevel level) {
+		CopperGolem self = (CopperGolem) (Object) this;
+		Optional<Zones.ZoneRef> zone = wbcg$zone(level);
+		return zone.isPresent() && zone.get().settings().perchIdle() && self.getMainHandItem().isEmpty()
+				&& self.getBrain().hasMemoryValue(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS)
+				&& zone.get().area().isInside(self.blockPosition());
+	}
+
 	@Unique
 	private static boolean wbcg$isChest(net.minecraft.world.level.block.state.BlockState state) {
 		return io.github.lnasser11.waybettercoppergolem.label.ChestLabels.isLabelableChest(state) || state.is(BlockTags.COPPER_CHESTS);
@@ -229,8 +238,10 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	 * clipped while the golem is outside, so any route back is allowed. And
 	 * with "idle golems perch" on, a golem with nothing to do (empty hand,
 	 * transport cooldown running, no walk target) heads for the nearest
-	 * free chest top in its zone and stands there like a statue; the wake
-	 * on a copper chest change ends the cooldown and so the pose.
+	 * free chest top in its zone it can walk to and stands there like a
+	 * statue (with no such chest it stands where it is: see
+	 * {@link LandRandomPosMixin}); the wake on a copper chest change ends
+	 * the cooldown and so the pose.
 	 */
 	@Inject(method = "customServerAiStep", at = @At("TAIL"))
 	private void wbcg$walkBackInside(ServerLevel level, CallbackInfo ci) {
@@ -300,11 +311,19 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 		}
 	}
 
-	/** The nearest chest in the box with two blocks of air above it and no other golem standing on it. */
+	/** How many of the nearest free chest tops are tested for a walkable path before the golem gives up perching for now. */
+	@Unique
+	private static final int WBCG$PERCH_PATH_CHECKS = 6;
+
+	/**
+	 * The nearest chest in the box with two blocks of air above it, no other
+	 * golem standing on it, and a path the golem can actually walk (the top
+	 * of a two-high chest wall is free but out of reach; heading there would
+	 * only make the golem pace underneath it).
+	 */
 	@Unique
 	private static @Nullable BlockPos wbcg$nearestFreePerch(ServerLevel level, CopperGolem self, BoundingBox box) {
-		BlockPos best = null;
-		double bestDistSq = Double.MAX_VALUE;
+		java.util.List<BlockPos> free = new java.util.ArrayList<>();
 		net.minecraft.world.level.ChunkPos minChunk = net.minecraft.world.level.ChunkPos.containing(new BlockPos(box.minX(), box.minY(), box.minZ()));
 		net.minecraft.world.level.ChunkPos maxChunk = net.minecraft.world.level.ChunkPos.containing(new BlockPos(box.maxX(), box.maxY(), box.maxZ()));
 		for (net.minecraft.world.level.ChunkPos chunkPos : net.minecraft.world.level.ChunkPos.rangeClosed(minChunk, maxChunk).toList()) {
@@ -318,19 +337,28 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 						|| !wbcg$isChest(blockEntity.getBlockState())) {
 					continue;
 				}
-				double distSq = pos.distToCenterSqr(self.position());
-				if (distSq >= bestDistSq || !level.getBlockState(pos.above()).isAir() || !level.getBlockState(pos.above(2)).isAir()) {
+				if (!level.getBlockState(pos.above()).isAir() || !level.getBlockState(pos.above(2)).isAir()) {
 					continue;
 				}
 				boolean taken = level.getEntitiesOfClass(CopperGolem.class, new AABB(pos).expandTowards(0, 1, 0), other -> other != self).stream()
 						.anyMatch(other -> other.blockPosition().equals(pos) || other.blockPosition().below().equals(pos));
 				if (!taken) {
-					best = pos.immutable();
-					bestDistSq = distSq;
+					free.add(pos.immutable());
 				}
 			}
 		}
-		return best;
+		free.sort(java.util.Comparator.comparingDouble(pos -> pos.distToCenterSqr(self.position())));
+		int checked = 0;
+		for (BlockPos pos : free) {
+			if (checked++ >= WBCG$PERCH_PATH_CHECKS) {
+				break;
+			}
+			net.minecraft.world.level.pathfinder.Path path = self.getNavigation().createPath(pos.above(), 0);
+			if (path != null && path.canReach()) {
+				return pos;
+			}
+		}
+		return null;
 	}
 
 	/**

@@ -80,6 +80,12 @@ public interface ZoneAwareGolem {
 	/** Whether this golem is standing on a chest as its idle perch (strolls are suppressed while it is). */
 	boolean wbcg$isPerched(ServerLevel level);
 
+	/**
+	 * Whether this golem is idle under "idle golems perch": empty hand, transport cooldown running, inside its
+	 * zone's box. Such a golem never strolls; it heads for a perch when one can be reached and stands still otherwise.
+	 */
+	boolean wbcg$isIdleStatue(ServerLevel level);
+
 	/** The home chest of the tidy stack this golem is carrying, if it is on a tidy trip. Runtime only. */
 	@Nullable BlockPos wbcg$tidyDestination();
 

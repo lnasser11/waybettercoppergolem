@@ -290,6 +290,9 @@ Golems carry a whole stack per trip (configurable) and notice new items at
 once: whenever a copper chest's contents change, every golem nearby drops
 its idle cooldown and forgets that chest's "already visited" mark, so it
 searches again on the next tick. Vanilla would wait up to five minutes.
+Because of that wake-up, a golem does not walk over to an empty copper
+chest just to look inside (vanilla does, every seven seconds); it waits
+where it is until something lands in one.
 
 ### Where an item goes
 
@@ -393,8 +396,11 @@ Simulate leaves them out.
 
 Off by default. When on, a golem with nothing to do (empty hands, no
 copper chest worth visiting) walks to the nearest chest top in its zone
-that is free (two blocks of air above it, no other golem on it) and
-stands there like a statue: no strolling, no wandering. The moment a
+that is free (two blocks of air above it, no other golem on it) and that
+it can actually climb onto (a chest on the floor, or one step up; the top
+of a two-high chest wall is out of its reach) and stands there like a
+statue: no strolling, no wandering. With no such chest top around it
+stands still where it is instead. The moment a
 copper chest in the zone changes, the golem is woken as usual and climbs
 down to work. Chests with a golem on top still open normally.
 

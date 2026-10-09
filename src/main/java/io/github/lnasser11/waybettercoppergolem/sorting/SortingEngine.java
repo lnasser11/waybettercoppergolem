@@ -142,9 +142,13 @@ public final class SortingEngine {
 	 * The copper chest to take from next: the vanilla rule (nearest chest of
 	 * the source type that is not visited, unreachable or locked), with two
 	 * refinements: a chest no other golem is heading to is preferred over a
-	 * nearer one that is, and a chest holding nothing but item frames is
-	 * skipped while the zone's golems hang frames ({@code skipFrameOnly}).
-	 * Empty when there is no candidate at all.
+	 * nearer one that is, a chest holding nothing but item frames is
+	 * skipped while the zone's golems hang frames ({@code skipFrameOnly}),
+	 * and an empty chest is skipped when it is close enough that
+	 * {@link GolemWake} will wake the golem the moment something lands in
+	 * it (vanilla walks over to look every cooldown; here the walk is
+	 * saved, which also keeps a perched golem on its perch). Empty when
+	 * there is no candidate at all.
 	 */
 	public static Optional<TransportItemTarget> findSource(
 			ServerLevel level, Vec3 from, Predicate<BlockState> sourceBlockType,
@@ -166,7 +170,11 @@ public final class SortingEngine {
 				if (candidate == null) {
 					continue;
 				}
-				if (skipFrameOnly && !candidate.container().isEmpty() && onlyFrames(candidate.container())) {
+				if (candidate.container().isEmpty()) {
+					if (GolemWake.covers(from, candidate.pos())) {
+						continue; // nothing to take, and the golem is woken when that changes
+					}
+				} else if (skipFrameOnly && onlyFrames(candidate.container())) {
 					continue;
 				}
 				boolean isClaimed = isClaimed(candidate, claimed);

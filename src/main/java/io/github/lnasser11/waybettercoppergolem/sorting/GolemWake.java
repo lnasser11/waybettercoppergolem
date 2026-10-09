@@ -37,6 +37,11 @@ public final class GolemWake {
 	private GolemWake() {
 	}
 
+	/** Whether a change of the copper chest at {@code chest} would wake a golem standing at {@code golem}. */
+	public static boolean covers(net.minecraft.world.phys.Vec3 golem, BlockPos chest) {
+		return new AABB(chest).inflate(HORIZONTAL_RANGE, VERTICAL_RANGE, HORIZONTAL_RANGE).contains(golem);
+	}
+
 	/** Forgets every throttle entry (server stop; the map is static and would otherwise outlive the world). */
 	public static void clear() {
 		LAST_WAKE.clear();
