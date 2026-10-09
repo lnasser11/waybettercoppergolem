@@ -407,6 +407,18 @@ Watch a full pass in the server log (or `.minecraft/logs/latest.log` in
 singleplayer) before letting golems loose on a real storage room, then
 switch it off. Each source chest is logged once per pass (~5 min cycle).
 
+### Several golems in one room
+
+Golems do not shove each other: vanilla mobs push every entity they
+overlap, which is how three golems in one corridor end up wedged in each
+other's way; here they simply pass through one another (players and
+animals still push them and are pushed). And each golem claims the chest
+it is heading to, so the others prefer a chest nobody is going to: two
+golems with two copper chests take one each, twin labeled chests get one
+golem each, and the queue in front of a single chest forms only when
+there is really nothing else to do. Frame supplies in a copper chest are
+never a reason to walk there.
+
 ### Tall chest walls
 
 Vanilla golems can only reach chests at their own height. This mod gives
