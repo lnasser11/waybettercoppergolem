@@ -22,11 +22,11 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
  * one of the chest's own items.
  */
 public record ZoneSettings(int verticalReach, boolean reorganize, boolean tidyInside, boolean dryRun,
-		boolean stayInside, boolean hangFrames) {
+		boolean stayInside, boolean hangFrames, boolean perchIdle) {
 	public static final int MIN_VERTICAL_REACH = 1;
 	public static final int MAX_VERTICAL_REACH = 16;
 	public static final int DEFAULT_VERTICAL_REACH = 6;
-	public static final ZoneSettings DEFAULT = new ZoneSettings(DEFAULT_VERTICAL_REACH, true, false, false, true, false);
+	public static final ZoneSettings DEFAULT = new ZoneSettings(DEFAULT_VERTICAL_REACH, true, false, false, true, false, false);
 
 	public static final Codec<ZoneSettings> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			Codec.INT.optionalFieldOf("vertical_reach", DEFAULT.verticalReach()).forGetter(ZoneSettings::verticalReach),
@@ -34,7 +34,8 @@ public record ZoneSettings(int verticalReach, boolean reorganize, boolean tidyIn
 			Codec.BOOL.optionalFieldOf("tidy_inside", DEFAULT.tidyInside()).forGetter(ZoneSettings::tidyInside),
 			Codec.BOOL.optionalFieldOf("dry_run", DEFAULT.dryRun()).forGetter(ZoneSettings::dryRun),
 			Codec.BOOL.optionalFieldOf("stay_inside", DEFAULT.stayInside()).forGetter(ZoneSettings::stayInside),
-			Codec.BOOL.optionalFieldOf("hang_frames", DEFAULT.hangFrames()).forGetter(ZoneSettings::hangFrames)
+			Codec.BOOL.optionalFieldOf("hang_frames", DEFAULT.hangFrames()).forGetter(ZoneSettings::hangFrames),
+			Codec.BOOL.optionalFieldOf("perch_idle", DEFAULT.perchIdle()).forGetter(ZoneSettings::perchIdle)
 	).apply(instance, ZoneSettings::new));
 
 	public ZoneSettings {
@@ -42,26 +43,30 @@ public record ZoneSettings(int verticalReach, boolean reorganize, boolean tidyIn
 	}
 
 	public ZoneSettings withVerticalReach(int value) {
-		return new ZoneSettings(value, reorganize, tidyInside, dryRun, stayInside, hangFrames);
+		return new ZoneSettings(value, reorganize, tidyInside, dryRun, stayInside, hangFrames, perchIdle);
 	}
 
 	public ZoneSettings withReorganize(boolean value) {
-		return new ZoneSettings(verticalReach, value, tidyInside, dryRun, stayInside, hangFrames);
+		return new ZoneSettings(verticalReach, value, tidyInside, dryRun, stayInside, hangFrames, perchIdle);
 	}
 
 	public ZoneSettings withTidyInside(boolean value) {
-		return new ZoneSettings(verticalReach, reorganize, value, dryRun, stayInside, hangFrames);
+		return new ZoneSettings(verticalReach, reorganize, value, dryRun, stayInside, hangFrames, perchIdle);
 	}
 
 	public ZoneSettings withDryRun(boolean value) {
-		return new ZoneSettings(verticalReach, reorganize, tidyInside, value, stayInside, hangFrames);
+		return new ZoneSettings(verticalReach, reorganize, tidyInside, value, stayInside, hangFrames, perchIdle);
 	}
 
 	public ZoneSettings withStayInside(boolean value) {
-		return new ZoneSettings(verticalReach, reorganize, tidyInside, dryRun, value, hangFrames);
+		return new ZoneSettings(verticalReach, reorganize, tidyInside, dryRun, value, hangFrames, perchIdle);
 	}
 
 	public ZoneSettings withHangFrames(boolean value) {
-		return new ZoneSettings(verticalReach, reorganize, tidyInside, dryRun, stayInside, value);
+		return new ZoneSettings(verticalReach, reorganize, tidyInside, dryRun, stayInside, value, perchIdle);
+	}
+
+	public ZoneSettings withPerchIdle(boolean value) {
+		return new ZoneSettings(verticalReach, reorganize, tidyInside, dryRun, stayInside, hangFrames, value);
 	}
 }

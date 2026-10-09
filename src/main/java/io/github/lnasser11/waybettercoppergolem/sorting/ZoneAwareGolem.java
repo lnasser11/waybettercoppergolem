@@ -77,6 +77,9 @@ public interface ZoneAwareGolem {
 
 	void wbcg$setFrameReturnChest(@Nullable BlockPos pos);
 
+	/** Whether this golem is standing on a chest as its idle perch (strolls are suppressed while it is). */
+	boolean wbcg$isPerched(ServerLevel level);
+
 	/** The home chest of the tidy stack this golem is carrying, if it is on a tidy trip. Runtime only. */
 	@Nullable BlockPos wbcg$tidyDestination();
 

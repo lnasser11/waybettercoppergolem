@@ -52,7 +52,8 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	public static final int DATA_HANG_FRAMES = 14;
 	/** Bit field: {@link #FLAG_CAN_EDIT}, {@link #FLAG_OPERATOR}. */
 	public static final int DATA_FLAGS = 15;
-	public static final int DATA_COUNT = 16;
+	public static final int DATA_PERCH_IDLE = 16;
+	public static final int DATA_COUNT = 17;
 
 	public static final int FLAG_CAN_EDIT = 1;
 	public static final int FLAG_OPERATOR = 2;
@@ -83,6 +84,7 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 	public static final int BUTTON_TOGGLE_HANG_FRAMES = 14;
 	/** Become the zone's owner (operators). */
 	public static final int BUTTON_TAKE_OVER = 15;
+	public static final int BUTTON_TOGGLE_PERCH_IDLE = 16;
 
 	private final ContainerLevelAccess access;
 	private final ContainerData data;
@@ -144,6 +146,7 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 		data.set(DATA_REACH, settings.verticalReach());
 		data.set(DATA_STAY_INSIDE, settings.stayInside() ? 1 : 0);
 		data.set(DATA_HANG_FRAMES, settings.hangFrames() ? 1 : 0);
+		data.set(DATA_PERCH_IDLE, settings.perchIdle() ? 1 : 0);
 	}
 
 	public ZoneSettings settings() {
@@ -152,7 +155,8 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 				this.data.get(DATA_TIDY) != 0,
 				this.data.get(DATA_DRY_RUN) != 0,
 				this.data.get(DATA_STAY_INSIDE) != 0,
-				this.data.get(DATA_HANG_FRAMES) != 0);
+				this.data.get(DATA_HANG_FRAMES) != 0,
+				this.data.get(DATA_PERCH_IDLE) != 0);
 	}
 
 	public BlockPos anchorPos() {
@@ -257,6 +261,7 @@ public class ZoneSettingsMenu extends AbstractContainerMenu {
 				case BUTTON_TOGGLE_DRY_RUN -> zone = zone.withSettings(current.withDryRun(!current.dryRun()));
 				case BUTTON_TOGGLE_STAY_INSIDE -> zone = zone.withSettings(current.withStayInside(!current.stayInside()));
 				case BUTTON_TOGGLE_HANG_FRAMES -> zone = zone.withSettings(current.withHangFrames(!current.hangFrames()));
+				case BUTTON_TOGGLE_PERCH_IDLE -> zone = zone.withSettings(current.withPerchIdle(!current.perchIdle()));
 				case BUTTON_REACH_DOWN -> zone = zone.withSettings(current.withVerticalReach(current.verticalReach() - 1));
 				case BUTTON_REACH_UP -> zone = zone.withSettings(current.withVerticalReach(current.verticalReach() + 1));
 				case BUTTON_RESET_AREA -> zone = zone.withArea(Zone.defaultArea(ref.anchor()));

@@ -24,7 +24,8 @@ import java.util.function.ToDoubleFunction;
  * to spots inside the zone's box. Vanilla's random stroll picks a spot
  * around the mob; when that spot is outside the box this redraws a few
  * times and, failing that, cancels the stroll (the behavior tries again a
- * few seconds later). Any other mob is untouched.
+ * few seconds later). A golem perched on a chest does not stroll at all.
+ * Any other mob is untouched.
  */
 @Mixin(LandRandomPos.class)
 public abstract class LandRandomPosMixin {
@@ -39,6 +40,10 @@ public abstract class LandRandomPosMixin {
 	private static void wbcg$keepStrollInsideZone(PathfinderMob mob, int horizontalDist, int verticalDist,
 			ToDoubleFunction<BlockPos> positionWeight, CallbackInfoReturnable<Vec3> cir) {
 		if (WBCG$REDRAWING.get() || !(mob instanceof CopperGolem) || !(mob.level() instanceof ServerLevel level)) {
+			return;
+		}
+		if (((ZoneAwareGolem) mob).wbcg$isPerched(level)) {
+			cir.setReturnValue(null); // a statue does not stroll
 			return;
 		}
 		Optional<BoundingBox> confinement = ((ZoneAwareGolem) mob).wbcg$confinement(level);

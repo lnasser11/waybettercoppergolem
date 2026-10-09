@@ -219,11 +219,21 @@ public final class Zones {
 		return AABB.of(area);
 	}
 
-	/** "reorganize on · tidy off · dry run off · reach 6 · stay inside on · frames off". */
+	/** "reorganize on · tidy off · dry run off · reach 6 · stay inside on · frames off · perch off" (one line, for chat). */
 	public static Component describe(ZoneSettings settings) {
+		return describeBehavior(settings).copy().append(" · ").append(describeGolems(settings));
+	}
+
+	/** "reorganize on · tidy off · dry run off · reach 6". */
+	public static Component describeBehavior(ZoneSettings settings) {
 		return Component.translatable("waybettercoppergolem.zone.summary",
-				onOff(settings.reorganize()), onOff(settings.tidyInside()), onOff(settings.dryRun()), settings.verticalReach(),
-				onOff(settings.stayInside()), onOff(settings.hangFrames()));
+				onOff(settings.reorganize()), onOff(settings.tidyInside()), onOff(settings.dryRun()), settings.verticalReach());
+	}
+
+	/** "stay inside on · frames off · perch off". */
+	public static Component describeGolems(ZoneSettings settings) {
+		return Component.translatable("waybettercoppergolem.zone.summary_golems",
+				onOff(settings.stayInside()), onOff(settings.hangFrames()), onOff(settings.perchIdle()));
 	}
 
 	/** "20 × 6 × 14". */
