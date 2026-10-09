@@ -185,6 +185,36 @@ public final class ChestLabels {
 		return effectiveLabelSet(level, chestPos, state);
 	}
 
+	/**
+	 * Whether golems may hang an item frame on this (possibly double) chest:
+	 * true unless either half carries the editor's "no golem frames" mark.
+	 * Works on both sides (the mark is synced).
+	 */
+	public static boolean golemFramesAllowed(net.minecraft.world.level.Level level, BlockPos chestPos, BlockState state) {
+		for (BlockPos half : halves(chestPos, state)) {
+			BlockEntity blockEntity = level.getBlockEntity(half);
+			if (blockEntity != null && Boolean.TRUE.equals(blockEntity.getAttached(WayBetterCopperGolem.CHEST_NO_GOLEM_FRAMES))) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/** Allows or forbids golem frames on the whole (possibly double) chest. */
+	public static void setGolemFramesAllowed(ServerLevel level, BlockPos chestPos, BlockState state, boolean allowed) {
+		for (BlockPos half : halves(chestPos, state)) {
+			BlockEntity blockEntity = level.getBlockEntity(half);
+			if (blockEntity == null) {
+				continue;
+			}
+			if (allowed) {
+				blockEntity.removeAttached(WayBetterCopperGolem.CHEST_NO_GOLEM_FRAMES);
+			} else {
+				blockEntity.setAttached(WayBetterCopperGolem.CHEST_NO_GOLEM_FRAMES, true);
+			}
+		}
+	}
+
 	/** Recomputes derived labels for the chest at {@code pos}, if it is one. */
 	public static void refresh(ServerLevel level, BlockPos pos) {
 		if (!level.isLoaded(pos)) {

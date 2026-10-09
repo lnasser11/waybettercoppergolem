@@ -272,5 +272,11 @@
   "waybettercoppergolem.simulation.tidy_row": "arrumar: %s× %s",
   "waybettercoppergolem.simulation.tidy_row.tooltip": "Arrumar: do baú irmão em %s para o baú que tem mais desse item. Clique para fazer o destino brilhar.",
   "waybettercoppergolem.count.tidy.one": "%s movimento de arrumação pendente",
-  "waybettercoppergolem.count.tidy.many": "%s movimentos de arrumação pendentes"
+  "waybettercoppergolem.count.tidy.many": "%s movimentos de arrumação pendentes",
+  "waybettercoppergolem.editor.frames.allowed": "Molduras de golem: permitidas",
+  "waybettercoppergolem.editor.frames.blocked": "Molduras de golem: não neste baú",
+  "waybettercoppergolem.editor.frames.allowed.tooltip": "Os golens podem pendurar uma moldura neste baú (quando \"Golens penduram molduras\" da zona está ligado). Clique para proibir neste baú.",
+  "waybettercoppergolem.editor.frames.blocked.tooltip": "Os golens nunca penduram moldura neste baú. Clique para permitir de novo.",
+  "waybettercoppergolem.editor.frames.now_allowed": "Os golens podem pendurar uma moldura neste baú",
+  "waybettercoppergolem.editor.frames.now_blocked": "Os golens não vão pendurar moldura neste baú"
 }

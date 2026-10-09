@@ -362,9 +362,15 @@ exact-item label, otherwise the most common item inside. The labels you
 set never follow frames, so the chest's labels do not change; the frame is
 decoration. Frames already hanging are never touched, off-limits,
 catch-all, unlabeled, auto-labeled and copper chests never get one, and a
-chest with no content or a blocked front face is skipped. While the
-setting is on, frames in copper chests are supplies: golems do not sort
-them, and Simulate leaves them out.
+chest with no content is skipped. The front face has to be free: a slab,
+a solid block, a fluid or another hanging entity in front means the chest
+is skipped even if golems can reach it, and a golem that arrives with a
+frame to find the front taken gives up and carries the frame back to the
+copper chest it came from. Any chest can be excluded with the **frame
+switch** in its editor (the small item-frame chip beside *Mode*): red
+means golems never hang a frame on that chest. While the setting is on,
+frames in copper chests are supplies: golems do not sort them, and
+Simulate leaves them out.
 
 ### Dry run
 

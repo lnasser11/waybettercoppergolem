@@ -58,6 +58,8 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	private @Nullable BlockPos wbcg$pendingFrameChest;
 	@Unique
 	private @Nullable BlockPos wbcg$tidyDestination;
+	@Unique
+	private @Nullable BlockPos wbcg$frameReturnChest;
 
 	@Override
 	public void wbcg$setZoneChest(BlockPos pos) {
@@ -90,6 +92,16 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	@Override
 	public void wbcg$setPendingFrameChest(@Nullable BlockPos pos) {
 		this.wbcg$pendingFrameChest = pos == null ? null : pos.immutable();
+	}
+
+	@Override
+	public @Nullable BlockPos wbcg$frameReturnChest() {
+		return this.wbcg$frameReturnChest;
+	}
+
+	@Override
+	public void wbcg$setFrameReturnChest(@Nullable BlockPos pos) {
+		this.wbcg$frameReturnChest = pos == null ? null : pos.immutable();
 	}
 
 	@Override

@@ -72,6 +72,11 @@ public interface ZoneAwareGolem {
 
 	void wbcg$setPendingFrameChest(@Nullable BlockPos pos);
 
+	/** The copper chest the frame in hand came from, so a frame trip that fails can bring it back. Runtime only. */
+	@Nullable BlockPos wbcg$frameReturnChest();
+
+	void wbcg$setFrameReturnChest(@Nullable BlockPos pos);
+
 	/** The home chest of the tidy stack this golem is carrying, if it is on a tidy trip. Runtime only. */
 	@Nullable BlockPos wbcg$tidyDestination();
 

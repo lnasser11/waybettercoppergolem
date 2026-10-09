@@ -63,7 +63,30 @@ public final class ChestEditor {
 		}
 		ChestLabelSet current = ChestLabels.effectiveLabelSet(level, pos, state);
 		ServerPlayNetworking.send(player, new EditorPayloads.EditorContext(
-				pos, current, LabelSuggestions.forChest(level, pos), ZoneAccess.canEditLabelsAt(level, player, pos)));
+				pos, current, LabelSuggestions.forChest(level, pos), ZoneAccess.canEditLabelsAt(level, player, pos),
+				ChestLabels.golemFramesAllowed(level, pos, state)));
+	}
+
+	/** The editor's frame switch: whether golems may hang an item frame on this chest. Same rules as a label edit. */
+	public static void setGolemFrames(ServerPlayer player, BlockPos pos, boolean allowed) {
+		if (!(player.level() instanceof ServerLevel level) || !inReach(player, level, pos)) {
+			return;
+		}
+		BlockState state = level.getBlockState(pos);
+		if (!ChestLabels.isLabelableChest(state)) {
+			return;
+		}
+		if (!ZoneAccess.canEditLabelsAt(level, player, pos)) {
+			player.sendOverlayMessage(Component.translatable("waybettercoppergolem.access.labels_denied"));
+			sendContext(player, level, pos, state);
+			return;
+		}
+		ChestLabels.setGolemFramesAllowed(level, pos, state, allowed);
+		player.sendOverlayMessage(Component.translatable(allowed
+				? "waybettercoppergolem.editor.frames.now_allowed" : "waybettercoppergolem.editor.frames.now_blocked"));
+		WayBetterCopperGolem.LOGGER.info("[labels] {} {} golem frames on the chest at {}", ZoneAccess.nameOf(player),
+				allowed ? "allowed" : "forbade", pos);
+		sendContext(player, level, pos, state);
 	}
 
 	/**
