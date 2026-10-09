@@ -219,7 +219,7 @@ public class ZoneOverviewScreen extends Screen {
 				Component.translatable("waybettercoppergolem.overview.summary",
 						Ui.count(entries.size(), "chests"), Ui.count((int) unlabeled, "unlabeled"),
 						Ui.count((int) misplaced, "misplaced"), Ui.count((int) duplicate, "duplicate"),
-						Ui.count(this.overview.copperChests(), "copper")));
+						Ui.count(this.overview.copperChests(), "copper"), Ui.count(this.overview.tidyMoves(), "tidy")));
 		int pages = Math.max(1, (entries.size() + this.rows - 1) / this.rows);
 		Panel.sectionLabel(graphics, this.font, Component.translatable("waybettercoppergolem.overview.section",
 				this.page + 1, pages), this.panel.contentX(), this.listLabelY, this.panel.contentWidth());

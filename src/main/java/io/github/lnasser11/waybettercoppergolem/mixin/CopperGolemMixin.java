@@ -56,6 +56,8 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	private long wbcg$nextReorganizeTime;
 	@Unique
 	private @Nullable BlockPos wbcg$pendingFrameChest;
+	@Unique
+	private @Nullable BlockPos wbcg$tidyDestination;
 
 	@Override
 	public void wbcg$setZoneChest(BlockPos pos) {
@@ -91,6 +93,16 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	}
 
 	@Override
+	public @Nullable BlockPos wbcg$tidyDestination() {
+		return this.wbcg$tidyDestination;
+	}
+
+	@Override
+	public void wbcg$setTidyDestination(@Nullable BlockPos pos) {
+		this.wbcg$tidyDestination = pos == null ? null : pos.immutable();
+	}
+
+	@Override
 	public @Nullable BlockPos wbcg$homeZoneAnchor() {
 		CopperGolem self = (CopperGolem) (Object) this;
 		return self.getAttached(WayBetterCopperGolem.GOLEM_ZONE);
@@ -114,7 +126,8 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 		if (zone == null || anchorGone) {
 			self.removeAttached(WayBetterCopperGolem.GOLEM_ZONE);
 			this.wbcg$zoneCacheDirty = true;
-			WayBetterCopperGolem.LOGGER.debug("[WBCG-DEBUG] golem {} left the removed zone at {}", self.getUUID(), anchor);
+			WayBetterCopperGolem.LOGGER.info("[golem] {} left the zone at {} ({})", self.getUUID(), anchor,
+					zone == null ? "zone removed" : "anchor is no longer a copper chest");
 			return Optional.empty();
 		}
 		return Optional.of(new Zones.ZoneRef(anchor, zone));
@@ -129,7 +142,7 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 		Zones.zoneAt(level, copperChest).ifPresent(ref -> {
 			self.setAttached(WayBetterCopperGolem.GOLEM_ZONE, ref.anchor());
 			this.wbcg$zoneCacheDirty = true;
-			WayBetterCopperGolem.LOGGER.debug("[WBCG-DEBUG] golem {} joined the zone at {}", self.getUUID(), ref.anchor());
+			WayBetterCopperGolem.LOGGER.info("[golem] {} joined the zone at {}", self.getUUID(), ref.anchor());
 		});
 	}
 

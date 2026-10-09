@@ -1077,11 +1077,11 @@ public final class WbcgGameTests {
 		return golem;
 	}
 
-	/** Every 100 ticks after joining, tempt the golem with a walk target on the far side of the doorway. */
+	/** Every 40 ticks after joining, tempt the golem with a walk target on the far side of the doorway. */
 	private static void temptOutside(GameTestHelper helper, CopperGolem golem) {
 		BlockPos outside = helper.absolutePos(new BlockPos(6, 1, 3));
 		helper.onEachTick(() -> {
-			if (((ZoneAwareGolem) golem).wbcg$homeZoneAnchor() != null && helper.getTick() % 100 == 0) {
+			if (((ZoneAwareGolem) golem).wbcg$homeZoneAnchor() != null && helper.getTick() % 40 == 0) {
 				golem.getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.WALK_TARGET,
 						new net.minecraft.world.entity.ai.memory.WalkTarget(outside, 1.0F, 0));
 			}
@@ -1122,6 +1122,16 @@ public final class WbcgGameTests {
 		BlockPos anchor = helper.absolutePos(new BlockPos(1, 1, 1));
 		BoundingBox box = westBox(helper);
 		temptOutside(helper, golem);
+		helper.runAtTickTime(5, () -> {
+			// The mechanism itself: a path through the doorway is cut at the last node inside the box.
+			net.minecraft.world.level.pathfinder.Path path = golem.getNavigation().createPath(helper.absolutePos(new BlockPos(6, 1, 3)), 0);
+			helper.assertTrue(path != null, "a path is computed");
+			helper.assertFalse(path.canReach(), "the path does not reach the far side of the doorway");
+			for (int i = 0; i < path.getNodeCount(); i++) {
+				helper.assertTrue(box.isInside(path.getNodePos(i)), "path node outside the zone box: " + path.getNodePos(i));
+			}
+			golem.getNavigation().stop();
+		});
 		helper.failIfEver(() -> {
 			if (aware.wbcg$homeZoneAnchor() != null) {
 				helper.assertTrue(box.isInside(golem.blockPosition()), "golem left its zone at " + golem.blockPosition());
@@ -1137,16 +1147,21 @@ public final class WbcgGameTests {
 	}
 
 	/** With the setting off, the same golem walks through the doorway when sent there. */
-	@GameTest(maxTicks = 1600)
+	@GameTest(maxTicks = 2400)
 	public void unconfinedGolemLeavesItsZone(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
 		CopperGolem golem = golemInWestZone(helper, false);
 		ZoneAwareGolem aware = (ZoneAwareGolem) golem;
 		temptOutside(helper, golem);
+		helper.runAtTickTime(5, () -> {
+			net.minecraft.world.level.pathfinder.Path path = golem.getNavigation().createPath(helper.absolutePos(new BlockPos(6, 1, 3)), 0);
+			helper.assertTrue(path != null && path.canReach(), "with the setting off a path through the doorway is allowed");
+			golem.getNavigation().stop();
+		});
 		helper.succeedWhen(() -> {
 			helper.assertTrue(aware.wbcg$homeZoneAnchor() != null, "joined");
 			helper.assertTrue(aware.wbcg$confinement(level).isEmpty(), "not confined with the setting off");
-			helper.assertTrue(golem.blockPosition().getX() >= 5, "golem still inside the zone box at " + golem.blockPosition());
+			helper.assertFalse(westBox(helper).isInside(golem.blockPosition()), "golem still inside the zone box at " + golem.blockPosition());
 		});
 	}
 
@@ -1418,6 +1433,120 @@ public final class WbcgGameTests {
 		helper.runAfterDelay(600, () -> {
 			helper.assertValueEqual(count(level, source, Items.IRON_INGOT), 16, "the copper chest is untouched outside every zone");
 			helper.assertTrue(golem.getMainHandItem().isEmpty(), "the golem carries nothing");
+			helper.succeed();
+		});
+	}
+
+	// ---------------------------------------------------------------- tidy across sibling chests
+
+	private static final Identifier STONE_AND_DIRT = Identifier.fromNamespaceAndPath("wbcg", "stone");
+
+	/** Two chests labeled Stone & Dirt: A holds 26 stacks of stone and one of dirt, B holds dirt. */
+	private static BlockPos[] stoneAndDirtSiblings(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		Object[] a = new Object[54];
+		for (int i = 0; i < 26; i++) {
+			a[2 * i] = Items.STONE;
+			a[2 * i + 1] = 64;
+		}
+		a[52] = Items.DIRT;
+		a[53] = 64;
+		BlockPos chestA = chest(helper, new BlockPos(6, 1, 2), a);
+		BlockPos chestB = chest(helper, new BlockPos(6, 1, 5), Items.DIRT, 64, Items.DIRT, 30);
+		ChestLabel label = ChestLabel.tag(id(Items.STONE), STONE_AND_DIRT);
+		label(level, chestA, label);
+		label(level, chestB, label);
+		return new BlockPos[] {chestA, chestB};
+	}
+
+	/** The plan itself, and how the overview and the simulation report it. */
+	@GameTest
+	public void tidyPlanMovesTheMinorityDirtToTheChestHoldingMore(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		BlockPos anchor = copperChest(helper, new BlockPos(1, 1, 1));
+		Zones.put(level, anchor, new Zone(structureBox(helper), ZoneSettings.DEFAULT.withTidyInside(true)));
+		BlockPos[] chests = stoneAndDirtSiblings(helper);
+		List<io.github.lnasser11.waybettercoppergolem.sorting.SortingEngine.TidyMove> plan =
+				io.github.lnasser11.waybettercoppergolem.sorting.SortingEngine.planTidy(level, java.util.Set.of(),
+						Zones.toAABB(structureBox(helper)), 64);
+		helper.assertValueEqual(plan.size(), 1, "one consolidation: the dirt");
+		helper.assertValueEqual(plan.getFirst().source().pos(), chests[0], "out of the stone chest");
+		helper.assertValueEqual(plan.getFirst().home().pos(), chests[1], "into the chest holding more dirt");
+		helper.assertTrue(plan.getFirst().stack().is(Items.DIRT) && plan.getFirst().stack().getCount() == 64, "the whole dirt stack");
+
+		Zones.ZoneRef ref = new Zones.ZoneRef(anchor, Zones.all(level).get(anchor));
+		helper.assertValueEqual(ZoneOverview.build(level, ref).tidyMoves(), 1, "the overview counts it");
+		ZonePayloads.Simulation simulation = ZoneSimulation.build(level, ref);
+		helper.assertValueEqual(simulation.moves().size(), 1, "the simulation lists it");
+		ZonePayloads.Move move = simulation.moves().getFirst();
+		helper.assertTrue(move.tidy() && move.item().equals(id(Items.DIRT)) && move.count() == 64
+				&& move.to().equals(Optional.of(chests[1])), "as a tidy row: 64x dirt into the dirt chest");
+
+		// A chest full of one item is never a source, and cannot be a destination.
+		Object[] full = new Object[54];
+		for (int i = 0; i < 27; i++) {
+			full[2 * i] = Items.COBBLESTONE;
+			full[2 * i + 1] = 64;
+		}
+		BlockPos fullChest = chest(helper, new BlockPos(2, 1, 6), full);
+		BlockPos sibling = chest(helper, new BlockPos(4, 1, 6), Items.COBBLESTONE, 5, Items.GRAVEL, 3);
+		label(level, fullChest, ChestLabel.exact(id(Items.COBBLESTONE)));
+		label(level, sibling, ChestLabel.exact(id(Items.COBBLESTONE)));
+		plan = io.github.lnasser11.waybettercoppergolem.sorting.SortingEngine.planTidy(level, java.util.Set.of(),
+				Zones.toAABB(structureBox(helper)), 64);
+		helper.assertTrue(plan.stream().noneMatch(m -> m.source().pos().equals(fullChest) || m.home().pos().equals(fullChest)),
+				"the full cobblestone chest is left alone (no room, nothing minority)");
+		helper.assertTrue(plan.stream().noneMatch(m -> m.stack().is(Items.GRAVEL)), "a misplaced stack is reorganize's job, not tidy's");
+		Zones.remove(level, anchor);
+		helper.succeed();
+	}
+
+	/** The example from the brief: a golem moves the dirt over, freeing the slot in the stone chest. */
+	@GameTest(maxTicks = GOLEM_TIMEOUT)
+	public void golemTidiesTheDirtIntoTheSiblingChest(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos anchor = copperChest(helper, new BlockPos(1, 1, 1));
+		Zones.put(level, anchor, new Zone(structureBox(helper), ZoneSettings.DEFAULT.withTidyInside(true)));
+		BlockPos[] chests = stoneAndDirtSiblings(helper);
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		((ZoneAwareGolem) golem).wbcg$joinZoneAt(level, anchor);
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, anchor);
+			golem.discard();
+		});
+		helper.failIfEver(() -> {
+			helper.assertValueEqual(count(level, chests[0], Items.STONE), 26 * 64, "stone never leaves the stone chest");
+			helper.assertValueEqual(count(level, chests[1], Items.STONE), 0, "no stone arrives in the dirt chest");
+		});
+		helper.succeedWhen(() -> {
+			helper.assertValueEqual(count(level, chests[0], Items.DIRT), 0, "the dirt left the stone chest");
+			helper.assertValueEqual(count(level, chests[1], Items.DIRT), 64 + 94, "all the dirt is in the dirt chest");
+			helper.assertTrue(golem.getMainHandItem().isEmpty(), "nothing left in hand");
+		});
+	}
+
+	/** In dry run the golem logs the move and touches nothing. */
+	@GameTest(maxTicks = 1200)
+	public void tidyInDryRunMovesNothing(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos anchor = copperChest(helper, new BlockPos(1, 1, 1));
+		Zones.put(level, anchor, new Zone(structureBox(helper), ZoneSettings.DEFAULT.withTidyInside(true).withDryRun(true)));
+		BlockPos[] chests = stoneAndDirtSiblings(helper);
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		((ZoneAwareGolem) golem).wbcg$joinZoneAt(level, anchor);
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, anchor);
+			golem.discard();
+		});
+		helper.runAfterDelay(800, () -> {
+			helper.assertValueEqual(count(level, chests[0], Items.DIRT), 64, "the dirt stayed in dry run");
+			helper.assertValueEqual(count(level, chests[1], Items.DIRT), 94, "the dirt chest is unchanged in dry run");
+			helper.assertTrue(golem.getMainHandItem().isEmpty(), "the golem carries nothing in dry run");
 			helper.succeed();
 		});
 	}

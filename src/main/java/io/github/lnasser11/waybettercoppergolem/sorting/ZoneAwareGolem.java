@@ -71,4 +71,9 @@ public interface ZoneAwareGolem {
 	@Nullable BlockPos wbcg$pendingFrameChest();
 
 	void wbcg$setPendingFrameChest(@Nullable BlockPos pos);
+
+	/** The home chest of the tidy stack this golem is carrying, if it is on a tidy trip. Runtime only. */
+	@Nullable BlockPos wbcg$tidyDestination();
+
+	void wbcg$setTidyDestination(@Nullable BlockPos pos);
 }
