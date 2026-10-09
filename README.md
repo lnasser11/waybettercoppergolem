@@ -131,9 +131,9 @@ button sits beside the inventory. On a regular chest it opens the
   Remove labels.
 
 Every choice applies to the chest immediately and the screen stays open,
-so you can keep adjusting. The chosen labels also land on your clipboard,
-ready to paste onto the next chests with the feather. On a copper chest
-the button opens the zone screen instead.
+so you can keep adjusting. The clipboard is left alone: only a
+sneak-left-click with the feather copies. On a copper chest the button
+opens the zone screen instead.
 
 ### The feather: copy and paste labels
 
@@ -253,6 +253,11 @@ anchor chest dissolves the zone.
 ---
 
 ## What the golems do
+
+Golems carry a whole stack per trip (configurable) and notice new items at
+once: whenever a copper chest's contents change, every golem nearby drops
+its idle cooldown and forgets that chest's "already visited" mark, so it
+searches again on the next tick. Vanilla would wait up to five minutes.
 
 ### Where an item goes
 
@@ -380,7 +385,8 @@ The server writes `config/waybettercoppergolem.json` on first start:
 {
   "tool_item": "minecraft:feather",
   "learn_radius": 32,
-  "learn_requires_op": true
+  "learn_requires_op": true,
+  "golem_carry_size": 64
 }
 ```
 
@@ -389,6 +395,7 @@ The server writes `config/waybettercoppergolem.json` on first start:
 | `tool_item` | `minecraft:feather` | the vanilla item that acts as the label tool. Any item id works; an unknown id logs a warning and the feather is used. Pick something without a right-click action of its own. |
 | `learn_radius` | 32 | default radius of `/wbcg learn` around the player (4–64) |
 | `learn_requires_op` | true | whether the learn pass needs permission level 2 |
+| `golem_carry_size` | 64 | items a golem carries per trip (1–64). Vanilla carries 16. |
 
 Clients learn the tool item from the server on join, so only the server
 file matters.

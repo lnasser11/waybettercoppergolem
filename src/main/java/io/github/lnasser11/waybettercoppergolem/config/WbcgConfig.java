@@ -34,22 +34,26 @@ import java.nio.file.Path;
  *       (copy/paste labels, open the picker). Default: a feather. Any
  *       registered item id works; an unknown id logs a warning and the
  *       feather is used.</li>
+ *   <li>{@code golem_carry_size} — how many items a golem carries per
+ *   trip (1–64; vanilla carries 16).</li>
  *   <li>{@code learn_radius} — default horizontal radius of
  *       {@code /wbcg learn} around the player.</li>
  *   <li>{@code learn_requires_op} — whether the learn pass needs
  *       permission level 2.</li>
  * </ul>
  */
-public record WbcgConfig(Identifier toolItemId, int learnRadius, boolean learnRequiresOp) {
+public record WbcgConfig(Identifier toolItemId, int learnRadius, boolean learnRequiresOp, int golemCarrySize) {
 	public static final Identifier DEFAULT_TOOL = BuiltInRegistries.ITEM.getKey(Items.FEATHER);
-	public static final WbcgConfig DEFAULT = new WbcgConfig(DEFAULT_TOOL, 32, true);
+	public static final int DEFAULT_CARRY_SIZE = 64;
+	public static final WbcgConfig DEFAULT = new WbcgConfig(DEFAULT_TOOL, 32, true, DEFAULT_CARRY_SIZE);
 	private static final String FILE_NAME = WayBetterCopperGolem.MOD_ID + ".json";
 	private static final Gson PRETTY = new GsonBuilder().setPrettyPrinting().create();
 
 	public static final Codec<WbcgConfig> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			Identifier.CODEC.optionalFieldOf("tool_item", DEFAULT.toolItemId()).forGetter(WbcgConfig::toolItemId),
 			Codec.intRange(4, 64).optionalFieldOf("learn_radius", DEFAULT.learnRadius()).forGetter(WbcgConfig::learnRadius),
-			Codec.BOOL.optionalFieldOf("learn_requires_op", DEFAULT.learnRequiresOp()).forGetter(WbcgConfig::learnRequiresOp)
+			Codec.BOOL.optionalFieldOf("learn_requires_op", DEFAULT.learnRequiresOp()).forGetter(WbcgConfig::learnRequiresOp),
+			Codec.intRange(1, 64).optionalFieldOf("golem_carry_size", DEFAULT.golemCarrySize()).forGetter(WbcgConfig::golemCarrySize)
 	).apply(instance, WbcgConfig::new));
 
 	private static volatile WbcgConfig current = DEFAULT;
@@ -102,7 +106,7 @@ public record WbcgConfig(Identifier toolItemId, int learnRadius, boolean learnRe
 		if (!BuiltInRegistries.ITEM.containsKey(loaded.toolItemId())) {
 			WayBetterCopperGolem.LOGGER.warn("Config {}: unknown tool_item '{}', using {}",
 					FILE_NAME, loaded.toolItemId(), DEFAULT_TOOL);
-			loaded = new WbcgConfig(DEFAULT_TOOL, loaded.learnRadius(), loaded.learnRequiresOp());
+			loaded = new WbcgConfig(DEFAULT_TOOL, loaded.learnRadius(), loaded.learnRequiresOp(), loaded.golemCarrySize());
 		}
 		current = loaded;
 		WayBetterCopperGolem.LOGGER.info("Label tool item: {}", current.toolItemId());
@@ -117,6 +121,7 @@ public record WbcgConfig(Identifier toolItemId, int learnRadius, boolean learnRe
 			json.addProperty("tool_item", config.toolItemId().toString());
 			json.addProperty("learn_radius", config.learnRadius());
 			json.addProperty("learn_requires_op", config.learnRequiresOp());
+			json.addProperty("golem_carry_size", config.golemCarrySize());
 			Files.writeString(path, PRETTY.toJson(json) + "\n", StandardCharsets.UTF_8);
 		} catch (IOException | RuntimeException e) {
 			WayBetterCopperGolem.LOGGER.warn("Could not write {}", FILE_NAME, e);

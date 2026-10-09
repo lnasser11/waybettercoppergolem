@@ -94,13 +94,11 @@ public final class ChestEditor {
 					? "waybettercoppergolem.tool.cleared_chest" : "waybettercoppergolem.tool.cleared_chest_frames";
 			player.sendOverlayMessage(Component.translatable(key, LabelResolver.listNames(now.labels())));
 			level.sendParticles(ParticleTypes.WAX_OFF, center.x, center.y, center.z, 12, 0.4, 0.4, 0.4, 0.0);
-			Clipboard.set(player, Clipboard.of(player).withLabels(Optional.of(List.of())));
 		} else {
 			ChestLabels.setExplicit(level, pos, state, labels);
 			player.sendOverlayMessage(Component.translatable("waybettercoppergolem.tool.pasted",
 					LabelResolver.listNames(labels)));
 			level.sendParticles(ParticleTypes.HAPPY_VILLAGER, center.x, center.y, center.z, 12, 0.4, 0.4, 0.4, 0.0);
-			Clipboard.set(player, Clipboard.of(player).withLabels(Optional.of(labels)));
 		}
 		sendContext(player, level, pos, state);
 	}

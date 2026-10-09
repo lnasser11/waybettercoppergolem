@@ -516,7 +516,7 @@ public final class WbcgGameTests {
 	}
 
 	@GameTest
-	public void editorAppliesLabelsAndCopiesToClipboard(GameTestHelper helper) {
+	public void editorAppliesLabelsAndLeavesTheClipboardAlone(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
 		BlockPos chest = chest(helper, new BlockPos(2, 1, 2), Items.IRON_INGOT, 10);
 		ServerPlayer player = mockPlayer(helper);
@@ -528,7 +528,7 @@ public final class WbcgGameTests {
 		ChestLabelSet set = ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest));
 		helper.assertTrue(set.explicit(), "explicit");
 		helper.assertValueEqual(set.labels(), labels, "labels applied");
-		helper.assertValueEqual(Clipboard.of(player).labels(), Optional.of(labels), "copied to the clipboard");
+		helper.assertValueEqual(Clipboard.of(player), Clipboard.EMPTY, "the editor does not touch the clipboard");
 
 		ChestEditor.apply(player, chest, List.of(ChestLabel.exact(Identifier.fromNamespaceAndPath("nomod", "x"))));
 		helper.assertValueEqual(ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest)).labels(), labels,
@@ -542,7 +542,7 @@ public final class WbcgGameTests {
 		player.setPos(Vec3.atCenterOf(chest.above()));
 		ChestEditor.apply(player, chest, List.of());
 		helper.assertTrue(ChestLabels.effectiveLabelSet(level, chest, level.getBlockState(chest)).isEmpty(), "cleared");
-		helper.assertTrue(Clipboard.of(player).isClearMarker(), "clipboard holds the clear marker");
+		helper.assertValueEqual(Clipboard.of(player), Clipboard.EMPTY, "still untouched after clearing");
 		helper.succeed();
 	}
 
@@ -896,6 +896,58 @@ public final class WbcgGameTests {
 			}
 		}
 		return total;
+	}
+
+	// ---------------------------------------------------------------- carry size and waking up
+
+	/** With the default config a golem carries a whole stack: the chest goes from 0 to 64 in one delivery. */
+	@GameTest(maxTicks = GOLEM_TIMEOUT)
+	public void golemCarriesAFullStack(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 3));
+		fill(helper, source, Items.IRON_INGOT, 64);
+		BlockPos target = chest(helper, new BlockPos(6, 1, 3));
+		label(level, target, ChestLabel.exact(id(Items.IRON_INGOT)));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		helper.failIfEver(() -> {
+			int delivered = count(level, target, Items.IRON_INGOT);
+			helper.assertTrue(delivered == 0 || delivered == 64, "a partial delivery of " + delivered + " means a 16-item trip");
+		});
+		helper.succeedWhen(() -> helper.assertValueEqual(count(level, target, Items.IRON_INGOT), 64, "the whole stack in one trip"));
+	}
+
+	/**
+	 * A golem that remembers the copper chest as "visited" and is in its idle
+	 * cooldown would ignore new items there for minutes; a content change
+	 * wakes it, so the items are delivered within seconds.
+	 */
+	@GameTest(maxTicks = 1200)
+	public void golemNoticesNewItemsInAChestItAlreadyVisited(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 3));
+		BlockPos target = chest(helper, new BlockPos(6, 1, 3));
+		label(level, target, ChestLabel.exact(id(Items.IRON_INGOT)));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			golem.discard();
+		});
+		// The stale state vanilla gets into: the chest is remembered for 6000 ticks and a cooldown is running.
+		golem.getBrain().setMemoryWithExpiry(net.minecraft.world.entity.ai.memory.MemoryModuleType.VISITED_BLOCK_POSITIONS,
+				new java.util.HashSet<>(List.of(new net.minecraft.core.GlobalPos(level.dimension(), source))), 6000);
+		golem.getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS, 140);
+		fill(helper, source, Items.IRON_INGOT, 16);
+		helper.succeedWhen(() -> helper.assertValueEqual(count(level, target, Items.IRON_INGOT), 16, "delivered despite the stale memory"));
 	}
 
 	// ---------------------------------------------------------------- vertical reach
