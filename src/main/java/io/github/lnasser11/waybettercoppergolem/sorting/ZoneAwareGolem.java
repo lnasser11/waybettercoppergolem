@@ -72,6 +72,15 @@ public interface ZoneAwareGolem {
 
 	void wbcg$setPendingFrameChest(@Nullable BlockPos pos);
 
+	/**
+	 * Remembers that the chest at {@code pos} could not be reached for a frame, so no frame trip targets it again
+	 * before {@code untilGameTime} (vanilla's unreachable memory is wiped by every pickup and deposit, which is too
+	 * short: the golem would fetch the frame, give up, bring it back and start over). Runtime only.
+	 */
+	void wbcg$skipFrameChestUntil(BlockPos pos, long untilGameTime);
+
+	boolean wbcg$isFrameChestSkipped(BlockPos pos, long gameTime);
+
 	/** The copper chest the frame in hand came from, so a frame trip that fails can bring it back. Runtime only. */
 	@Nullable BlockPos wbcg$frameReturnChest();
 

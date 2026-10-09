@@ -358,6 +358,39 @@ public final class WbcgBugHuntTests {
 		});
 	}
 
+	/**
+	 * README, Golems hang frames: with the setting on and frames in a copper
+	 * chest, bare labeled chests get a frame. That must not depend on a
+	 * delivery happening first: in a room that is already sorted, the only
+	 * thing in the copper chest is the frames, and an idle golem has to go
+	 * and hang them as background work.
+	 */
+	@GameTest(maxTicks = GOLEM_TIMEOUT)
+	public void idleGolemHangsFramesOnBareChestsWithoutADelivery(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		clearZonesAround(helper);
+		buildRoom(helper);
+		BlockPos source = copperChest(helper, new BlockPos(1, 1, 3));
+		fill(helper, source, Items.ITEM_FRAME, 3); // nothing to deliver, only supplies
+		BlockPos iron = chest(helper, new BlockPos(6, 1, 3), Items.IRON_INGOT, 10);
+		label(level, iron, ChestLabel.exact(id(Items.IRON_INGOT)));
+		Zones.put(level, source, new Zone(structureBox(helper), ZoneSettings.DEFAULT.withHangFrames(true)));
+		CopperGolem golem = spawnGolem(helper, new BlockPos(3, 1, 3));
+		((ZoneAwareGolem) golem).wbcg$joinZoneAt(level, source);
+		helper.runBeforeTestEnd(() -> {
+			Zones.remove(level, source);
+			framesInRoom(helper).forEach(ItemFrame::discard);
+			golem.discard();
+		});
+		helper.succeedWhen(() -> {
+			List<ItemFrame> frames = framesOnFront(level, iron);
+			helper.assertValueEqual(frames.size(), 1, "frames hung on the iron chest");
+			helper.assertTrue(frames.getFirst().getItem().is(Items.IRON_INGOT), "the frame shows an iron ingot");
+			helper.assertValueEqual(count(level, iron, Items.IRON_INGOT), 9, "one ingot left the chest for the frame");
+			helper.assertValueEqual(count(level, source, Items.ITEM_FRAME), 2, "one frame taken from the copper chest");
+		});
+	}
+
 	// ---------------------------------------------------------------- helpers (copies of WbcgGameTests')
 
 	private static int framesEverywhere(GameTestHelper helper, CopperGolem golem, BlockPos chest) {

@@ -41,8 +41,10 @@ import java.util.Set;
  * hang frames", off by default).
  *
  * <p>After a golem delivers into an explicitly labeled chest whose front
- * face is bare, the chest is remembered on the golem. On its next trip the
- * golem fetches one item frame (glow frames count too) from a copper chest
+ * face is bare, the chest is remembered on the golem; and a golem with
+ * nothing to deliver looks for such a chest itself ({@link #findBareChest},
+ * background work like reorganize). On its next trip the golem fetches one
+ * item frame (glow frames count too) from a copper chest
  * in the zone, carries it in hand like any item, and hangs it on the
  * chest's front face showing one of the chest's own items: the first stack
  * matching an exact-item label, otherwise the most common item inside. One
@@ -177,6 +179,39 @@ public final class FrameHanger {
 				double distSq = candidate.pos().distToCenterSqr(from);
 				if (distSq < bestDistSq) {
 					best = candidate;
+					bestDistSq = distSq;
+				}
+			}
+		}
+		return Optional.ofNullable(best);
+	}
+
+	/**
+	 * The nearest chest in the area that wants a frame ({@link #wantsFrame}),
+	 * one entry per double chest, skipping chests the golem found
+	 * unreachable and those {@code skip} rejects (the golem's own longer
+	 * memory of failed frame trips): the target of a background frame trip
+	 * when the golem has nothing to deliver.
+	 */
+	public static Optional<BlockPos> findBareChest(ServerLevel level, Vec3 from, Set<GlobalPos> unreachable, AABB searchArea,
+			java.util.function.Predicate<BlockPos> skip) {
+		BlockPos best = null;
+		double bestDistSq = Double.MAX_VALUE;
+		for (ChunkPos chunkPos : SortingEngine.chunksCovering(searchArea)) {
+			LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
+			if (chunk == null) {
+				continue;
+			}
+			for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+				BlockPos pos = blockEntity.getBlockPos();
+				if (!(blockEntity instanceof ChestBlockEntity) || !ChestLabels.isLabelableChest(blockEntity.getBlockState())
+						|| !searchArea.contains(pos.getX(), pos.getY(), pos.getZ())
+						|| unreachable.contains(new GlobalPos(level.dimension(), pos)) || skip.test(pos)) {
+					continue;
+				}
+				double distSq = pos.distToCenterSqr(from);
+				if (distSq < bestDistSq && wantsFrame(level, pos)) {
+					best = pos.immutable();
 					bestDistSq = distSq;
 				}
 			}

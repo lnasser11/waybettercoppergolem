@@ -375,6 +375,8 @@ meant to roam.
 Off by default. When on, keep a stack of item frames (glow frames work
 too) in any copper chest of the zone. After a golem delivers into an
 **explicitly labeled** chest whose front face is bare, its next trip is a
+frame trip; and a golem with nothing to deliver goes looking for such
+chests on its own, one per trip, as background work like reorganize. A
 frame trip: it fetches one frame from a copper chest, carries it in hand
 like any item, and hangs it on the chest's front face showing one of the
 chest's own items, which leaves the chest: the first stack matching an

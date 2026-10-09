@@ -104,6 +104,10 @@ public abstract class TransportItemsBetweenContainersMixin {
 	@org.spongepowered.asm.mixin.Unique
 	private static final int WBCG$REORGANIZE_IDLE_COOLDOWN = 1200;
 
+	/** A chest a frame trip could not reach is left alone for this long (five minutes) before another try. */
+	@org.spongepowered.asm.mixin.Unique
+	private static final long WBCG$FRAME_RETRY_TICKS = 6000;
+
 	/**
 	 * A golem working for a zone only sees chests inside the zone's box:
 	 * the vanilla search volume (used for the copper-chest pickup) is cut
@@ -180,9 +184,13 @@ public abstract class TransportItemsBetweenContainersMixin {
 		if (pending != null && FrameHanger.isFrame(held)) {
 			// Carrying the frame: the destination is the chest it is meant for.
 			TransportItemTarget chest = TransportItemTarget.tryCreatePossibleTarget(pending, level);
-			if (chest != null && !wbcg$isUnreachable(body, level, pending) && FrameHanger.wantsFrame(level, pending)) {
+			boolean unreachable = wbcg$isUnreachable(body, level, pending);
+			if (chest != null && !unreachable && FrameHanger.wantsFrame(level, pending)) {
 				cir.setReturnValue(Optional.of(chest));
 				return;
+			}
+			if (unreachable) {
+				golem.wbcg$skipFrameChestUntil(pending, level.getGameTime() + WBCG$FRAME_RETRY_TICKS);
 			}
 			golem.wbcg$setPendingFrameChest(null); // the chest changed its mind (front taken, frame hung by someone) or cannot be reached: give up
 		}
@@ -229,9 +237,11 @@ public abstract class TransportItemsBetweenContainersMixin {
 	/**
 	 * Reorganize-existing-chests: when the golem is empty-handed and vanilla
 	 * found no copper chest worth visiting, offer a labeled chest containing
-	 * a misplaced stack as the pickup source instead. Background work that
-	 * only runs when the dump queue is idle: one move per ten seconds, a
-	 * minute's pause when the storage room is already tidy.
+	 * a misplaced stack as the pickup source instead; then tidy moves and
+	 * sort visits, then (with "golems hang frames" on) a frame trip for a
+	 * bare labeled chest. Background work that only runs when the dump queue
+	 * is idle: one move per ten seconds, a minute's pause when the storage
+	 * room is already tidy.
 	 */
 	@Inject(method = "getTransportTarget", at = @At("RETURN"), cancellable = true)
 	private void wbcg$reorganizeSource(ServerLevel level, PathfinderMob body,
@@ -243,7 +253,8 @@ public abstract class TransportItemsBetweenContainersMixin {
 		ZoneAwareGolem golem = (ZoneAwareGolem) body;
 		ZoneSettings settings = golem.wbcg$zoneSettings(level);
 		long now = level.getGameTime();
-		if ((!settings.reorganize() && !settings.tidyInside()) || now < golem.wbcg$nextReorganizeTime()) {
+		boolean frames = settings.hangFrames() && !settings.dryRun();
+		if ((!settings.reorganize() && !settings.tidyInside() && !frames) || now < golem.wbcg$nextReorganizeTime()) {
 			return;
 		}
 		if (settings.reorganize()) {
@@ -277,6 +288,23 @@ public abstract class TransportItemsBetweenContainersMixin {
 				this.wbcg$sortActive = true;
 				cir.setReturnValue(untidy);
 				return;
+			}
+		}
+		if (frames) {
+			// Nothing to deliver or tidy: decorate a bare labeled chest, if the zone's copper chests hold a frame for it.
+			Optional<TransportItemTarget> source = FrameHanger.findFrameSource(level, body.position(),
+					wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS), wbcg$searchArea(body, level));
+			if (source.isPresent()) {
+				Optional<BlockPos> bare = FrameHanger.findBareChest(level, body.position(),
+						wbcg$memory(body, MemoryModuleType.UNREACHABLE_TRANSPORT_BLOCK_POSITIONS), wbcg$searchArea(body, level),
+						pos -> golem.wbcg$isFrameChestSkipped(pos, now));
+				if (bare.isPresent()) {
+					golem.wbcg$setPendingFrameChest(bare.get());
+					this.wbcg$frameTripActive = true;
+					golem.wbcg$setNextReorganizeTime(now + WBCG$REORGANIZE_SUCCESS_COOLDOWN);
+					cir.setReturnValue(source);
+					return;
+				}
 			}
 		}
 		golem.wbcg$setNextReorganizeTime(now + WBCG$REORGANIZE_IDLE_COOLDOWN);

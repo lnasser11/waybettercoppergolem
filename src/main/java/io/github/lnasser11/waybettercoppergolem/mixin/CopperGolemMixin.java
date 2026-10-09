@@ -60,6 +60,8 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	private @Nullable BlockPos wbcg$tidyDestination;
 	@Unique
 	private @Nullable BlockPos wbcg$frameReturnChest;
+	@Unique
+	private final java.util.Map<BlockPos, Long> wbcg$skippedFrameChests = new java.util.HashMap<>();
 
 	@Override
 	public void wbcg$setZoneChest(BlockPos pos) {
@@ -92,6 +94,18 @@ public abstract class CopperGolemMixin implements ZoneAwareGolem {
 	@Override
 	public void wbcg$setPendingFrameChest(@Nullable BlockPos pos) {
 		this.wbcg$pendingFrameChest = pos == null ? null : pos.immutable();
+	}
+
+	@Override
+	public void wbcg$skipFrameChestUntil(BlockPos pos, long untilGameTime) {
+		this.wbcg$skippedFrameChests.values().removeIf(until -> until < untilGameTime - 12000L);
+		this.wbcg$skippedFrameChests.put(pos.immutable(), untilGameTime);
+	}
+
+	@Override
+	public boolean wbcg$isFrameChestSkipped(BlockPos pos, long gameTime) {
+		Long until = this.wbcg$skippedFrameChests.get(pos);
+		return until != null && gameTime < until;
 	}
 
 	@Override
