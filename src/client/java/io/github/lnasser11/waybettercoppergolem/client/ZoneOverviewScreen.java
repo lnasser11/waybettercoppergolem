@@ -93,7 +93,7 @@ public class ZoneOverviewScreen extends Screen {
 						Component.translatable("waybettercoppergolem.overview.paste_all", unlabeled), button -> {
 							for (Entry entry : this.overview.entries()) {
 								if (entry.labels().isEmpty()) {
-									ClientPlayNetworking.send(new EditorPayloads.SetChestLabels(entry.pos(), clipboard.orElseThrow()));
+									ClientPlayNetworking.send(new EditorPayloads.PasteClipboard(entry.pos()));
 								}
 							}
 							refresh();
@@ -127,7 +127,7 @@ public class ZoneOverviewScreen extends Screen {
 			x += ACTION_WIDTH + Ui.GAP;
 			Button paste = this.addRenderableWidget(Button.builder(Component.translatable("waybettercoppergolem.overview.paste"),
 							button -> {
-								ClientPlayNetworking.send(new EditorPayloads.SetChestLabels(pos, clipboard.orElseThrow()));
+								ClientPlayNetworking.send(new EditorPayloads.PasteClipboard(pos));
 								refresh();
 							})
 					.tooltip(Tooltip.create(pasteTooltip))

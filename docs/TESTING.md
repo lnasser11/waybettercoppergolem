@@ -407,6 +407,12 @@ scale your monitor allows, and check:
    *Mode* → it turns red (`Golem frames: not on this chest`) and the chest
    never gets a frame even with the zone setting on; click again to allow
    it. The switch needs the same permission as a label edit.
+7. With the chip red, sneak-left-click that chest → `Copied labels: Iron
+   Ingot · no golem frames`; the HUD shows the same. Sneak-right-click
+   another chest → `Labeled chest: Iron Ingot · no golem frames` and its
+   editor chip is red too. The overview's **Paste** does the same. Copy a
+   chest whose chip is green and paste again → the chip turns green.
+   Picker → Iron Ingot → the clipboard line loses `· no golem frames`.
 
 ## 12c. Idle golems perch (off by default)
 

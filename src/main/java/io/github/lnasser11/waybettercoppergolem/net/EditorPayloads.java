@@ -16,7 +16,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 import java.util.List;
 
-/** The three payloads behind the per-chest editor. */
+/** The payloads behind the per-chest editor and the overview's paste buttons. */
 public final class EditorPayloads {
 	private EditorPayloads() {
 	}
@@ -73,6 +73,22 @@ public final class EditorPayloads {
 				Codec.BOOL.fieldOf("allowed").forGetter(SetChestFrames::allowed)
 		).apply(instance, SetChestFrames::new));
 		public static final StreamCodec<ByteBuf, SetChestFrames> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
+	/**
+	 * Client → server: paste the player's clipboard (labels and the copied
+	 * chest's frame switch) onto the chest at pos: the overview's Paste
+	 * buttons, the same as a sneak-right-click with the feather.
+	 */
+	public record PasteClipboard(BlockPos pos) implements CustomPacketPayload {
+		public static final Type<PasteClipboard> TYPE = new Type<>(WayBetterCopperGolem.id("paste_clipboard"));
+		public static final StreamCodec<ByteBuf, PasteClipboard> STREAM_CODEC =
+				BlockPos.STREAM_CODEC.map(PasteClipboard::new, PasteClipboard::pos);
 
 		@Override
 		public Type<? extends CustomPacketPayload> type() {

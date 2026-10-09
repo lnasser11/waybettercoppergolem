@@ -283,21 +283,36 @@ public final class LabelTool {
 			particles(level, pos, ParticleTypes.WAX_OFF);
 			return;
 		}
-		Clipboard.set(player, clipboard.withLabels(Optional.of(labels.labels())));
+		// The chest's "no golem frames" switch travels with its labels.
+		boolean noGolemFrames = !ChestLabels.golemFramesAllowed(level, pos, state);
+		Clipboard.set(player, clipboard.withLabels(Optional.of(labels.labels()), noGolemFrames));
 		player.sendOverlayMessage(Component.translatable("waybettercoppergolem.tool.copied",
-				LabelResolver.listNames(labels.labels())));
+				describeLabels(labels.labels(), noGolemFrames)));
 		particles(level, pos, ParticleTypes.WAX_ON);
 	}
 
 	private static void pasteLabels(ServerPlayer player, ServerLevel level, BlockPos pos, BlockState state) {
+		if (Clipboard.of(player).labels().isEmpty()) {
+			player.sendOverlayMessage(Component.translatable("waybettercoppergolem.tool.nothing_to_paste"));
+		}
+		pasteClipboard(player, level, pos, state);
+	}
+
+	/**
+	 * Pastes the clipboard's labels slot onto a regular chest: the clear
+	 * marker removes its explicit labels, anything else becomes its explicit
+	 * labels together with the copied chest's frame switch. Shared by the
+	 * feather and the overview's Paste buttons. Returns false when nothing
+	 * was pasted (empty slot or no permission).
+	 */
+	public static boolean pasteClipboard(ServerPlayer player, ServerLevel level, BlockPos pos, BlockState state) {
 		Clipboard clipboard = Clipboard.of(player);
 		if (clipboard.labels().isEmpty()) {
-			player.sendOverlayMessage(Component.translatable("waybettercoppergolem.tool.nothing_to_paste"));
-			return;
+			return false;
 		}
 		if (!ZoneAccess.canEditLabelsAt(level, player, pos)) {
 			player.sendOverlayMessage(Component.translatable("waybettercoppergolem.access.labels_denied"));
-			return;
+			return false;
 		}
 		List<ChestLabel> labels = clipboard.labels().get();
 		if (labels.isEmpty()) {
@@ -309,14 +324,23 @@ public final class LabelTool {
 					: "waybettercoppergolem.tool.cleared_chest_frames";
 			player.sendOverlayMessage(Component.translatable(key, LabelResolver.listNames(now.labels())));
 			particles(level, pos, ParticleTypes.WAX_OFF);
-			return;
+			return true;
 		}
 		ChestLabels.setExplicit(level, pos, state, labels);
-		io.github.lnasser11.waybettercoppergolem.WayBetterCopperGolem.LOGGER.info("[labels] {} labeled the chest at {} as {} (tool)",
-				ZoneAccess.nameOf(player), pos, LabelResolver.listNames(labels).getString());
+		ChestLabels.setGolemFramesAllowed(level, pos, state, !clipboard.noGolemFrames());
+		io.github.lnasser11.waybettercoppergolem.WayBetterCopperGolem.LOGGER.info("[labels] {} labeled the chest at {} as {}{} (tool)",
+				ZoneAccess.nameOf(player), pos, LabelResolver.listNames(labels).getString(),
+				clipboard.noGolemFrames() ? ", no golem frames" : "");
 		player.sendOverlayMessage(Component.translatable("waybettercoppergolem.tool.pasted",
-				LabelResolver.listNames(labels)));
+				describeLabels(labels, clipboard.noGolemFrames())));
 		particles(level, pos, ParticleTypes.HAPPY_VILLAGER);
+		return true;
+	}
+
+	/** "Iron Ingot", or "Iron Ingot · no golem frames". */
+	private static Component describeLabels(List<ChestLabel> labels, boolean noGolemFrames) {
+		Component names = LabelResolver.listNames(labels);
+		return noGolemFrames ? Component.translatable("waybettercoppergolem.tool.labels_no_frames", names) : names;
 	}
 
 	// ---------------------------------------------------------------- zones
@@ -364,7 +388,7 @@ public final class LabelTool {
 		Component labels = clipboard.labels()
 				.map(list -> list.isEmpty()
 						? Component.translatable("waybettercoppergolem.tool.clipboard_clear_marker")
-						: LabelResolver.listNames(list))
+						: describeLabels(list, clipboard.noGolemFrames()))
 				.orElse(null);
 		Component zone = clipboard.zone().map(Zones::describe).orElse(null);
 		if (labels != null && zone != null) {
